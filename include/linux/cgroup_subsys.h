@@ -60,3 +60,10 @@ SUBSYS(net_prio)
 SUBSYS(timer_slack)
 #endif
 
+/* */
+
+#ifdef CONFIG_CGROUP_BFQIO
+SUBSYS(bfqio)
+#endif
+
+/* */
