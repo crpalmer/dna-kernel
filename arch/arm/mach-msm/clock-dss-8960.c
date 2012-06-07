@@ -98,7 +98,6 @@ int hdmi_pll_enable(void)
 	unsigned int val;
 	u32 ahb_en_reg, ahb_enabled;
 	unsigned int timeout_count;
-	unsigned int retry_count;
 
 	ahb_en_reg = readl_relaxed(AHB_EN_REG);
 	ahb_enabled = ahb_en_reg & BIT(4);
@@ -113,6 +112,13 @@ int hdmi_pll_enable(void)
 	writel_relaxed(0x10, HDMI_PHY_PLL_LOCKDET_CFG0);
 	writel_relaxed(0x1A, HDMI_PHY_PLL_LOCKDET_CFG1);
 
+	/* Wait for a short time before de-asserting
+	 * to allow the hardware to complete its job.
+	 * This much of delay should be fine for hardware
+	 * to assert and de-assert.
+	 */
+	udelay(10);
+
 	/* De-assert PLL S/W reset */
 	writel_relaxed(0x0D, HDMI_PHY_PLL_LOCKDET_CFG2);
 
@@ -121,6 +127,12 @@ int hdmi_pll_enable(void)
 	/* Assert PHY S/W reset */
 	writel_relaxed(val, HDMI_PHY_REG_12);
 	val &= ~BIT(5);
+
+	/* Wait for a short time before de-asserting
+	   to allow the hardware to complete its job.
+	   This much of delay should be fine for hardware
+	   to assert and de-assert. */
+	udelay(10);
 
 	/* De-assert PHY S/W reset */
 	writel_relaxed(val, HDMI_PHY_REG_12);
@@ -140,19 +152,29 @@ int hdmi_pll_enable(void)
 	writel_relaxed(0x80, HDMI_PHY_REG_2);
 
 	timeout_count = 1000;
-	retry_count = 0;
-	while (!(readl_relaxed(HDMI_PHY_PLL_STATUS0) & BIT(0))){
+	while (!(readl_relaxed(HDMI_PHY_PLL_STATUS0) & BIT(0)) &&
+			timeout_count) {
 		if (--timeout_count == 0) {
-
+			/*
+			 * PLL has still not locked.
+			 * Do a software reset and try again
+			 * Assert PLL S/W reset first
+			 */
 			writel_relaxed(0x8D, HDMI_PHY_PLL_LOCKDET_CFG2);
-			cpu_relax();
+
+			/* Wait for a short time before de-asserting
+			 * to allow the hardware to complete its job.
+			 * This much of delay should be fine for hardware
+			 * to assert and de-assert.
+			 */
+			udelay(10);
 			writel_relaxed(0x0D, HDMI_PHY_PLL_LOCKDET_CFG2);
 			timeout_count = 1000;
-			retry_count++;
-		}
-		if(retry_count == 5){
-			pr_err("%s: HDMI PLL enable retry 5 times fail, skip\n", __func__);
-			break;
+
+			pr_err("%s: PLL not locked after %d iterations\n",
+				__func__, timeout_count);
+			pr_err("%s: Asserting PLL S/W reset & trying again\n",
+				__func__);
 		}
 	}
 
