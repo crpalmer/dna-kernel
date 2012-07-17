@@ -115,8 +115,8 @@ struct msm_pcm_routing_ops {
  * dspst_id:  DSP audio stream ID
  * stream_type: playback or capture
  */
-void msm_pcm_routing_reg_phy_stream(int fedai_id, int dspst_id,
-	int stream_type);
+void msm_pcm_routing_reg_phy_stream(int fedai_id, bool perf_mode,
+				int dspst_id, int stream_type);
 void msm_pcm_routing_reg_psthr_stream(int fedai_id, int dspst_id,
 		int stream_type, int enable);
 
