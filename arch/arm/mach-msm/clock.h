@@ -153,6 +153,7 @@ void msm_clock_init(struct clock_init_data *data);
 int vote_vdd_level(struct clk_vdd_class *vdd_class, int level);
 int unvote_vdd_level(struct clk_vdd_class *vdd_class, int level);
 void keep_dig_voltage_low_in_idle(bool on);
+int find_vdd_level(struct clk *clk, unsigned long rate);
 
 #ifdef CONFIG_DEBUG_FS
 int clock_debug_init(struct clock_init_data *data);
