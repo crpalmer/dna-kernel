@@ -3299,6 +3299,17 @@ void mdp_footswitch_ctrl(boolean on)
 	mutex_unlock(&mdp_suspend_mutex);
 }
 
+void mdp_free_splash_buffer(struct msm_fb_data_type *mfd)
+{
+	if (mfd->copy_splash_buf) {
+		dma_free_coherent(NULL,	mdp_pdata->splash_screen_size,
+			mfd->copy_splash_buf,
+			(dma_addr_t) mfd->copy_splash_phys);
+
+		mfd->copy_splash_buf = NULL;
+	}
+}
+
 #ifdef CONFIG_PM
 static void mdp_suspend_sub(void)
 {
