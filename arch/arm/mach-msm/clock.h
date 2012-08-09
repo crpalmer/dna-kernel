@@ -94,6 +94,16 @@ struct clk_ops {
 	bool (*is_local)(struct clk *clk);
 };
 
+/**
+ * struct clk
+ * @prepare_count: prepare refcount
+ * @prepare_lock: protects clk_prepare()/clk_unprepare() path and @prepare_count
+ * @count: enable refcount
+ * @lock: protects clk_enable()/clk_disable() path and @count
+ * @depends: non-direct parent of clock to enable when this clock is enabled
+ * @vdd_class: voltage scaling requirement class
+ * @fmax: maximum frequency in Hz supported at each voltage level
+ */
 struct clk {
 	uint32_t flags;
 	struct clk_ops *ops;
@@ -107,7 +117,6 @@ struct clk {
 	struct list_head siblings;
 	struct list_head enable_list;	
 
-	bool warned;
 	unsigned count;
 	spinlock_t lock;
 	unsigned prepare_count;
