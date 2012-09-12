@@ -534,7 +534,6 @@ static int msm_compr_capture_prepare(struct snd_pcm_substream *substream)
 	}
 	pr_debug("%s: Samp_rate = %d, Channel = %d, pcm_size = %d,\n"
 			 "pcm_count = %d, periods = %d\n",
-			 prtd,
 			 __func__, prtd->samp_rate, prtd->channel_mode,
 			 prtd->pcm_size, prtd->pcm_count, runtime->periods);
 
