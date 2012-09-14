@@ -2020,6 +2020,7 @@ u32 ddl_set_default_decoder_buffer_req(struct ddl_decoder_data *decoder,
 	struct vcd_buffer_requirement *input_buf_req;
 	struct vcd_buffer_requirement *output_buf_req;
 	u32  min_dpb, y_cb_cr_size;
+	u32  frame_height_actual = 0;
 	u32  min_dpb_from_res_trk = 0;
 
 	if (!decoder->codec.codec) {
@@ -2048,6 +2049,7 @@ u32 ddl_set_default_decoder_buffer_req(struct ddl_decoder_data *decoder,
 		if ((decoder->buf_format.buffer_format ==
 			VCD_BUFFER_FORMAT_TILE_4x2) &&
 			(frame_size->height < MDP_MIN_TILE_HEIGHT)) {
+			frame_height_actual = frame_size->height;
 			frame_size->height = MDP_MIN_TILE_HEIGHT;
 			ddl_calculate_stride(frame_size,
 				!decoder->progressive_only);
@@ -2093,6 +2095,10 @@ u32 ddl_set_default_decoder_buffer_req(struct ddl_decoder_data *decoder,
 	input_buf_req->sz = (1024 * 1024 * 2);
 	input_buf_req->align = DDL_LINEAR_BUFFER_ALIGN_BYTES;
 	decoder->min_input_buf_req = *input_buf_req;
+	if (frame_height_actual) {
+		frame_size->height = frame_height_actual;
+		ddl_calculate_stride(frame_size, !decoder->progressive_only);
+	}
 	return true;
 }
 
