@@ -4635,6 +4635,7 @@ static void __init monarudo_common_init(void)
 {
 	int rc = 0;
 	struct kobject *properties_kobj;
+	struct msm_rpmrs_level rpmrs_level;
 
 	msm_thermal_init(&msm_thermal_pdata);
 
@@ -4718,8 +4719,12 @@ static void __init monarudo_common_init(void)
 	monarudo_cable_detect_register();
 	monarudo_init_pmic();
 
-	android_usb_pdata.swfi_latency =
-			msm_rpmrs_levels[0].latency_us;
+	rpmrs_level =
+		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT];
+	msm_hsic_pdata.swfi_latency = rpmrs_level.latency_us;
+	rpmrs_level =
+		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE];
+	msm_hsic_pdata.standalone_latency = rpmrs_level.latency_us;
 
 	apq8064_device_otg.dev.platform_data = &msm_otg_pdata;
 	monarudo_init_buses();
