@@ -586,6 +586,7 @@ struct mipi_dsi_panel_platform_data {
 // HTC:
 	unsigned char (*shrink_pwm)(int val);
 // :HTC
+	void (*gpio_set_backlight)(int bl_level);
 };
 
 struct lvds_panel_platform_data {
