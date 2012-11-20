@@ -99,6 +99,7 @@ struct msm_hsic_hcd {
 	struct clk		*phy_clk;
 	struct clk		*cal_clk;
 	struct regulator	*hsic_vddcx;
+	struct regulator	*hsic_gdsc;
 	bool			async_int;
 	atomic_t                in_lpm;
 	struct wake_lock	wlock;
@@ -130,6 +131,7 @@ extern int subsystem_restart(const char *name);
 struct msm_hsic_hcd *__mehci;
 
 static bool debug_bus_voting_enabled = false;
+static u64 ehci_msm_hsic_dma_mask = DMA_BIT_MASK(32);
 
 static unsigned int enable_dbg_log = 0;
 module_param(enable_dbg_log, uint, S_IRUGO | S_IWUSR);
@@ -626,6 +628,35 @@ reg_enable_err:
 	regulator_set_voltage(mehci->hsic_vddcx, none_vol, max_vol);
 
 	return ret;
+
+}
+
+/* Global Distributed Switch Controller (GDSC) init */
+static int msm_hsic_init_gdsc(struct msm_hsic_hcd *mehci, int init)
+{
+	int ret = 0;
+
+	if (IS_ERR(mehci->hsic_gdsc))
+		return 0;
+
+	if (!mehci->hsic_gdsc) {
+		mehci->hsic_gdsc = devm_regulator_get(mehci->dev,
+			"HSIC_GDSC");
+		if (IS_ERR(mehci->hsic_gdsc))
+			return 0;
+	}
+
+	if (init) {
+		ret = regulator_enable(mehci->hsic_gdsc);
+		if (ret) {
+			dev_err(mehci->dev, "unable to enable hsic gdsc\n");
+			return ret;
+		}
+	} else {
+		regulator_disable(mehci->hsic_gdsc);
+	}
+
+	return 0;
 
 }
 
@@ -1805,6 +1836,11 @@ static int __devinit ehci_hsic_msm_probe(struct platform_device *pdev)
 		usb_pm_debug_enabled = true;
 	/* --SSD_RIL */
 
+	if (!pdev->dev.dma_mask)
+		pdev->dev.dma_mask = &ehci_msm_hsic_dma_mask;
+	if (!pdev->dev.coherent_dma_mask)
+		pdev->dev.coherent_dma_mask = DMA_BIT_MASK(32);
+
 	/* After parent device's probe is executed, it will be put in suspend
 	 * mode. When child device's probe is called, driver core is not
 	 * resuming parent device due to which parent will be in suspend even
@@ -1858,6 +1894,13 @@ static int __devinit ehci_hsic_msm_probe(struct platform_device *pdev)
 	mehci->ehci.max_log2_irq_thresh = 6;
 
 	INIT_WORK(&hcd->ssr_work,do_restart);
+
+	ret = msm_hsic_init_gdsc(mehci, 1);
+	if (ret) {
+		dev_err(&pdev->dev, "unable to initialize GDSC\n");
+		ret = -ENODEV;
+		goto put_hcd;
+	}
 
 	res = platform_get_resource_byname(pdev,
 			IORESOURCE_IRQ,
@@ -2027,6 +2070,7 @@ unconfig_gpio:
 	msm_hsic_config_gpios(mehci, 0);
 deinit_vddcx:
 	msm_hsic_init_vddcx(mehci, 0);
+	msm_hsic_init_gdsc(mehci, 0);
 deinit_clocks:
 	msm_hsic_init_clocks(mehci, 0);
 unmap:
@@ -2080,6 +2124,7 @@ static int __devexit ehci_hsic_msm_remove(struct platform_device *pdev)
 	usb_remove_hcd(hcd);
 	msm_hsic_config_gpios(mehci, 0);
 	msm_hsic_init_vddcx(mehci, 0);
+	msm_hsic_init_gdsc(mehci, 0);
 
 	msm_hsic_init_clocks(mehci, 0);
 	wake_lock_destroy(&mehci->wlock);
@@ -2200,7 +2245,11 @@ static const struct dev_pm_ops msm_hsic_dev_pm_ops = {
 				msm_hsic_runtime_idle)
 };
 #endif
-
+static const struct of_device_id hsic_host_dt_match[] = {
+	{ .compatible = "qcom,hsic-host",
+	},
+	{}
+};
 static struct platform_driver ehci_msm_hsic_driver = {
 	.probe	= ehci_hsic_msm_probe,
 	.remove	= __devexit_p(ehci_hsic_msm_remove),
@@ -2209,5 +2258,6 @@ static struct platform_driver ehci_msm_hsic_driver = {
 #ifdef CONFIG_PM
 		.pm = &msm_hsic_dev_pm_ops,
 #endif
+		.of_match_table = hsic_host_dt_match,
 	},
 };
