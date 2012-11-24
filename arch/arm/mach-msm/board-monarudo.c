@@ -4820,6 +4820,10 @@ static void __init monarudo_allocate_memory_regions(void)
 	monarudo_allocate_fb_region();
 }
 
+#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
+int id_set_two_phase_freq(int cpufreq);
+#endif
+
 static void __init monarudo_cdp_init(void)
 {
 #if 1
@@ -4827,6 +4831,9 @@ static void __init monarudo_cdp_init(void)
 #endif
 	pr_info("%s: init starts\r\n", __func__);
 	msm_tsens_early_init(&apq_tsens_pdata);
+#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
+	id_set_two_phase_freq(1134000);
+#endif
 	monarudo_common_init();
 	ethernet_init();
 	msm_rotator_set_split_iommu_domain();
