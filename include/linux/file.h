@@ -20,7 +20,7 @@ struct path;
 extern struct file *alloc_file(struct path *, fmode_t mode,
 	const struct file_operations *fop);
 
-static inline void fput_light(struct file *file, int fput_needed)
+static void inline fput_light(struct file *file, int fput_needed)
 {
 	if (fput_needed)
 		fput(file);
