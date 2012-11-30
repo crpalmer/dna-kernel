@@ -6878,6 +6878,23 @@ struct clock_init_data monarudo_clock_init_data_xd __initdata = {
 	.late_init = msm8960_clock_late_init,
 };
 /* HTC_END */
+/* HTC_START_Simon.Ti_Liu_20120702_IMPLEMENT_MCLK_SWITCH*/
+struct clock_init_data impression_j_clock_init_data_xa __initdata = {
+	.table = deluxe_j_clocks_8064_xb,
+	.size = ARRAY_SIZE(deluxe_j_clocks_8064_xb),
+	.pre_init = msm8960_clock_pre_init,
+	.post_init = msm8960_clock_post_init,
+	.late_init = msm8960_clock_late_init,
+};
+/* HTC_END */
+
+struct clock_init_data m7_clock_init_data_xa __initdata = {
+	.table = deluxe_j_clocks_8064_xb,
+	.size = ARRAY_SIZE(deluxe_j_clocks_8064_xb),
+	.pre_init = msm8960_clock_pre_init,
+	.post_init = msm8960_clock_post_init,
+	.late_init = msm8960_clock_late_init,
+};
 
 struct clock_init_data msm8930_clock_init_data __initdata = {
 	.table = msm_clocks_8930,
