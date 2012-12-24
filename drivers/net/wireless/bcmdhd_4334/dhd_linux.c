@@ -3508,6 +3508,11 @@ printf("Read PCBID = %x\n", system_rev);
 	}
 #endif
 
+#ifdef CONFIG_MACH_IMPRESSION_J
+	if (system_rev >= XC){
+		strcpy(nvram_path, "/system/etc/calibration.gpio4");
+	}
+#endif
 return 0;
 }
 /*HTC_CSP_END*/

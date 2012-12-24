@@ -174,6 +174,8 @@ extern struct clock_init_data apq8064_clock_init_data;
 extern struct clock_init_data deluxe_j_clock_init_data_xb;/* HTC_START_Simon.Ti_Liu_20120702_IMPLEMENT_MCLK_SWITCH*/
 extern struct clock_init_data deluxe_u_clock_init_data_xb;
 extern struct clock_init_data monarudo_clock_init_data_xd;/* HTC_START_Simon.Ti_Liu_20120712_IMPLEMENT_MCLK_SWITCH*/
+extern struct clock_init_data impression_j_clock_init_data_xa;
+extern struct clock_init_data m7_clock_init_data_xa;
 
 extern struct clock_init_data fsm9xxx_clock_init_data;
 extern struct clock_init_data msm7x01a_clock_init_data;
