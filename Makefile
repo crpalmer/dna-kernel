@@ -2,7 +2,7 @@ VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 10
 EXTRAVERSION =
-NAME = dsb9938.Cubed.DNA.Stock.System.Write
+NAME = LK_DNA
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
