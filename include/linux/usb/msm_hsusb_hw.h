@@ -29,6 +29,7 @@
 
 #define USBCMD_RESET   2
 #define USB_USBINTR          (MSM_USB_BASE + 0x0148)
+#define USB_FRINDEX          (MSM_USB_BASE + 0x014C)
 
 #define PORTSC_LS		(3 << 10) /* Read - Port's Line status */
 #define PORTSC_PHCD            (1 << 23) /* phy suspend mode */
