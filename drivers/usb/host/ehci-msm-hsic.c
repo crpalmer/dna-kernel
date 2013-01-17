@@ -84,7 +84,9 @@ struct msm_hsic_hcd {
 	struct clk		*phy_clk;
 	struct clk		*cal_clk;
 	struct regulator	*hsic_vddcx;
+	bool			async_int;
 	atomic_t                in_lpm;
+	struct wake_lock	wlock;
 	int			peripheral_status_irq;
 	int			wakeup_irq;
 	int			wakeup_gpio;
@@ -92,8 +94,7 @@ struct msm_hsic_hcd {
 	int			ready_gpio;
 	int			mdm2ap_status_gpio;
 	bool			wakeup_irq_enabled;
-	bool			irq_enabled;
-	bool			async_int;
+	atomic_t		pm_usage_cnt;
 	uint32_t		bus_perf_client;
 	uint32_t		wakeup_int_cnt;
 	enum usb_vdd_type	vdd_type;
@@ -869,15 +870,13 @@ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
 
 	disable_irq(hcd->irq);
 
-	/* make sure we don't race against the root hub being resumed */
-	if (HCD_RH_RUNNING(hcd) || HCD_WAKEUP_PENDING(hcd) ||
+	/* make sure we don't race against a remote wakeup */
+	if (test_bit(HCD_FLAG_WAKEUP_PENDING, &hcd->flags) ||
 	    readl_relaxed(USB_PORTSC) & PORT_RESUME) {
-		dev_warn(mehci->dev, "%s: Root hub is not suspended\n",
-				__func__);
+		dev_dbg(mehci->dev, "wakeup pending, aborting suspend\n");
 		enable_irq(hcd->irq);
 		return -EBUSY;
 	}
-	mehci->irq_enabled = false;
 
 	/*
 	 * PHY may take some time or even fail to enter into low power
@@ -935,7 +934,6 @@ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
 	}
 
 	atomic_set(&mehci->in_lpm, 1);
-	mehci->irq_enabled = true;
 	enable_irq(hcd->irq);
 
 	mehci->wakeup_irq_enabled = 1;
@@ -959,6 +957,7 @@ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
 	if (usb_device_recongnized)
 		cancel_delayed_work(&mdm_hsic_pm_monitor_delayed_work);
 	/* --SSD_RIL */
+	wake_unlock(&mehci->wlock);
 
 	dev_dbg(mehci->dev, "HSIC-USB in low power mode\n");
 
@@ -986,6 +985,7 @@ static int msm_hsic_resume(struct msm_hsic_hcd *mehci)
 	}
 	spin_unlock_irqrestore(&mehci->wakeup_lock, flags);
 
+	wake_lock(&mehci->wlock);
 	/* ++SSD_RIL */
 	/* ++SSD_RIL */
 	mdm_hsic_phy_resume_jiffies = jiffies;
@@ -1049,14 +1049,13 @@ skip_phy_resume:
 	if (mehci->async_int) {
 		mehci->async_int = false;
 		pm_runtime_put_noidle(mehci->dev);
-	}
-
-	if (!mehci->irq_enabled) {
 		enable_irq(hcd->irq);
-		mehci->irq_enabled = true;
 	}
 
-	pm_relax(mehci->dev);
+	if (atomic_read(&mehci->pm_usage_cnt)) {
+		atomic_set(&mehci->pm_usage_cnt, 0);
+		pm_runtime_put_noidle(mehci->dev);
+	}
 
 	dev_dbg(mehci->dev, "HSIC-USB exited from low power mode\n");
 
@@ -1083,11 +1082,9 @@ static irqreturn_t msm_hsic_irq(struct usb_hcd *hcd)
 
 	if (atomic_read(&mehci->in_lpm)) {
 		disable_irq_nosync(hcd->irq);
-		mehci->irq_enabled = false;
 		dev_dbg(mehci->dev, "phy async intr\n");
 		mehci->async_int = true;
 		pm_runtime_get(mehci->dev);
-		pm_stay_awake(mehci->dev);
 		return IRQ_HANDLED;
 	}
 
@@ -1298,7 +1295,7 @@ static irqreturn_t hsic_peripheral_status_change(int irq, void *dev_id)
 static irqreturn_t msm_hsic_wakeup_irq(int irq, void *data)
 {
 	struct msm_hsic_hcd *mehci = data;
-	//int ret = 0; // LK - commented out
+	int ret = 0;
 
 	mehci->wakeup_int_cnt++;
 	dbg_log_event(NULL, "Remote Wakeup IRQ", mehci->wakeup_int_cnt);
@@ -1311,9 +1308,7 @@ static irqreturn_t msm_hsic_wakeup_irq(int irq, void *data)
 	*/
 	/* --SSD_RIL */
 
-	mehci->async_int = true;
-	pm_runtime_get(mehci->dev);
-	pm_stay_awake(mehci->dev);
+	wake_lock(&mehci->wlock);
 
 	spin_lock(&mehci->wakeup_lock);
 	if (mehci->wakeup_irq_enabled) {
@@ -1323,24 +1318,23 @@ static irqreturn_t msm_hsic_wakeup_irq(int irq, void *data)
 	}
 	spin_unlock(&mehci->wakeup_lock);
 
-// LK - commented out
-/*	if (!atomic_read(&mehci->pm_usage_cnt)) {
+	if (!atomic_read(&mehci->pm_usage_cnt)) {
 		dev_info(mehci->dev, "%s: Remote wakeup makes hsic run pm runtime resume. \n", __func__);
 		ret = pm_runtime_get(mehci->dev);
 		dev_info(mehci->dev, "%s: hsic pm_runtime_get return: %d\n",
-					__func__, ret);*/
+					__func__, ret);
 		/*
                  * HSIC runtime resume can race with us.
                  * if we are active (ret == 1) or resuming
                  * (ret == -EINPROGRESS), decrement the
                  * PM usage counter before returning.
                  */
-/*                if ((ret == 1) || (ret == -EINPROGRESS))
+                if ((ret == 1) || (ret == -EINPROGRESS))
                         pm_runtime_put_noidle(mehci->dev);
                 else
                         atomic_set(&mehci->pm_usage_cnt, 1);
 
-	}*/
+	}
 
 	return IRQ_HANDLED;
 }
@@ -1684,8 +1678,9 @@ static int __devinit ehci_hsic_msm_probe(struct platform_device *pdev)
 		goto unconfig_gpio;
 	}
 	
-	mehci->irq_enabled = true;
 	device_init_wakeup(&pdev->dev, 1);
+	wake_lock_init(&mehci->wlock, WAKE_LOCK_SUSPEND, dev_name(&pdev->dev));
+	wake_lock(&mehci->wlock);
 
 	if (mehci->peripheral_status_irq) {
 		ret = request_threaded_irq(mehci->peripheral_status_irq,
@@ -1819,6 +1814,7 @@ static int __devexit ehci_hsic_msm_remove(struct platform_device *pdev)
 	msm_hsic_init_vddcx(mehci, 0);
 
 	msm_hsic_init_clocks(mehci, 0);
+	wake_lock_destroy(&mehci->wlock);
 	iounmap(hcd->regs);
 	usb_put_hcd(hcd);
 
