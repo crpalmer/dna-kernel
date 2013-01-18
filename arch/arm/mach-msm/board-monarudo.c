@@ -4762,6 +4762,8 @@ static void __init monarudo_common_init(void)
 	else
         platform_device_register(&vibrator_pwm_device_XD);
 
+	msm_hsic_pdata.swfi_latency =
+		msm_rpmrs_levels[0].latency_us;
 	apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
 	device_initialize(&apq8064_device_hsic_host.dev);
 	monarudo_pm8xxx_gpio_mpp_init();
