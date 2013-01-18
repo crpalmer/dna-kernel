@@ -1203,6 +1203,8 @@ static int ehci_hsic_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 	return ehci_urb_enqueue(hcd, urb, mem_flags);
 }
 
+#ifdef CONFIG_PM
+
 static int ehci_hsic_bus_suspend(struct usb_hcd *hcd)
 {
 	struct msm_hsic_hcd *mehci = hcd_to_hsic(hcd);
@@ -1410,6 +1412,13 @@ static int ehci_hsic_bus_resume(struct usb_hcd *hcd)
 
 	return 0;
 }
+
+#else
+
+#define ehci_hsic_bus_suspend  NULL
+#define ehci_hsic_bus_resume  NULL
+
+#endif  /* CONFIG_PM */
 
 static struct hc_driver msm_hsic_driver = {
 	.description		= hcd_name,
