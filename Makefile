@@ -1579,6 +1579,11 @@ clean := -f $(if $(KBUILD_SRC),$(srctree)/)scripts/Makefile.clean obj
 
 endif	# skip-makefile
 
+# Droid DNA specific target to build the boot.img
+
+dna/boot.img: arch/arm/boot/zImage dna/bootimg.cfg dna/initrd.img
+	abootimg --create dna/boot.img -k arch/arm/boot/zImage -f dna/bootimg.cfg -r dna/initrd.img
+
 PHONY += FORCE
 FORCE:
 
