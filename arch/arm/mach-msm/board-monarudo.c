@@ -4641,6 +4641,7 @@ static void __init register_i2c_devices(void)
 
 static void __init monarudo_common_init(void)
 {
+	struct msm_rpmrs_level rpmrs_level;
 	int rc = 0;
 	struct kobject *properties_kobj;
 
@@ -4750,8 +4751,12 @@ static void __init monarudo_common_init(void)
 	else
         platform_device_register(&vibrator_pwm_device_XD);
 
-	msm_hsic_pdata.swfi_latency =
-		msm_rpmrs_levels[0].latency_us;
+	rpmrs_level =
+    		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT];
+  	msm_hsic_pdata.swfi_latency = rpmrs_level.latency_us;
+  	rpmrs_level =
+    		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE];
+  	msm_hsic_pdata.standalone_latency = rpmrs_level.latency_us;
 	apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
 	device_initialize(&apq8064_device_hsic_host.dev);
 	monarudo_pm8xxx_gpio_mpp_init();
