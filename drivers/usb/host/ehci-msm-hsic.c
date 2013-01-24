@@ -129,10 +129,10 @@ struct msm_hsic_hcd {
 extern int subsystem_restart(const char *name);
 struct msm_hsic_hcd *__mehci;
 
-static bool debug_bus_voting_enabled = true;
+static bool debug_bus_voting_enabled = false;
 static u64 ehci_msm_hsic_dma_mask = DMA_BIT_MASK(32);
 
-static unsigned int enable_dbg_log = 1;
+static unsigned int enable_dbg_log = 0;
 module_param(enable_dbg_log, uint, S_IRUGO | S_IWUSR);
 /*by default log ep0 and efs sync ep*/
 static unsigned int ep_addr_rxdbg_mask = 9;
