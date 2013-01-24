@@ -79,7 +79,7 @@ struct msm_hsic_hcd *__mehci;
 
 static bool debug_bus_voting_enabled = true;
 
-static unsigned int enable_dbg_log = 1;
+static unsigned int enable_dbg_log = 0;
 module_param(enable_dbg_log, uint, S_IRUGO | S_IWUSR);
 /*by default log ep0 and efs sync ep*/
 static unsigned int ep_addr_rxdbg_mask = 9;
