@@ -1,0 +1,11 @@
+Version 0.5.0
+
+Compile all modules inline.
+Enabls NTFS and CIFS.
+Disable remote assistance in initrd.
+Linaro -O3 compile and initial setup (dsb9938 / zarboz)
+ * Add min/max frequency
+ * Enable CPU frequency stats vi sysfw
+
+** Based on elkay's LK kernel hsic patches **
+** All of which is initially based on dsb9938's kernel **

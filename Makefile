@@ -2,7 +2,8 @@ VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 10
 EXTRAVERSION =
-NAME = LK_DNA
+CRPALMER_VERSION=crpalmer-0.5.0
+NAME = $(CRPALMER_VERSION)
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -1581,8 +1582,15 @@ endif	# skip-makefile
 
 # Droid DNA specific target to build the boot.img
 
-dna/boot.img: arch/arm/boot/zImage dna/bootimg.cfg dna/initrd.img
-	abootimg --create dna/boot.img -k arch/arm/boot/zImage -f dna/bootimg.cfg -r dna/initrd.img
+dna/boot-this-version.img:
+	make dna/boot-$(CRPALMER_VERSION).img
+
+dna/boot-$(CRPALMER_VERSION).img: arch/arm/boot/zImage dna/bootimg.cfg dna/initrd
+	abootimg --create $@ -k arch/arm/boot/zImage -f dna/bootimg.cfg -r dna/initrd.img
+	rm -rf dna/modules
+	mkdir -p dna/modules
+	cp `find . -name '*.ko'` dna/modules
+
 
 PHONY += FORCE
 FORCE:
