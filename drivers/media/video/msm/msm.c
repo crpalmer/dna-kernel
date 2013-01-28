@@ -4099,7 +4099,7 @@ error:
 	return ret;
 }
 //HTC_END
-extern int system_rev;
+extern unsigned int system_rev;
 
 static int __devinit msm_camera_probe(struct platform_device *pdev)
 {
