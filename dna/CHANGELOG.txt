@@ -1,4 +1,8 @@
-Version 0.5.0
+Version 0.5.1 (Faux123 misc improvements)
+
+Various optimizations and improved algorithms.  (faux123)
+
+Version 0.5.0 (Base + HSIC)
 
 Compile all modules inline.
 Enabls NTFS and CIFS.
