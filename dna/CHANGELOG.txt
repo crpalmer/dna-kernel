@@ -1,3 +1,7 @@
+Version 0.5.2
+
+Force fast-charge / unknown chargers (dsb9938)
+
 Version 0.5.1 (Faux123 misc improvements)
 
 Various optimizations and improved algorithms.  (faux123)
