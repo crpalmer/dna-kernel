@@ -1554,10 +1554,10 @@ ssize_t acpuclk_get_vdd_levels_str(char *buf) {
 	if (buf) {
 		mutex_lock(&driver_lock);
 
-		for (i = 0; drv.acpu_freq_tbl[i].speed.khz; i++) {
+		for (i = 0; acpu_freq_tbl[i].speed.khz; i++) {
 			/* updated to use uv required by 8x60 architecture - faux123 */
-			len += sprintf(buf + len, "%8lu: %8d\n", drv.acpu_freq_tbl[i].speed.khz,
-				drv.acpu_freq_tbl[i].vdd_core );
+			len += sprintf(buf + len, "%8u: %8d\n", acpu_freq_tbl[i].speed.khz,
+				acpu_freq_tbl[i].vdd_core );
 		}
 
 		mutex_unlock(&driver_lock);
@@ -1573,17 +1573,17 @@ void acpuclk_set_vdd(unsigned int khz, int vdd_uv) {
 
 	mutex_lock(&driver_lock);
 
-	for (i = 0; drv.acpu_freq_tbl[i].speed.khz; i++) {
+	for (i = 0; acpu_freq_tbl[i].speed.khz; i++) {
 		if (khz == 0)
-			new_vdd_uv = min(max((unsigned int)(drv.acpu_freq_tbl[i].vdd_core + vdd_uv),
+			new_vdd_uv = min(max((unsigned int)(acpu_freq_tbl[i].vdd_core + vdd_uv),
 				(unsigned int)HFPLL_MIN_VDD), (unsigned int)HFPLL_MAX_VDD);
-		else if ( drv.acpu_freq_tbl[i].speed.khz == khz)
+		else if ( acpu_freq_tbl[i].speed.khz == khz)
 			new_vdd_uv = min(max((unsigned int)vdd_uv,
 				(unsigned int)HFPLL_MIN_VDD), (unsigned int)HFPLL_MAX_VDD);
 		else 
 			continue;
 
-		drv.acpu_freq_tbl[i].vdd_core = new_vdd_uv;
+		acpu_freq_tbl[i].vdd_core = new_vdd_uv;
 	}
 	pr_warn("faux123: user voltage table modified!\n");
 	mutex_unlock(&driver_lock);
