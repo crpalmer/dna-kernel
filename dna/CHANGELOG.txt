@@ -1,3 +1,9 @@
+Version 0.6.0:
+
+Scheduler multi-core fixes, bug fixes, etc. from faux123's mako kernel.
+Architecture specific compilation flags (dsb9938)
+Turn off Perflock (dsb9338)
+
 Version 0.5.4:
 
 Add lastest interactive governor (faux123)
