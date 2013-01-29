@@ -1,10 +1,6 @@
-Version 0.5.2
-
-Force fast-charge / unknown chargers (dsb9938)
-
-Version 0.5.1 (Faux123 misc improvements)
-
-Various optimizations and improved algorithms.  (faux123)
+Version 0.5.3: Voltage control (faux123)
+Version 0.5.2: Force fast-charge / unknown chargers (dsb9938)
+Version 0.5.1: Various optimizations and improved algorithms.  (faux123)
 
 Version 0.5.0 (Base + HSIC)
 
