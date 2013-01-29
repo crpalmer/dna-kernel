@@ -1582,14 +1582,13 @@ endif	# skip-makefile
 
 # Droid DNA specific target to build the boot.img
 
-dna/boot-this-version.img:
-	make dna/boot-$(CRPALMER_VERSION).img
+DNA_IMG=~/dna/images/boot-$(CRPALMER_VERSION).img
 
-dna/boot-$(CRPALMER_VERSION).img: arch/arm/boot/zImage dna/bootimg.cfg dna/initrd
+dna/boot-this-version.img:
+	make $(DNA_IMG)
+
+$(DNA_IMG): arch/arm/boot/zImage dna/bootimg.cfg dna/initrd
 	abootimg --create $@ -k arch/arm/boot/zImage -f dna/bootimg.cfg -r dna/initrd.img
-	rm -rf dna/modules
-	mkdir -p dna/modules
-	cp `find . -name '*.ko'` dna/modules
 
 
 PHONY += FORCE
