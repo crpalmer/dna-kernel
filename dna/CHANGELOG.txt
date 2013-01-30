@@ -1,0 +1,28 @@
+Version 0.6.1: dsb9938's overclocking
+
+Version 0.6.0:
+
+Scheduler multi-core fixes, bug fixes, etc. from faux123's mako kernel.
+Architecture specific compilation flags (dsb9938)
+Turn off Perflock (dsb9338)
+
+Version 0.5.4:
+
+Add lastest interactive governor (faux123)
+Update ondemand governor to the latext (faux123)
+
+Version 0.5.3: Voltage control (faux123)
+Version 0.5.2: Force fast-charge / unknown chargers (dsb9938)
+Version 0.5.1: Various optimizations and improved algorithms.  (faux123)
+
+Version 0.5.0 (Base + HSIC)
+
+Compile all modules inline.
+Enabls NTFS and CIFS.
+Disable remote assistance in initrd.
+Linaro -O3 compile and initial setup (dsb9938 / zarboz)
+ * Add min/max frequency
+ * Enable CPU frequency stats vi sysfw
+
+** Based on elkay's LK kernel hsic patches **
+** All of which is initially based on dsb9938's kernel **

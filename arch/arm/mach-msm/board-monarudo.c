@@ -1490,12 +1490,6 @@ static struct i2c_board_info msm_i2c_mhl_sii9234_info[] =
 static struct msm_bus_vectors hsic_init_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
-               .dst = MSM_BUS_SLAVE_EBI_CH0,
-               .ab = 0,
-               .ib = 0,
-       },
-       {
-               .src = MSM_BUS_MASTER_SPS,
                .dst = MSM_BUS_SLAVE_SPS,
                .ab = 0,
                .ib = 0,
@@ -1506,15 +1500,9 @@ static struct msm_bus_vectors hsic_init_vectors[] = {
 static struct msm_bus_vectors hsic_max_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
-               .dst = MSM_BUS_SLAVE_EBI_CH0,
-               .ab = 60000000,         /* At least 480Mbps on bus. */
-               .ib = 960000000,        /* MAX bursts rate */
-       },
-       {
-               .src = MSM_BUS_MASTER_SPS,
                .dst = MSM_BUS_SLAVE_SPS,
                .ab = 0,
-               .ib = 512000000, /*vote for 64Mhz dfab clk rate*/
+               .ib = 256000000, /*vote for 32Mhz dfab clk rate*/
        },
 };
 
@@ -4653,6 +4641,7 @@ static void __init register_i2c_devices(void)
 
 static void __init monarudo_common_init(void)
 {
+	struct msm_rpmrs_level rpmrs_level;
 	int rc = 0;
 	struct kobject *properties_kobj;
 
@@ -4762,6 +4751,12 @@ static void __init monarudo_common_init(void)
 	else
         platform_device_register(&vibrator_pwm_device_XD);
 
+	rpmrs_level =
+    		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT];
+  	msm_hsic_pdata.swfi_latency = rpmrs_level.latency_us;
+  	rpmrs_level =
+    		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE];
+  	msm_hsic_pdata.standalone_latency = rpmrs_level.latency_us;
 	apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
 	device_initialize(&apq8064_device_hsic_host.dev);
 	monarudo_pm8xxx_gpio_mpp_init();

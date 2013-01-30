@@ -345,11 +345,11 @@ struct hc_driver {
 	int	(*set_usb2_hw_lpm)(struct usb_hcd *, struct usb_device *, int);
 
 	/* to log completion events*/
-	void	(*log_urb_complete)(struct urb *urb, char * event,
-			unsigned extra);
+	void	(*log_urb)(struct urb *urb, char *event, unsigned extra);
 	void	(*dump_regs)(struct usb_hcd *);
 	void	(*enable_ulpi_control)(struct usb_hcd *hcd, u32 linestate);
 	void	(*disable_ulpi_control)(struct usb_hcd *hcd);
+	void    (*set_autosuspend_delay)(struct usb_device *);
 };
 
 extern int usb_hcd_link_urb_to_ep(struct usb_hcd *hcd, struct urb *urb);

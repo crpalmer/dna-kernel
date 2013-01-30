@@ -2,7 +2,8 @@ VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 10
 EXTRAVERSION =
-NAME = dsb9938.Cubed.DNA.Stock.System.Write
+CRPALMER_VERSION=crpalmer-0.6.1
+NAME = $(CRPALMER_VERSION)
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -195,7 +196,7 @@ export KBUILD_BUILDHOST := $(SUBARCH)
 ARCH		?= $(SUBARCH)
 CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
 ARCH		:= arm
-CROSS_COMPILE	:= /opt/toolchains/arm-eabi-4.6/bin/arm-eabi-
+CROSS_COMPILE	:= /opt/toolchains/linaro.4.7/bin/arm-eabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
@@ -1578,6 +1579,17 @@ endif
 clean := -f $(if $(KBUILD_SRC),$(srctree)/)scripts/Makefile.clean obj
 
 endif	# skip-makefile
+
+# Droid DNA specific target to build the boot.img
+
+DNA_IMG=~/dna/images/boot-$(CRPALMER_VERSION).img
+
+dna/boot-this-version.img:
+	make $(DNA_IMG)
+
+$(DNA_IMG): arch/arm/boot/zImage dna/bootimg.cfg dna/initrd
+	abootimg --create $@ -k arch/arm/boot/zImage -f dna/bootimg.cfg -r dna/initrd.img
+
 
 PHONY += FORCE
 FORCE:

@@ -325,6 +325,7 @@ obj-$(CONFIG_MACH_DELUXE_J) += board-deluxe_j-all.o board-deluxe_j-regulator.o
 obj-$(CONFIG_MACH_DELUXE_U) += board-deluxe_u-all.o board-deluxe_u-regulator.o
 obj-$(CONFIG_MACH_IMPRESSION_J) += board-impression_j-all.o board-impression_j-regulator.o
 obj-$(CONFIG_MACH_M7) += board-m7-all.o board-m7-regulator.o
+obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 
 obj-$(CONFIG_MACH_MONARUDO) += htc_util.o
 obj-$(CONFIG_MACH_DELUXE_J) += htc_util.o
