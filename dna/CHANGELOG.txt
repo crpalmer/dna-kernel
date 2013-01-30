@@ -1,3 +1,5 @@
+Version 0.6.1: dsb9938's overclocking
+
 Version 0.6.0:
 
 Scheduler multi-core fixes, bug fixes, etc. from faux123's mako kernel.
