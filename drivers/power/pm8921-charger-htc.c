@@ -10,8 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-#define pr_fmt(fmt)	"[BATT][CHG] " fmt
-#define pr_fmt_debug(fmt)    "[BATT][CHG]%s: " fmt, __func__
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -48,13 +46,7 @@
 #if defined(pr_debug)
 #undef pr_debug
 #endif
-#define pr_debug(fmt, ...) do { \
-		if (flag_enable_BMS_Charger_log) \
-			printk(KERN_INFO pr_fmt_debug(fmt), ##__VA_ARGS__); \
-	} while (0)
-
-/* to dump BMS and Charger log*/
-static bool flag_enable_BMS_Charger_log;
+#define pr_debug(...) dev_dbg(the_chip->dev, __VA_ARGS__)
 
 #define CHG_BUCK_CLOCK_CTRL	0x14
 
@@ -5423,8 +5415,6 @@ static int __init pm8921_charger_init(void)
 		(get_kernel_flag() & KERNEL_FLAG_PA_RECHARG_TEST) ? 1 : 0;
 	flag_disable_wakelock =
 		(get_kernel_flag() & KERNEL_FLAG_DISABLE_WAKELOCK) ? 1 : 0;
-	flag_enable_BMS_Charger_log =
-               (get_kernel_flag() & KERNEL_FLAG_ENABLE_BMS_CHARGER_LOG) ? 1 : 0;
 	return platform_driver_register(&pm8921_charger_driver);
 }
 

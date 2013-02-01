@@ -10,8 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-#define pr_fmt(fmt)    "[BATT][CCADC] " fmt
-#define pr_fmt_debug(fmt)    "[BATT][CCADC]%s: " fmt, __func__
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -24,18 +22,13 @@
 #include <linux/debugfs.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
+#include <linux/device.h>
 #include <mach/board_htc.h>
 
 #if defined(pr_debug)
 #undef pr_debug
 #endif
-#define pr_debug(fmt, ...) do { \
-		if (flag_enable_bms_chg_log) \
-			printk(KERN_INFO pr_fmt_debug(fmt), ##__VA_ARGS__); \
-	} while (0)
-
-/* to dump BMS log*/
-static bool flag_enable_bms_chg_log;
+#define pr_debug(...) dev_dbg(the_chip->dev, __VA_ARGS__)
 
 #define CCADC_ANA_PARAM		0x240
 #define CCADC_DIG_PARAM		0x241
@@ -807,8 +800,6 @@ static struct platform_driver pm8xxx_ccadc_driver = {
 
 static int __init pm8xxx_ccadc_init(void)
 {
-	flag_enable_bms_chg_log =
-               (get_kernel_flag() & KERNEL_FLAG_ENABLE_BMS_CHARGER_LOG) ? 1 : 0;
 	return platform_driver_register(&pm8xxx_ccadc_driver);
 }
 

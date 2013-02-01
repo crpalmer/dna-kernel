@@ -2308,6 +2308,12 @@ config MSM_FAKE_BATTERY
 		help
 		 Enables MSM fake battery driver.
 
+config MSM_BATTERY_DEBUG
+		default n
+		bool "MSM Battery Debugging"
+		help
+		  Enables debug messages from the battery object.
+
 config APQ8064_ONLY
 		default n
 		bool "ARCH APQ8064 only"

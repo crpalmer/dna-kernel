@@ -1144,7 +1144,7 @@ static int usb_resume_interface(struct usb_device *udev,
 	}
 
 done:
-	dev_info(&intf->dev, "%s: status %d\n", __func__, status);
+	dev_dbg(&intf->dev, "%s: status %d\n", __func__, status);
 
 	/* Later we will unbind the driver and/or reprobe, if necessary */
 	return status;
@@ -1276,7 +1276,7 @@ static int usb_resume_both(struct usb_device *udev, pm_message_t msg)
 	usb_mark_last_busy(udev);
 
  done:
-	dev_info(&udev->dev, "%s: status %d\n", __func__, status);
+	dev_dbg(&udev->dev, "%s: status %d\n", __func__, status);
 	if (!status)
 		udev->reset_resume = 0;
 	return status;
