@@ -1587,7 +1587,7 @@ DNA_IMG=~/dna/images/boot-$(CRPALMER_VERSION).img
 dna/boot-this-version.img:
 	make $(DNA_IMG)
 
-$(DNA_IMG): arch/arm/boot/zImage dna/bootimg.cfg dna/initrd
+$(DNA_IMG): arch/arm/boot/zImage dna/bootimg.cfg
 	abootimg --create $@ -k arch/arm/boot/zImage -f dna/bootimg.cfg -r dna/initrd.img
 
 
