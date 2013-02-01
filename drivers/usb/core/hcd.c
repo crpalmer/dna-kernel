@@ -2087,7 +2087,7 @@ void usb_hcd_resume_root_hub (struct usb_hcd *hcd)
 		set_bit(HCD_FLAG_WAKEUP_PENDING, &hcd->flags);
 		/* ++SSD_RIL */
 		if (hcd->product_desc && !strncmp(hcd->product_desc, "Qualcomm EHCI Host Controller using HSIC", 40)) {
-			pr_info("%s: Queue root_hub resume task to PM RT workqueue. %s \n", __FUNCTION__, hcd->product_desc);
+			dev_dbg(hcd->self.controller, "%s: Queue root_hub resume task to PM RT workqueue. %s \n", __FUNCTION__, hcd->product_desc);
 			queue_work(pm_rt_wq, &hcd->wakeup_work);
 		} else
 		/* --SSD_RIL */

@@ -66,8 +66,6 @@ static struct delayed_work mdm_hsic_pm_monitor_delayed_work;
 static struct delayed_work register_usb_notification_work;
 void mdm_hsic_print_pm_info(void);
 
-static void mdm_hsic_print_usb_dev_pm_info(struct usb_device *udev);
-static void mdm_hsic_print_interface_pm_info(struct usb_device *udev);
 static bool usb_device_recongnized = false;
 unsigned long  mdm_hsic_phy_resume_jiffies = 0;
 unsigned long  mdm_hsic_phy_active_total_ms = 0;
@@ -350,6 +348,7 @@ static void dump_hsic_regs(struct usb_hcd *hcd)
 
 }
 
+#ifdef HTC_PM_DBG
 /* ++SSD_RIL */
 #define LOG_WITH_TIMESTAMP(x...) do { \
 struct timespec ts; \
@@ -362,6 +361,10 @@ ktime_to_ns(ktime_get()), tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, \
 tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec); \
 } while (0)
 /* --SSD_RIL */
+#else
+#define lOG_WITH_TIMESTAMP(x...) /* NOP */
+#endif
+
 /*****************************  USB PM DBG *****************************/
 static void mdm_hsic_pm_monitor_func(struct work_struct *work)
 {
@@ -393,6 +396,9 @@ static void mdm_hsic_pm_monitor_func(struct work_struct *work)
 	schedule_delayed_work(&mdm_hsic_pm_monitor_delayed_work, msecs_to_jiffies(HSIC_PM_MON_DELAY));
 
 }
+
+#ifdef HTC_PM_DBG
+
 static void mdm_hsic_print_interface_pm_info(struct usb_device *udev)
 {
 	struct usb_interface *intf;
@@ -424,11 +430,15 @@ static void mdm_hsic_print_interface_pm_info(struct usb_device *udev)
 		printk("\n");
 	}
 }
+
+#endif
+
 static void mdm_hsic_print_usb_dev_pm_info(struct usb_device *udev)
 {
 	if (udev != NULL) {
-		struct device *dev = &(udev->dev);
 #ifdef HTC_PM_DBG
+		struct device *dev = &(udev->dev);
+
 		if (usb_pm_debug_enabled) {
 			dev_info(&udev->dev, "[HSIC_PM_DBG] is_suspend:%d usage_count:%d last_busy:%8lx auto_suspend_timer_set:%d timer_expires:%8lx jiffies:%lx\n",
 				udev->is_suspend,
@@ -442,6 +452,7 @@ static void mdm_hsic_print_usb_dev_pm_info(struct usb_device *udev)
 #endif	//HTC_PM_DBG
 	}
 }
+
 /***********************************************************************/
 
 static void mdm_hsic_usb_device_add_handler(struct usb_device *udev)
@@ -1301,8 +1312,10 @@ static irqreturn_t msm_hsic_wakeup_irq(int irq, void *data)
 	mehci->wakeup_int_cnt++;
 	dbg_log_event(NULL, "Remote Wakeup IRQ", mehci->wakeup_int_cnt);
 	/* ++SSD_RIL */
+#ifdef HTC_PM_DBG
 	LOG_WITH_TIMESTAMP("%s: hsic remote wakeup interrupt cnt: %u ",
 			__func__, mehci->wakeup_int_cnt);
+#endif
 	/*
 	dev_info(mehci->dev, "%s: hsic remote wakeup interrupt cnt: %u\n",
 			__func__, mehci->wakeup_int_cnt);
@@ -1831,7 +1844,7 @@ static int msm_hsic_pm_suspend(struct device *dev)
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct msm_hsic_hcd *mehci = hcd_to_hsic(hcd);
 
-	dev_info(dev, "ehci-msm-hsic PM suspend\n");
+	dev_dbg(dev, "ehci-msm-hsic PM suspend\n");
 
 	dbg_log_event(NULL, "PM Suspend", 0);
 
@@ -1885,7 +1898,7 @@ static int msm_hsic_pm_resume(struct device *dev)
 #ifdef CONFIG_PM_RUNTIME
 static int msm_hsic_runtime_idle(struct device *dev)
 {
-	dev_info(dev, "EHCI runtime idle\n");
+	dev_dbg(dev, "EHCI runtime idle\n");
 	return 0;
 }
 
@@ -1894,7 +1907,7 @@ static int msm_hsic_runtime_suspend(struct device *dev)
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct msm_hsic_hcd *mehci = hcd_to_hsic(hcd);
 
-	dev_info(dev, "EHCI runtime suspend\n");
+	dev_dbg(dev, "EHCI runtime suspend\n");
 
 	dbg_log_event(NULL, "Run Time PM Suspend", 0);
 
@@ -1906,7 +1919,7 @@ static int msm_hsic_runtime_resume(struct device *dev)
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct msm_hsic_hcd *mehci = hcd_to_hsic(hcd);
 
-	dev_info(dev, "EHCI runtime resume\n");
+	dev_dbg(dev, "EHCI runtime resume\n");
 
 	dbg_log_event(NULL, "Run Time PM Resume", 0);
 

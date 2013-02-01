@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-#define pr_fmt(fmt)	"[BATT][BMS] " fmt
-#define pr_fmt_debug(fmt)    "[BATT][BMS]%s: " fmt, __func__
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/platform_device.h>
@@ -28,6 +25,7 @@
 #include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/mutex.h>
+#include <linux/device.h>
 #include <mach/board_htc.h>
 
 #ifdef CONFIG_HTC_BATT_8960
@@ -37,12 +35,7 @@
 #if defined(pr_debug)
 #undef pr_debug
 #endif
-#define pr_debug(fmt, ...) do { \
-		if (flag_enable_bms_chg_log) \
-			printk(KERN_INFO pr_fmt_debug(fmt), ##__VA_ARGS__); \
-	} while (0)
-/* dump BMS & CHG log */
-static bool flag_enable_bms_chg_log;
+#define pr_debug(...) dev_dbg(the_chip->dev, __VA_ARGS__)
 
 #define BMS_CONTROL		0x224
 #define BMS_S1_DELAY	0x225
@@ -2949,8 +2942,6 @@ static struct platform_driver pm8921_bms_driver = {
 
 static int __init pm8921_bms_init(void)
 {
-	flag_enable_bms_chg_log =
-		(get_kernel_flag() & KERNEL_FLAG_ENABLE_BMS_CHARGER_LOG) ? 1 : 0;
 	return platform_driver_register(&pm8921_bms_driver);
 }
 

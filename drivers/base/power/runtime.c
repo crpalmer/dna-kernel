@@ -686,7 +686,7 @@ static int rpm_resume(struct device *dev, int rpmflags)
 		if (!dev->power.request_pending) {
 			dev->power.request_pending = true;
 			if (!strncmp(dev_name(dev), "msm_hsic_host", 13)) {
-				pr_info("%s: RT PM work. %s \n", __FUNCTION__,dev_name(dev));
+				dev_dbg(dev, "%s: RT PM work. %s \n", __FUNCTION__,dev_name(dev));
 				queue_work(pm_rt_wq, &dev->power.work);
 			} else
 				queue_work(pm_wq, &dev->power.work);

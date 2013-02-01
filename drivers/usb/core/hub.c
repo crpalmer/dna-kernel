@@ -1048,7 +1048,7 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 		schedule_delayed_work(&hub->leds, LED_CYCLE_PERIOD);
 
 	/* ++SSD_RIL */
-	dev_info(hub->intfdev, "kick_khubd \n");
+	dev_dbg(hub->intfdev, "kick_khubd \n");
 	/* --SSD_RIL */
 	/* Scan all ports that need attention */
 	kick_khubd(hub);
@@ -2767,7 +2767,7 @@ static int finish_port_resume(struct usb_device *udev)
 	struct usb_device *hdev;
 
 	/* caller owns the udev device lock */
-	dev_info(&udev->dev, "%s\n",
+	dev_dbg(&udev->dev, "%s\n",
 		udev->reset_resume ? "finish reset-resume" : "finish resume");
 
 	/* usb ch9 identifies four variants of SUSPENDED, based on what
@@ -2788,7 +2788,7 @@ static int finish_port_resume(struct usb_device *udev)
  retry_reset_resume:
 		status = usb_reset_and_verify_device(udev);
 		/* ++SSD_RIL */
-		dev_info(&udev->dev, "usb_reset_and_verify_device return: %d\n", status);
+		dev_dbg(&udev->dev, "usb_reset_and_verify_device return: %d\n", status);
 		if (dev_name(&udev->dev) && !strncmp(dev_name(&udev->dev), "1-1", 3)) {
 			if (status && udev->parent) {
 				hdev = udev->parent;
@@ -2923,7 +2923,7 @@ int usb_port_resume(struct usb_device *udev, pm_message_t msg)
 				port1, status);
 	} else {
 		/* drive resume for at least 20 msec */
-		dev_info(&udev->dev, "usb %sresume\n",
+		dev_dbg(&udev->dev, "usb %sresume\n",
 				(PMSG_IS_AUTO(msg) ? "auto-" : ""));
 		msleep(25);
 
@@ -2975,14 +2975,14 @@ int usb_remote_wakeup(struct usb_device *udev)
 	struct usb_hcd *hcd = bus_to_hcd(udev->bus);
 
 	if (udev->state == USB_STATE_SUSPENDED) {
-		dev_info(&udev->dev, "usb %sresume\n", "wakeup-");
+		dev_dbg(&udev->dev, "usb %sresume\n", "wakeup-");
 		status = usb_autoresume_device(udev);
 		if (status == 0) {
 			/* Let the drivers do their thing, then... */
 			usb_autosuspend_device(udev);
 		}
 	} else {
-		dev_info(&udev->dev, "usb not suspended\n");
+		dev_dbg(&udev->dev, "usb not suspended\n");
 		clear_bit(HCD_FLAG_WAKEUP_PENDING, &hcd->flags);
 	}
 
@@ -3064,7 +3064,6 @@ static int hub_resume(struct usb_interface *intf)
 {
 	struct usb_hub *hub = usb_get_intfdata(intf);
 
-	dev_info(&intf->dev, "%s\n", __func__);
 	hub_activate(hub, HUB_RESUME);
 	return 0;
 }
@@ -3073,7 +3072,6 @@ static int hub_reset_resume(struct usb_interface *intf)
 {
 	struct usb_hub *hub = usb_get_intfdata(intf);
 
-	dev_dbg(&intf->dev, "%s\n", __func__);
 	hub_activate(hub, HUB_RESET_RESUME);
 	return 0;
 }
@@ -3859,13 +3857,13 @@ static int hub_handle_remote_wakeup(struct usb_hub *hub, unsigned int port,
 	int ret;
 
 	/* ++SSD_RIL*/
-	dev_info(hub->intfdev, "Enter %s:\n", __FUNCTION__);
+	dev_dbg(hub->intfdev, "Enter %s:\n", __FUNCTION__);
 	/* --SSD_RIL */
 	hdev = hub->hdev;
 	udev = hdev->children[port-1];
 	if (!hub_is_superspeed(hdev)) {
 		if (!(portchange & USB_PORT_STAT_C_SUSPEND)) {
-			dev_info(hub->intfdev, "Port is not suspended. port %d, port status %d, port change %d \n",
+			dev_dbg(hub->intfdev, "Port is not suspended. port %d, port status %d, port change %d \n",
 					port, portstatus, portchange);
 			return 0;
 		}
@@ -3939,7 +3937,7 @@ static void hub_events(void)
 		hdev = hub->hdev;
 		hub_dev = hub->intfdev;
 		intf = to_usb_interface(hub_dev);
-		dev_info(hub_dev, "state %d ports %d chg %04x evt %04x\n",
+		dev_dbg(hub_dev, "state %d ports %d chg %04x evt %04x\n",
 				hdev->state, hub->descriptor
 					? hub->descriptor->bNbrPorts
 					: 0,
@@ -4167,7 +4165,7 @@ static void hub_events(void)
 #endif
 			if (test_bit(i, hub->busy_bits)) {
 				/* ++SSD_RIL */
-				dev_info(hub_dev, "hub->busy_bits is set! \n");
+				dev_dbg(hub_dev, "hub->busy_bits is set! \n");
 				/* --SSD_RIL */
 				continue;
 			}
@@ -4176,18 +4174,18 @@ static void hub_events(void)
 			if (!test_and_clear_bit(i, hub->event_bits) &&
 					!connect_change && !wakeup_change) {
 				/* ++SSD_RIL */
-				dev_info(hub_dev, "!connect_change && !wakeup_change \n");
+				dev_dbg(hub_dev, "!connect_change && !wakeup_change \n");
 				/* --SSD_RIL */
 				continue;
 			}
 
 			ret = hub_port_status(hub, i,
 					&portstatus, &portchange);
-			dev_info(hub_dev, "port %d, port status %d, port change %d \n",
+			dev_dbg(hub_dev, "port %d, port status %d, port change %d \n",
 					i, portstatus, portchange);
 			if (ret < 0) {
 				/* ++SSD_RIL */
-				dev_info(hub_dev, "ret value hub_port_status is %d \n", ret);
+				dev_dbg(hub_dev, "ret value hub_port_status is %d \n", ret);
 				/* --SSD_RIL */
 				continue;
 			}
