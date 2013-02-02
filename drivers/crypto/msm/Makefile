@@ -1,3 +1,4 @@
+ccflags-y += -Wno-array-bounds
 obj-$(CONFIG_CRYPTO_DEV_QCEDEV) += qcedev.o
 ifeq ($(CONFIG_CRYPTO_DEV_QCE40), y)
 	obj-$(CONFIG_CRYPTO_DEV_QCE) += qce40.o

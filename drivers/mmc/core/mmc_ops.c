@@ -383,7 +383,7 @@ int mmc_switch(struct mmc_card *card, u8 set, u8 index, u8 value,
 {
 	int err;
 	struct mmc_command cmd = {0};
-	u32 status;
+	u32 status = 0;
 
 	BUG_ON(!card);
 	BUG_ON(!card->host);
@@ -514,7 +514,7 @@ int mmc_set_block_length(struct mmc_card *card, u32 length)
 	int err;
 	int retries = 3;
 	struct mmc_command cmd;
-	u32 status;
+	u32 status = 0;
 	unsigned long delay = jiffies + HZ;
 
 	BUG_ON(!card);

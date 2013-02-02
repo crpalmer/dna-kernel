@@ -1,5 +1,7 @@
 # Makefile for Linux PHY drivers
 
+ccflags-y += -Wno-array-bounds
+
 libphy-objs			:= phy.o phy_device.o mdio_bus.o
 
 obj-$(CONFIG_PHYLIB)		+= libphy.o
