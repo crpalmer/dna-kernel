@@ -1,3 +1,10 @@
+Version 0.7.7:
+
+ * Linaro 4.8(beta) compilation (pbeeler for the toolchain)
+ * default governor: ondemand
+ * min cpu speed: 192 MHz (not working)
+ * default i/o scheduler: BFQ
+
 Version 0.7.6: Remove some more debugging messages
 Version 0.7.5: remove some hsic debugging
 Version 0.7.4: Add BFQ
