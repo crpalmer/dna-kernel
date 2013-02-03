@@ -1,3 +1,9 @@
+Version 0.7.8:
+
+ * Interactive governor changes (harsh squashing of Google changes)
+ * Misc build tweaks
+ * Misc small improvements from harsh's mako kernel
+
 Version 0.7.7:
 
  * Linaro 4.8(beta) compilation (pbeeler for the toolchain)
