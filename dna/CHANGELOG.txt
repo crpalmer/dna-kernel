@@ -1,3 +1,5 @@
+Version 0.8.3: faux123's intellidemand governor
+
 Version 0.8.2:
 
  * include faux123's intelli_plug
