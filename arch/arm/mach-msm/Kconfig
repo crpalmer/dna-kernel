@@ -2661,5 +2661,11 @@ config CPU_UNDERCLOCK
 	help
 		Enasble 192 MHzm mode
 
+config CPU_OVERCLOCK
+	bool "Enable CPU Overclocking option"
+	default n
+	help
+	  Krait overclocking up to 1.84 GHz
+
 endif
 
