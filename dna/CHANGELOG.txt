@@ -1,3 +1,13 @@
+Version 0.8.2:
+
+ * include faux123's intelli_plug
+ * disable mpdecision from all ROMs
+
+Version 0.8.1:
+
+ * fix a bad commit in 0.7.8 causing crashes
+ * pull a pile of optimization's from faux123's mako kernel
+
 Version 0.8.0: dsb9938's overclocking tables
 
 Version 0.7.8:
