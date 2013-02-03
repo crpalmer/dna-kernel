@@ -156,9 +156,6 @@ int clk_prepare(struct clk *clk)
 		if (ret)
 			goto err_prepare_depends;
 
-		ret = vote_rate_vdd(clk, clk->rate);
-		if (ret)
-			goto err_vote_vdd;
 		if (clk->ops->prepare)
 			ret = clk->ops->prepare(clk);
 		if (ret)
@@ -169,8 +166,6 @@ out:
 	mutex_unlock(&clk->prepare_lock);
 	return ret;
 err_prepare_clock:
-	unvote_rate_vdd(clk, clk->rate);
-err_vote_vdd:
 	clk_unprepare(clk->depends);
 err_prepare_depends:
 	clk_unprepare(parent);
@@ -210,6 +205,9 @@ int clk_enable(struct clk *clk)
 				goto err_enable_depends;
 		}
 
+		ret = vote_rate_vdd(clk, clk->rate);
+		if (ret)
+			goto err_vote_vdd;
 		trace_clock_enable(clk->dbg_name, 1, smp_processor_id());
 		if (clk->ops->enable)
 			ret = clk->ops->enable(clk);
@@ -227,6 +225,8 @@ int clk_enable(struct clk *clk)
 	return 0;
 
 err_enable_clock:
+	unvote_rate_vdd(clk, clk->rate);
+err_vote_vdd:
 	clk_disable(clk->depends);
 err_enable_depends:
 	clk_disable(parent);
@@ -259,8 +259,14 @@ void clk_disable(struct clk *clk)
 			clk->ops->disable(clk);
 		unvote_rate_vdd(clk, clk->rate);
 
-		clk_disable(clk->depends);
-		clk_disable(parent);
+		/* added by htc for clock debugging */
+		if (!(clk->flags&CLKFLAG_IGNORE)) {
+			clk_disable(clk->depends);
+			clk_disable(parent);
+			spin_lock(&clk_enable_list_lock);
+			list_del(&clk->enable_list);
+			spin_unlock(&clk_enable_list_lock);
+		}
 	}
 	clk->count--;
 out:
@@ -290,7 +296,6 @@ void clk_unprepare(struct clk *clk)
 
 		if (clk->ops->unprepare)
 			clk->ops->unprepare(clk);
-		unvote_rate_vdd(clk, clk->rate);
 		clk_unprepare(clk->depends);
 		clk_unprepare(parent);
 	}
@@ -326,7 +331,7 @@ EXPORT_SYMBOL(clk_get_rate);
 
 int clk_set_rate(struct clk *clk, unsigned long rate)
 {
-	unsigned long start_rate;
+	unsigned long start_rate, flags;
 	int rc = 0;
 
 	if (IS_ERR_OR_NULL(clk))
@@ -335,14 +340,14 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 	if (!clk->ops->set_rate)
 		return -ENOSYS;
 
-	mutex_lock(&clk->prepare_lock);
+	spin_lock_irqsave(&clk->lock, flags);
 
 	/* Return early if the rate isn't going to change */
 	if (clk->rate == rate)
 		goto out;
 
-	trace_clock_set_rate(clk->dbg_name, rate, raw_smp_processor_id());
-	if (clk->prepare_count) {
+	trace_clock_set_rate(clk->dbg_name, rate, smp_processor_id());
+	if (clk->count) {
 		start_rate = clk->rate;
 		/* Enforce vdd requirements for target frequency. */
 		rc = vote_rate_vdd(clk, rate);
@@ -360,13 +365,14 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 	if (!rc)
 		clk->rate = rate;
 out:
-	mutex_unlock(&clk->prepare_lock);
+	spin_unlock_irqrestore(&clk->lock, flags);
 	return rc;
 
 err_set_rate:
 	unvote_rate_vdd(clk, rate);
 err_vote_vdd:
-	goto out;
+	spin_unlock_irqrestore(&clk->lock, flags);
+	return rc;
 }
 EXPORT_SYMBOL(clk_set_rate);
 
