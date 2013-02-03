@@ -131,6 +131,8 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 					break;
 				case 3:
 					persist_count = TRI_CORE_PERSISTENCE;
+					if (num_online_cpus() == 1)
+						cpu_up(1);
 					if (num_online_cpus() == 2)
 						cpu_up(2);
 					else
@@ -139,6 +141,10 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 					break;
 				case 4:
 					persist_count = QUAD_CORE_PERSISTENCE;
+					if (num_online_cpus() == 1)
+						cpu_up(1);
+					if (num_online_cpus() == 2)
+						cpu_up(2);
 					if (num_online_cpus() == 3)
 						cpu_up(3);
 					//pr_info("case 4: %u\n", persist_count);
