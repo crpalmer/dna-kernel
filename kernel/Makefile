@@ -2,7 +2,6 @@
 # Makefile for the linux kernel.
 #
 
-CFLAGS_sysctl.o += -O1
 CFLAGS_workqueue.o += -O2
 
 obj-y     = fork.o exec_domain.o panic.o printk.o \

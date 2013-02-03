@@ -285,7 +285,7 @@ static void ks8851_rdreg(struct ks8851_net *ks, unsigned op,
 */
 static unsigned ks8851_rdreg8(struct ks8851_net *ks, unsigned reg)
 {
-	u8 rxb[1];
+	u8 rxb[1] = {0};
 
 	ks8851_rdreg(ks, MK_OP(1 << (reg & 3), reg), rxb, 1);
 	return rxb[0];
@@ -410,7 +410,7 @@ static void ks8851_read_mac_addr(struct net_device *dev)
 
 	mutex_lock(&ks->lock);
 
-	for (i = 0; i < ETH_ALEN; i++)
+	for (i = 0; i < sizeof(ETH_ALEN) / (sizeof(int)); i++)
 		dev->dev_addr[i] = ks8851_rdreg8(ks, KS_MAR(i));
 
 	mutex_unlock(&ks->lock);

@@ -3202,7 +3202,7 @@ static void unplug_check_worker(struct work_struct *work)
 	struct pm8921_chg_chip *chip = container_of(dwork,
 				struct pm8921_chg_chip, unplug_check_work);
 	u8 reg_loop, active_path;
-	int rc, ibat, active_chg_plugged_in, usb_ma;
+	int rc, ibat, active_chg_plugged_in, usb_ma = 0;
 	int chg_gone = 0, is_wlc_remove = 0;
 	static int rb_trial_count = 0;
 	static int ovp_trial_count = 0;
@@ -3645,7 +3645,7 @@ static void dump_irq_rt_status(void)
 
 static void dump_reg(void)
 {
-	u64 val;
+	u64 val = 0;
 
 	get_reg((void *)CHG_CNTRL, &val);
 	pr_info("CHG_CNTRL = 0x%llx\n", val);
