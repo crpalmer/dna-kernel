@@ -1,3 +1,4 @@
+Version 0.9.0: linux 3.4.29
 Version 0.8.4: dsb9938's GPU fix and more linaro -O3 optimizations
 Version 0.8.3: faux123's intellidemand governor
 
