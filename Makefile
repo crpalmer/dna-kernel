@@ -198,7 +198,7 @@ export KBUILD_BUILDHOST := $(SUBARCH)
 ARCH		?= $(SUBARCH)
 CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
 ARCH		:= arm
-CROSS_COMPILE	:= $(CCACHE) /opt/toolchains/4.8/bin/arm-eabi-
+CROSS_COMPILE	:= $(CCACHE) /opt/toolchains/linaro.4.7/bin/arm-eabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
