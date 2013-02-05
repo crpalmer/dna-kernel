@@ -24,9 +24,9 @@
 #define SIMPLE_PLUG_MAJOR_VERSION	1
 #define SIMPLE_PLUG_MINOR_VERSION	0
 
-#define DEF_SAMPLING_MS			(50)
-#define HISTORY_SIZE			5
-#define NUM_PROC			4
+#define DEF_SAMPLING_MS			(10)
+#define HISTORY_SIZE			10
+#define NUM_CORES			4
 
 static DEFINE_MUTEX(simple_plug_mutex);
 
@@ -36,10 +36,12 @@ static unsigned int simple_plug_active = 1;
 
 static bool suspended = false;
 
+static unsigned int min_cores = 1;
+static unsigned int max_cores = NUM_CORES;
 static unsigned int reset_stats;
-static unsigned int time_cores_running[NUM_PROC];
-static unsigned int times_core_up[NUM_PROC];
-static unsigned int times_core_down[NUM_PROC];
+static unsigned int time_cores_running[NUM_CORES];
+static unsigned int times_core_up[NUM_CORES];
+static unsigned int times_core_down[NUM_CORES];
 static unsigned int nr_run_last_array[HISTORY_SIZE];
 static unsigned int nr_last_i;
 static unsigned int nr_avg;
@@ -48,6 +50,8 @@ module_param(simple_plug_active, uint, 0644);
 module_param(nr_avg, uint, 0444);
 module_param_array(nr_run_last_array, uint, NULL, 0444);
 
+module_param(min_cores, uint, 0644);
+module_param(max_cores, uint, 0644);
 module_param(reset_stats, uint, 0644);
 module_param_array(time_cores_running, uint, NULL, 0444);
 module_param_array(times_core_up, uint, NULL, 0444);
@@ -63,10 +67,10 @@ static unsigned int calculate_thread_stats(void)
 
 	target_cores = ((nr_avg>>FSHIFT) / HISTORY_SIZE);
 
-	if (target_cores > NUM_PROC)
-		return NUM_PROC;
-	else if (target_cores < 1)
-		return 1;
+	if (target_cores > max_cores)
+		return max_cores;
+	else if (target_cores < min_cores)
+		return min_cores;
 	else
 		return target_cores;
 }
@@ -76,7 +80,7 @@ cpus_up_down(int nr_run_stat)
 {
 	int n_online = num_online_cpus();
 
-	BUG_ON(nr_run_stat < 1 || nr_run_stat > NUM_PROC);
+	BUG_ON(nr_run_stat < 1 || nr_run_stat > NUM_CORES);
 
 	time_cores_running[nr_run_stat-1]++;
 
@@ -127,7 +131,7 @@ static void simple_plug_early_suspend(struct early_suspend *handler)
 	mutex_unlock(&simple_plug_mutex);
 
 	// put rest of the cores to sleep!
-	for (i=1; i < NUM_PROC; i++) {
+	for (i=1; i < NUM_CORES; i++) {
 		if (cpu_online(i))
 			cpu_down(i);
 	}
