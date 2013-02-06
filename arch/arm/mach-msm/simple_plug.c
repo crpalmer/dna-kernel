@@ -18,7 +18,6 @@
 #include <linux/workqueue.h>
 #include <linux/cpu.h>
 #include <linux/sched.h>
-#include <linux/mutex.h>
 #include <linux/module.h>
 
 #define SIMPLE_PLUG_MAJOR_VERSION	1
@@ -28,41 +27,39 @@
 #define HISTORY_SIZE			10
 #define NUM_CORES			4
 
-static DEFINE_MUTEX(simple_plug_mutex);
-
 struct delayed_work simple_plug_work;
 
 static unsigned int simple_plug_active = 1;
-
-static bool suspended = false;
-
 static unsigned int min_cores = 1;
 static unsigned int max_cores = NUM_CORES;
+static unsigned int sampling_ms = DEF_SAMPLING_MS;
 static unsigned int reset_stats;
+
+static unsigned int nr_avg;
 static unsigned int time_cores_running[NUM_CORES];
 static unsigned int times_core_up[NUM_CORES];
 static unsigned int times_core_down[NUM_CORES];
-static unsigned int nr_run_last_array[HISTORY_SIZE];
+static unsigned int nr_run_history[HISTORY_SIZE];
 static unsigned int nr_last_i;
-static unsigned int nr_avg;
 
 module_param(simple_plug_active, uint, 0644);
-module_param(nr_avg, uint, 0444);
-module_param_array(nr_run_last_array, uint, NULL, 0444);
-
 module_param(min_cores, uint, 0644);
 module_param(max_cores, uint, 0644);
+module_param(sampling_ms, uint, 0644);
 module_param(reset_stats, uint, 0644);
+
+module_param(nr_avg, uint, 0444);
 module_param_array(time_cores_running, uint, NULL, 0444);
 module_param_array(times_core_up, uint, NULL, 0444);
 module_param_array(times_core_down, uint, NULL, 0444);
+module_param_array(nr_run_history, uint, NULL, 0444);
 
 static unsigned int calculate_thread_stats(void)
 {
 	int target_cores;
 
-	nr_avg -= nr_run_last_array[nr_last_i];
-	nr_avg += nr_run_last_array[nr_last_i] = avg_nr_running();
+	nr_avg -= nr_run_history[nr_last_i];
+	nr_avg += nr_run_history[nr_last_i] = avg_nr_running();
 	nr_last_i = (nr_last_i + 1) % HISTORY_SIZE;
 
 	target_cores = ((nr_avg>>FSHIFT) / HISTORY_SIZE);
@@ -99,8 +96,6 @@ cpus_up_down(int nr_run_stat)
      
 static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 {
-	unsigned int nr_run_stat;
-
 	if (reset_stats) {
 		reset_stats = 0;
 		memset(time_cores_running, 0, sizeof(time_cores_running));
@@ -109,13 +104,12 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 	}
 	
 	if (simple_plug_active == 1) {
-		nr_run_stat = calculate_thread_stats();
-		if (!suspended)
-			cpus_up_down(nr_run_stat);
+		unsigned int nr_run_stat = calculate_thread_stats();
+		cpus_up_down(nr_run_stat);
 	}
 
 	schedule_delayed_work_on(0, &simple_plug_work,
-		msecs_to_jiffies(DEF_SAMPLING_MS));
+		msecs_to_jiffies(sampling_ms));
 }
 
 
@@ -126,10 +120,6 @@ static void simple_plug_early_suspend(struct early_suspend *handler)
 	
 	cancel_delayed_work_sync(&simple_plug_work);
 
-	mutex_lock(&simple_plug_mutex);
-	suspended = true;
-	mutex_unlock(&simple_plug_mutex);
-
 	// put rest of the cores to sleep!
 	for (i=1; i < NUM_CORES; i++) {
 		if (cpu_online(i))
@@ -139,12 +129,23 @@ static void simple_plug_early_suspend(struct early_suspend *handler)
 
 static void __cpuinit simple_plug_late_resume(struct early_suspend *handler)
 {
-	mutex_lock(&simple_plug_mutex);
-	suspended = false;
-	mutex_unlock(&simple_plug_mutex);
+	int i;
+	unsigned almost_2 = (2 << FSHIFT) - 1;
+
+	/* setup a state which will let a second core come online very
+	 * easily if there is much startup load (which there usually is)
+	 */
+
+	for (i = 0; i < HISTORY_SIZE; i++) {
+		nr_run_history[i] = almost_2;
+	}
+	nr_avg = almost_2 * HISTORY_SIZE;
+
+	
+	/* Ask it to run very soon to allow that ramp-up to happen */
 
 	schedule_delayed_work_on(0, &simple_plug_work,
-		msecs_to_jiffies(10));
+		msecs_to_jiffies(1));
 }
 
 static struct early_suspend simple_plug_early_suspend_struct_driver = {
@@ -156,19 +157,12 @@ static struct early_suspend simple_plug_early_suspend_struct_driver = {
 
 int __init simple_plug_init(void)
 {
-	/* We want all CPUs to do sampling nearly on same jiffy */
-	int delay = msecs_to_jiffies(DEF_SAMPLING_MS);
-
-	if (num_online_cpus() > 1)
-		delay -= jiffies % delay;
-
-	//pr_info("simple_plug: scheduler delay is: %d\n", delay);
-	pr_info("simple_plug: version %d.%d by faux123\n",
+	pr_info("simple_plug: version %d.%d by crpalmer\n",
 		 SIMPLE_PLUG_MAJOR_VERSION,
 		 SIMPLE_PLUG_MINOR_VERSION);
 
 	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
-	schedule_delayed_work_on(0, &simple_plug_work, delay);
+	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(sampling_ms));
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&simple_plug_early_suspend_struct_driver);
@@ -177,7 +171,7 @@ int __init simple_plug_init(void)
 }
 
 MODULE_AUTHOR("Christopher R. Palmer <crpalmer@gmail.com>");
-MODULE_DESCRIPTION("'intell_plug' - An simple cpu hotplug driver for "
+MODULE_DESCRIPTION("'simple_plug' - An simple cpu hotplug driver for "
 	"Low Latency Frequency Transition capable processors");
 MODULE_LICENSE("GPL");
 
