@@ -1,3 +1,4 @@
+Version 0.9.3: small fixes from faux123
 Version 0.9.2: simple_plug cleanup / allow the period to be set
 Version 0.9.1:
  * dsb9938: grab some more overclocking settings I missed
