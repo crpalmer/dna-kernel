@@ -17,7 +17,6 @@
  *
  */
 
-#include <linux/earlysuspend.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/cpufreq.h>
@@ -354,57 +353,6 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 }
 
 
-#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
-extern bool lmf_screen_state;
-#endif
-
-static void msm_cpu_early_suspend(struct early_suspend *h)
-{
-
-#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
-	int cpu = 0;
-
-	for_each_possible_cpu(cpu) {
-
-		mutex_lock(&per_cpu(cpufreq_suspend, cpu).suspend_mutex);
-		lmf_screen_state = false;
-		// put rest of the cores to sleep!
-		switch (num_online_cpus()) {
-		case 4:
-			cpu_down(3);
-		case 3:
-			cpu_down(2);
-		case 2:
-			cpu_down(1);
-		}
-		mutex_unlock(&per_cpu(cpufreq_suspend, cpu).suspend_mutex);
-	}
-#endif
-
-}
-
-static void msm_cpu_late_resume(struct early_suspend *h)
-{
-
-#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
-	int cpu = 0;
-
-	for_each_possible_cpu(cpu) {
-
-		mutex_lock(&per_cpu(cpufreq_suspend, cpu).suspend_mutex);
-		lmf_screen_state = true;
-		mutex_unlock(&per_cpu(cpufreq_suspend, cpu).suspend_mutex);
-	}
-#endif
-
-}
-
-static struct early_suspend msm_cpu_early_suspend_handler = {
-	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
-	.suspend = msm_cpu_early_suspend,
-	.resume = msm_cpu_late_resume,
-};
-
 static int msm_cpufreq_suspend(void)
 {
 	int cpu;
@@ -478,7 +426,6 @@ static int __init msm_cpufreq_register(void)
 #endif
 
 	register_pm_notifier(&msm_cpufreq_pm_notifier);
-	register_early_suspend(&msm_cpu_early_suspend_handler);
 	return cpufreq_register_driver(&msm_cpufreq_driver);
 }
 
