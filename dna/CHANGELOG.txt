@@ -1,3 +1,8 @@
+Version 0.9.4:
+ * improve simple_plug
+ * rewrite of msm_thermal
+ * disable ROM thermald
+
 Version 0.9.3: small fixes from faux123
 Version 0.9.2: simple_plug cleanup / allow the period to be set
 Version 0.9.1:
