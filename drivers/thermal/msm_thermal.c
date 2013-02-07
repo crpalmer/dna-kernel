@@ -1,4 +1,7 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Author: Christopher R. Palmer <crpalmer@gmail.com>
+ *
+ * Very loosely based on a version released by HTC that was
+ * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -23,6 +26,7 @@
 #include <linux/msm_thermal.h>
 #include <mach/cpufreq.h>
 #include <mach/perflock.h>
+#include <linux/earlysuspend.h>
 
 #define NOT_THROTTLED		0
 
@@ -225,11 +229,34 @@ static struct kernel_param_ops module_ops = {
 module_param_cb(enabled, &module_ops, &enabled, 0644);
 MODULE_PARM_DESC(enabled, "enforce thermal limit on cpu");
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+
+static void msm_thermal_early_suspend(struct early_suspend *handler)
+{
+	cancel_delayed_work_sync(&check_temp_work);
+}
+
+static void __cpuinit msm_thermal_late_resume(struct early_suspend *handler)
+{
+	schedule_delayed_work_on(0, &check_temp_work,
+		msecs_to_jiffies(poll_ms));
+}
+
+static struct early_suspend msm_thermal_early_suspend_struct_driver = {
+	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
+	.suspend = msm_thermal_early_suspend,
+	.resume = msm_thermal_late_resume,
+};
+#endif	/* CONFIG_HAS_EARLYSUSPEND */
 int __init msm_thermal_init(struct msm_thermal_data *pdata)
 {
 	BUG_ON(!pdata);
 	BUG_ON(pdata->sensor_id >= TSENS_MAX_SENSORS);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	register_early_suspend(&msm_thermal_early_suspend_struct_driver);
+#endif
 
 	enabled = 1;
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
