@@ -33,7 +33,6 @@
 static int enabled = 1;
 
 static unsigned watch_temp_degC = 50;
-static unsigned hot_poll_ms = 500;
 static unsigned poll_ms = 1000;
 
 static unsigned temp_hysteresis = 5;
@@ -46,7 +45,6 @@ static unsigned limit_freq_2 =  918000;
 static unsigned limit_freq_3 =  384000;
 
 module_param(watch_temp_degC, uint, 0644);
-module_param(hot_poll_ms, uint, 0644);
 module_param(poll_ms, uint, 0644);
 
 module_param(limit_temp_1_degC, uint, 0644);
@@ -118,11 +116,11 @@ update_all_cpus_max_freq_if_changed(unsigned max_freq)
 }
 
 static void
-schedule_work_if_enabled(int is_hot)
+schedule_work_if_enabled(void)
 {
 	if (enabled)
 		schedule_delayed_work(&check_temp_work,
-			msecs_to_jiffies(is_hot ? hot_poll_ms : poll_ms));
+			msecs_to_jiffies(poll_ms));
 }
 
 static unsigned
@@ -151,13 +149,12 @@ select_frequency(unsigned temp)
 	return MSM_CPUFREQ_NO_LIMIT;
 }
 
-static int check_temp_and_throttle_if_needed(struct work_struct *work)
+static void check_temp_and_throttle_if_needed(struct work_struct *work)
 {
 	struct tsens_device tsens_dev;
 	unsigned long temp_ul = 0;
 	unsigned temp;
 	unsigned max_freq;
-	int is_hot = 0;
 	int ret;
 
 	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
@@ -165,7 +162,7 @@ static int check_temp_and_throttle_if_needed(struct work_struct *work)
 	if (ret) {
 		pr_warn("msm_thermal: Unable to read TSENS sensor %d\n",
 				tsens_dev.sensor_num);
-		return 0;
+		return;
 	}
 
 	temp = (unsigned) temp_ul;
@@ -174,20 +171,17 @@ static int check_temp_and_throttle_if_needed(struct work_struct *work)
 	if (temp >= watch_temp_degC) {
 		pr_info("msm_thermal: TSENS sensor %d is %u degC max-freq %u\n",
 			tsens_dev.sensor_num, temp, max_freq);
-		is_hot = 1;
 	} else
 		pr_debug("msm_thermal: TSENS sensor %d is %u degC\n",
 				tsens_dev.sensor_num, temp);
 
 	update_all_cpus_max_freq_if_changed(max_freq);
-
-	return is_hot;
 }
 
 static void check_temp(struct work_struct *work)
 {
-	int is_hot = check_temp_and_throttle_if_needed(work);
-	schedule_work_if_enabled(is_hot);
+	check_temp_and_throttle_if_needed(work);
+	schedule_work_if_enabled();
 }
 
 static void disable_msm_thermal(void)
@@ -214,7 +208,7 @@ static int set_enabled(const char *val, const struct kernel_param *kp)
 	if (!enabled)
 		disable_msm_thermal();
 	else
-		schedule_work_if_enabled(0);
+		schedule_work_if_enabled();
 
 	pr_info("msm_thermal: enabled = %d\n", enabled);
 
