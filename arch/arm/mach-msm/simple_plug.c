@@ -14,6 +14,9 @@
  * GNU General Public License for more details.
  *
  */
+
+#define PR_NAME "simple_plug: "
+
 #include <linux/earlysuspend.h>
 #include <linux/workqueue.h>
 #include <linux/cpu.h>
@@ -28,6 +31,7 @@
 #define NUM_CORES			4
 
 struct delayed_work simple_plug_work;
+static int init_cpus = 1;
 
 static unsigned int simple_plug_active = 1;
 static unsigned int min_cores = 1;
@@ -54,15 +58,26 @@ module_param_array(times_core_up, uint, NULL, 0444);
 module_param_array(times_core_down, uint, NULL, 0444);
 module_param_array(nr_run_history, uint, NULL, 0444);
 
-static unsigned int calculate_thread_stats(void)
+static int n_online;
+
+static unsigned int desired_number_of_cores(void)
 {
 	int target_cores;
+	int avg;
 
 	nr_avg -= nr_run_history[nr_last_i];
 	nr_avg += nr_run_history[nr_last_i] = avg_nr_running();
 	nr_last_i = (nr_last_i + 1) % HISTORY_SIZE;
 
-	target_cores = ((nr_avg>>FSHIFT) / HISTORY_SIZE);
+	/* Compute number of cores of average active work.
+	 * If potentially decreasing the number of cores, truncate up
+	 * If potentially increasing the number of cores, truncate down.
+	 */
+
+	avg = nr_avg / HISTORY_SIZE;
+	target_cores = avg >> FSHIFT;
+	if (target_cores < n_online)
+		target_cores = (avg + (1<<FSHIFT)-1) >> FSHIFT;
 
 	if (target_cores > max_cores)
 		return max_cores;
@@ -75,13 +90,12 @@ static unsigned int calculate_thread_stats(void)
 static void
 cpus_up_down(int nr_run_stat)
 {
-	int n_online = num_online_cpus();
-
 	BUG_ON(nr_run_stat < 1 || nr_run_stat > NUM_CORES);
 
 	time_cores_running[nr_run_stat-1]++;
 
 	while(n_online < nr_run_stat) {
+		pr_info(PR_NAME "starting cpu%d, want %d online", n_online, nr_run_stat);
 		times_core_up[n_online]++;
 		cpu_up(n_online);
 		n_online++;
@@ -89,13 +103,40 @@ cpus_up_down(int nr_run_stat)
 
 	while(n_online > nr_run_stat) {
 		n_online--;
+		pr_info(PR_NAME "unplugging cpu%d, want %d online", n_online, nr_run_stat);
 		times_core_down[n_online]++;
 		cpu_down(n_online);
 	}
 }
      
+static void unplug_other_cores(void)
+{
+	int cpu;
+
+	for (cpu = 1; cpu < NUM_CORES; cpu++) {
+		if (cpu_online(cpu)) {
+			pr_info(PR_NAME "unplugging cpu%d\n", cpu);
+			cpu_down(cpu);
+		}
+	}
+	n_online = 1;
+}
+
 static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 {
+	if (init_cpus) {
+		/* Get the CPUs into a known good state so we don't leave
+		 * random cores online after booting.
+		 */
+		init_cpus = 0;
+		if (! cpu_online(0)) {
+			pr_info(PR_NAME "bringing cpu0 online\n");
+			cpu_up(0);
+		}
+
+		unplug_other_cores();
+	}
+
 	if (reset_stats) {
 		reset_stats = 0;
 		memset(time_cores_running, 0, sizeof(time_cores_running));
@@ -104,8 +145,8 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 	}
 	
 	if (simple_plug_active == 1) {
-		unsigned int nr_run_stat = calculate_thread_stats();
-		cpus_up_down(nr_run_stat);
+		int cores = desired_number_of_cores();
+		cpus_up_down(cores);
 	}
 
 	schedule_delayed_work_on(0, &simple_plug_work,
@@ -116,15 +157,8 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void simple_plug_early_suspend(struct early_suspend *handler)
 {
-	int i;
-	
 	cancel_delayed_work_sync(&simple_plug_work);
-
-	// put rest of the cores to sleep!
-	for (i=1; i < NUM_CORES; i++) {
-		if (cpu_online(i))
-			cpu_down(i);
-	}
+	unplug_other_cores();
 }
 
 static void __cpuinit simple_plug_late_resume(struct early_suspend *handler)
@@ -132,7 +166,7 @@ static void __cpuinit simple_plug_late_resume(struct early_suspend *handler)
 	int i;
 	unsigned almost_2 = (2 << FSHIFT) - 1;
 
-	/* setup a state which will let a second core come online very
+	/* setup a state which will let a second cpu come online very
 	 * easily if there is much startup load (which there usually is)
 	 */
 
@@ -157,16 +191,32 @@ static struct early_suspend simple_plug_early_suspend_struct_driver = {
 
 int __init simple_plug_init(void)
 {
-	pr_info("simple_plug: version %d.%d by crpalmer\n",
+	int cpu;
+
+	pr_info(PR_NAME "version %d.%d by crpalmer\n",
 		 SIMPLE_PLUG_MAJOR_VERSION,
 		 SIMPLE_PLUG_MINOR_VERSION);
 
+	for (cpu = 0; cpu < NUM_CORES; cpu++)
+		if (cpu_online(cpu))
+			pr_info(PR_NAME "cpu%d is online", cpu);
+
+	init_cpus = 1;
 	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
-	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(sampling_ms));
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&simple_plug_early_suspend_struct_driver);
 #endif
+
+	/* hack-o-rama: there is a race with the PM module starting
+	 * and this starting.  If you try to turn cores off before the PM
+	 * is initialized, it will crash.  The race window seems to be in the
+	 * order 10s of ms, so 5 seconds gives tons of time for it to
+	 * resolve itself.
+	 */
+	
+	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(5000)); // sampling_ms));
+
 	return 0;
 }
 
