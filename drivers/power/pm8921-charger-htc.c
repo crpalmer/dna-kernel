@@ -2909,7 +2909,7 @@ static void decrease_usb_ma_value(int *value)
 		i = find_usb_ma_value(*value);
 		if (i > 0)
 			i--;
-		*value = usb_ma_table[i].usb_ma = 0;
+		*value = usb_ma_table[i].usb_ma;
 	}
 }
 
