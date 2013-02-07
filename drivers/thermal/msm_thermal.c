@@ -24,14 +24,46 @@
 #include <mach/cpufreq.h>
 #include <mach/perflock.h>
 
-static int enabled;
+#define NOT_THROTTLED		0
+
+static int enabled = 1;
+
+static unsigned watch_temp_degC = 50;
+static unsigned hot_poll_ms = 500;
+static unsigned poll_ms = 1000;
+
+static unsigned temp_hysteresis = 5;
+static unsigned limit_temp_1_degC = 60;
+static unsigned limit_temp_2_degC = 70;
+static unsigned limit_temp_3_degC = 80;
+
+static unsigned limit_freq_1 = 1350000;
+static unsigned limit_freq_2 =  918000;
+static unsigned limit_freq_3 =  384000;
+
+module_param(watch_temp_degC, uint, 0644);
+module_param(hot_poll_ms, uint, 0644);
+module_param(poll_ms, uint, 0644);
+
+module_param(limit_temp_1_degC, uint, 0644);
+module_param(limit_temp_2_degC, uint, 0644);
+module_param(limit_temp_3_degC, uint, 0644);
+module_param(limit_freq_1, uint, 0644);
+module_param(limit_freq_2, uint, 0644);
+module_param(limit_freq_3, uint, 0644);
+
+static unsigned release_temperature = NOT_THROTTLED;
+static unsigned limited_max_freq = MSM_CPUFREQ_NO_LIMIT;
+
+module_param(release_temperature, uint, 0444);
+module_param(limited_max_freq, uint, 0444);
+
 static struct msm_thermal_data msm_thermal_info;
-static uint32_t limited_max_freq = MSM_CPUFREQ_NO_LIMIT;
 static struct delayed_work check_temp_work;
 
-static int update_cpu_max_freq(int cpu, uint32_t max_freq)
+static int update_cpu_max_freq(int cpu, unsigned max_freq)
 {
-	int ret = 0;
+	int ret;
 
 	ret = msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, max_freq);
 	if (ret)
@@ -41,7 +73,13 @@ static int update_cpu_max_freq(int cpu, uint32_t max_freq)
 	if (ret)
 		return ret;
 
-	limited_max_freq = max_freq;
+	if (max_freq != MSM_CPUFREQ_NO_LIMIT) {
+		struct cpufreq_policy policy;
+
+		if ((ret = cpufreq_get_policy(&policy, cpu)) == 0)
+			ret = cpufreq_driver_target(&policy, max_freq, CPUFREQ_RELATION_L);
+	}
+
 	if (max_freq != MSM_CPUFREQ_NO_LIMIT)
 		pr_info("msm_thermal: Limiting cpu%d max frequency to %d\n",
 				cpu, max_freq);
@@ -51,48 +89,101 @@ static int update_cpu_max_freq(int cpu, uint32_t max_freq)
 	return ret;
 }
 
-static void check_temp(struct work_struct *work)
+static void
+update_all_cpus_max_freq_if_changed(unsigned max_freq)
 {
-	struct tsens_device tsens_dev;
-	unsigned long temp = 0;
-	uint32_t max_freq = limited_max_freq;
-	int cpu = 0;
-	int ret = 0;
-
-	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
-	ret = tsens_get_temp(&tsens_dev, &temp);
-	if (ret) {
-		pr_debug("msm_thermal: Unable to read TSENS sensor %d\n",
-				tsens_dev.sensor_num);
-		goto reschedule;
-	} else
-		pr_info("msm_thermal: TSENS sensor %d (%ld C)\n",
-				tsens_dev.sensor_num, temp);
-	if (temp >= msm_thermal_info.limit_temp) {
-		max_freq = msm_thermal_info.limit_freq;
-#ifdef CONFIG_PERFLOCK_BOOT_LOCK
-		release_boot_lock();
-#endif
-	}
-	else if (temp <
-		msm_thermal_info.limit_temp - msm_thermal_info.temp_hysteresis)
-		max_freq = MSM_CPUFREQ_NO_LIMIT;
+	int cpu;
+	int ret;
 
 	if (max_freq == limited_max_freq)
-		goto reschedule;
+		return;
 
+#ifdef CONFIG_PERFLOCK_BOOT_LOCK
+	release_boot_lock();
+#endif
+
+	limited_max_freq = max_freq;
+	
 	/* Update new limits */
 	for_each_possible_cpu(cpu) {
 		ret = update_cpu_max_freq(cpu, max_freq);
 		if (ret)
-			pr_debug("Unable to limit cpu%d max freq to %d\n",
+			pr_warn("Unable to limit cpu%d max freq to %d\n",
 					cpu, max_freq);
 	}
+}
 
-reschedule:
+static void
+schedule_work_if_enabled(int is_hot)
+{
 	if (enabled)
 		schedule_delayed_work(&check_temp_work,
-				msecs_to_jiffies(msm_thermal_info.poll_ms));
+			msecs_to_jiffies(is_hot ? hot_poll_ms : poll_ms));
+}
+
+static unsigned
+select_frequency(unsigned temp)
+{
+
+	if (temp >= limit_temp_3_degC) {
+		release_temperature = limit_temp_3_degC - temp_hysteresis;
+		return limit_freq_3;
+	}
+
+	if (release_temperature < limit_temp_2_degC && temp >= limit_temp_2_degC) {
+		release_temperature = limit_temp_2_degC - temp_hysteresis;
+		return limit_freq_2;
+	}
+
+	if (release_temperature < limit_temp_1_degC && temp >= limit_temp_1_degC) {
+		release_temperature = limit_temp_1_degC - temp_hysteresis;
+		return limit_freq_1;
+	}
+
+	if (temp > release_temperature)
+		return limited_max_freq;
+
+	release_temperature = NOT_THROTTLED;
+	return MSM_CPUFREQ_NO_LIMIT;
+}
+
+static int check_temp_and_throttle_if_needed(struct work_struct *work)
+{
+	struct tsens_device tsens_dev;
+	unsigned long temp_ul = 0;
+	unsigned temp;
+	unsigned max_freq;
+	int is_hot = 0;
+	int ret;
+
+	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
+	ret = tsens_get_temp(&tsens_dev, &temp_ul);
+	if (ret) {
+		pr_warn("msm_thermal: Unable to read TSENS sensor %d\n",
+				tsens_dev.sensor_num);
+		return 0;
+	}
+
+	temp = (unsigned) temp_ul;
+	max_freq = select_frequency(temp);
+
+	if (temp >= watch_temp_degC) {
+		pr_info("msm_thermal: TSENS sensor %d is %u degC max-freq %u\n",
+			tsens_dev.sensor_num, temp, max_freq);
+		is_hot = 1;
+	} else
+		pr_debug("msm_thermal: TSENS sensor %d is %u degC\n",
+				tsens_dev.sensor_num, temp);
+
+	update_all_cpus_max_freq_if_changed(max_freq);
+
+	return is_hot;
+}
+
+static void check_temp(struct work_struct *work)
+{
+	int is_hot = check_temp_and_throttle_if_needed(work);
+	schedule_work_if_enabled(is_hot);
 }
 
 static void disable_msm_thermal(void)
@@ -113,13 +204,13 @@ static void disable_msm_thermal(void)
 
 static int set_enabled(const char *val, const struct kernel_param *kp)
 {
-	int ret = 0;
+	int ret;
 
 	ret = param_set_bool(val, kp);
 	if (!enabled)
 		disable_msm_thermal();
 	else
-		pr_info("msm_thermal: no action for enabled = %d\n", enabled);
+		schedule_work_if_enabled(0);
 
 	pr_info("msm_thermal: enabled = %d\n", enabled);
 
@@ -136,8 +227,6 @@ MODULE_PARM_DESC(enabled, "enforce thermal limit on cpu");
 
 int __init msm_thermal_init(struct msm_thermal_data *pdata)
 {
-	int ret = 0;
-
 	BUG_ON(!pdata);
 	BUG_ON(pdata->sensor_id >= TSENS_MAX_SENSORS);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
@@ -146,5 +235,5 @@ int __init msm_thermal_init(struct msm_thermal_data *pdata)
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
 	schedule_delayed_work(&check_temp_work, 0);
 
-	return ret;
+	return 0;
 }
