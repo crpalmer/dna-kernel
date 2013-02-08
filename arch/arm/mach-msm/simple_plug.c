@@ -95,7 +95,7 @@ cpus_up_down(int nr_run_stat)
 	time_cores_running[nr_run_stat-1]++;
 
 	while(n_online < nr_run_stat) {
-		pr_info(PR_NAME "starting cpu%d, want %d online", n_online, nr_run_stat);
+		pr_info(PR_NAME "starting cpu%d, want %d online\n", n_online, nr_run_stat);
 		times_core_up[n_online]++;
 		cpu_up(n_online);
 		n_online++;
@@ -103,7 +103,7 @@ cpus_up_down(int nr_run_stat)
 
 	while(n_online > nr_run_stat) {
 		n_online--;
-		pr_info(PR_NAME "unplugging cpu%d, want %d online", n_online, nr_run_stat);
+		pr_info(PR_NAME "unplugging cpu%d, want %d online\n", n_online, nr_run_stat);
 		times_core_down[n_online]++;
 		cpu_down(n_online);
 	}
@@ -199,7 +199,7 @@ int __init simple_plug_init(void)
 
 	for (cpu = 0; cpu < NUM_CORES; cpu++)
 		if (cpu_online(cpu))
-			pr_info(PR_NAME "cpu%d is online", cpu);
+			pr_info(PR_NAME "cpu%d is online\n", cpu);
 
 	init_cpus = 1;
 	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
