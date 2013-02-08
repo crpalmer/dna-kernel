@@ -73,7 +73,7 @@ static u32 venc_get_empty_client_index(void)
 	u32 i;
 	u32 found = false;
 
-	for (i = 0; i < sizeof(VIDC_MAX_NUM_CLIENTS) / (sizeof(int)); i++) {
+	for (i = 0; i < VID_ENC_MAX_ENCODER_CLIENTS; i++) {
 		if (!venc_p.venc_clients[i].venc_client.vcd_handle) {
 			found = true;
 			break;
