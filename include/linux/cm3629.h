@@ -190,7 +190,6 @@ struct cm3629_platform_data {
 	uint8_t ps_calibration_rule;
 	uint8_t ps_conf1_val;
 	uint8_t ps_conf3_val;
-	uint8_t enable_polling_ignore;
 	uint8_t ps1_thd_no_cal;
 	uint8_t ps1_thd_with_cal;
 	uint8_t ps2_thd_no_cal;
@@ -198,11 +197,9 @@ struct cm3629_platform_data {
 	uint8_t ls_cmd;
 	uint8_t ps1_adc_offset;
 	uint8_t ps2_adc_offset;
-	uint8_t ps_debounce;
 	uint16_t ps_delay_time;
 	unsigned int no_need_change_setting;
 	uint8_t dark_level;
 };
 
-int power_key_check_in_pocket(void);
 #endif

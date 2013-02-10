@@ -440,9 +440,10 @@ static void fl_lcdev_brightness_set(struct led_classdev *led_cdev,
 
 static void flashlight_early_suspend(struct early_suspend *handler)
 {
-	FLT_INFO_LOG("%s\n", __func__);
-	if (this_tps61310 != NULL && this_tps61310->mode_status)
+	if (this_tps61310 != NULL && this_tps61310->mode_status) {
+		FLT_INFO_LOG("%s\n", __func__);
 		flashlight_turn_off();
+	}
 }
 
 static void flashlight_late_resume(struct early_suspend *handler)
