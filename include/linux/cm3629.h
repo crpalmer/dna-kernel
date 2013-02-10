@@ -198,7 +198,6 @@ struct cm3629_platform_data {
 	uint8_t ls_cmd;
 	uint8_t ps1_adc_offset;
 	uint8_t ps2_adc_offset;
-	uint8_t ps_debounce;
 	uint16_t ps_delay_time;
 	unsigned int no_need_change_setting;
 	uint8_t dark_level;

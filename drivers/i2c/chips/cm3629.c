@@ -61,8 +61,6 @@ static DECLARE_DELAYED_WORK(polling_work, polling_do_work);
 #endif
 
 static uint8_t sensor_chipId[3] = {0};
-static void report_near_do_work(struct work_struct *w);
-static DECLARE_DELAYED_WORK(report_near_work, report_near_do_work);
 static int inter_error = 0;
 static int is_probe_success;
 
@@ -138,7 +136,6 @@ struct cm3629_info {
 	uint8_t ls_cmd;
 	uint8_t ps1_adc_offset;
 	uint8_t ps2_adc_offset;
-	uint8_t ps_debounce;
 	uint16_t ps_delay_time;
 	unsigned int no_need_change_setting;
 	int ps_th_add;
@@ -512,17 +509,6 @@ static int set_lsensor_range(uint16_t low_thd, uint16_t high_thd)
 	return ret;
 }
 
-static void report_near_do_work(struct work_struct *w)
-{
-	struct cm3629_info *lpi = lp_info;
-
-	D("[PS][cm3629]  %s: delay %dms, report proximity NEAR\n", __func__, lpi->ps_delay_time);
-
-	input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 0);
-	input_sync(lpi->ps_input_dev);
-	blocking_notifier_call_chain(&psensor_notifier_list, 2, NULL);
-}
-
 static void report_psensor_input_event(struct cm3629_info *lpi, int interrupt_flag)
 {
 	uint8_t ps_thd_set = 0;
@@ -537,9 +523,6 @@ static void report_psensor_input_event(struct cm3629_info *lpi, int interrupt_fl
 		  "record_init_fail %d.\n", record_init_fail);
 		return;
 	}
-
-	if (lpi->ps_debounce == 1 && lpi->mfg_mode != NO_IGNORE_BOOT_MODE)
-		cancel_delayed_work(&report_near_work);
 
 	lpi->j_end = jiffies;
 	/* D("%s: j_end = %lu", __func__, lpi->j_end); */
@@ -583,19 +566,6 @@ static void report_psensor_input_event(struct cm3629_info *lpi, int interrupt_fl
 	}
 	ps_near = !val;
 
-	if (lpi->ps_debounce == 1 && lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
-		if (val == 0) {
-			D("[PS][cm3629] delay proximity %s, ps_adc=%d, High thd= %d, interrupt_flag %d\n",
-			  val ? "FAR" : "NEAR", ps_adc, ps_thd_set, interrupt_flag);
-			queue_delayed_work(lpi->lp_wq, &report_near_work,
-					msecs_to_jiffies(lpi->ps_delay_time));
-			return;
-		} else {
-			/* dummy report */
-			input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, -1);
-			input_sync(lpi->ps_input_dev);
-		}
-	}
 	D("[PS][cm3629] proximity %s, ps_adc=%d, , High thd= %d, interrupt_flag %d\n",
 	  val ? "FAR" : "NEAR", ps_adc, ps_thd_set, interrupt_flag);
 	if ((lpi->enable_polling_ignore == 1) && (val == 0) &&
@@ -2455,7 +2425,6 @@ static int cm3629_probe(struct i2c_client *client,
 	lpi->ls_cmd  = pdata->ls_cmd;
 	lpi->ps1_adc_offset = pdata->ps1_adc_offset;
 	lpi->ps2_adc_offset = pdata->ps2_adc_offset;
-	lpi->ps_debounce = pdata->ps_debounce;
 	lpi->ps_delay_time = pdata->ps_delay_time;
 	lpi->no_need_change_setting = pdata->no_need_change_setting;
 	lpi->ps_th_add = TH_ADD;
@@ -2479,9 +2448,9 @@ static int cm3629_probe(struct i2c_client *client,
 			__func__, lp_info->ls_cmd);
 	}
 	D("[PS][cm3629] %s: ls_cmd 0x%x, ps1_adc_offset=0x%02X, "
-	  "ps2_adc_offset=0x%02X, ps_debounce=0x%x, ps1_thh_diff %d\n",
+	  "ps2_adc_offset=0x%02X, ps1_thh_diff %d\n",
 	  __func__, lpi->ls_cmd, lpi->ps1_adc_offset,
-	  lpi->ps2_adc_offset, lpi->ps_debounce, lpi->ps1_thh_diff);
+	  lpi->ps2_adc_offset, lpi->ps1_thh_diff);
 
 	mutex_init(&als_enable_mutex);
 	mutex_init(&als_disable_mutex);
