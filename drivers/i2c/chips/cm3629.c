@@ -42,23 +42,13 @@
 
 #define I2C_RETRY_COUNT 10
 
-#define POLLING_PROXIMITY 1
 #define NO_IGNORE_BOOT_MODE 1
 
 #define NEAR_DELAY_TIME ((100 * HZ) / 1000)
 
-#ifdef POLLING_PROXIMITY
-#define POLLING_DELAY		200
-#define TH_ADD			10
-#endif
 static int record_init_fail = 0;
 static void sensor_irq_do_work(struct work_struct *work);
 static DECLARE_WORK(sensor_irq_work, sensor_irq_do_work);
-
-#ifdef POLLING_PROXIMITY
-static void polling_do_work(struct work_struct *w);
-static DECLARE_DELAYED_WORK(polling_work, polling_do_work);
-#endif
 
 static uint8_t sensor_chipId[3] = {0};
 static int inter_error = 0;
@@ -132,13 +122,11 @@ struct cm3629_info {
 	uint8_t ps1_thd_with_cal;
 	uint8_t ps2_thd_no_cal;
 	uint8_t ps2_thd_with_cal;
-	uint8_t enable_polling_ignore;
 	uint8_t ls_cmd;
 	uint8_t ps1_adc_offset;
 	uint8_t ps2_adc_offset;
 	uint16_t ps_delay_time;
 	unsigned int no_need_change_setting;
-	int ps_th_add;
 	uint8_t dark_level;
 };
 
@@ -568,17 +556,10 @@ static void report_psensor_input_event(struct cm3629_info *lpi, int interrupt_fl
 
 	D("[PS][cm3629] proximity %s, ps_adc=%d, , High thd= %d, interrupt_flag %d\n",
 	  val ? "FAR" : "NEAR", ps_adc, ps_thd_set, interrupt_flag);
-	if ((lpi->enable_polling_ignore == 1) && (val == 0) &&
-		(lpi->mfg_mode != NO_IGNORE_BOOT_MODE) &&
-	    (time_before(lpi->j_end, (lpi->j_start + NEAR_DELAY_TIME)))) {
-		D("[PS][cm3629] Ignore NEAR event\n");
-		lpi->ps_pocket_mode = 1;
-	} else {
-		/* 0 is close, 1 is far */
-		input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, val);
-		input_sync(lpi->ps_input_dev);
-		blocking_notifier_call_chain(&psensor_notifier_list, val+2, NULL);
-	}
+	/* 0 is close, 1 is far */
+	input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, val);
+	input_sync(lpi->ps_input_dev);
+	blocking_notifier_call_chain(&psensor_notifier_list, val+2, NULL);
 }
 
 static void enable_als_interrupt(void)/*enable als interrupt*/
@@ -726,127 +707,6 @@ static void sensor_irq_do_work(struct work_struct *work)
 	enable_irq(lpi->irq);
 }
 
-#ifdef POLLING_PROXIMITY
-static uint8_t mid_value(uint8_t value[], uint8_t size)
-{
-	int i = 0, j = 0;
-	uint16_t temp = 0;
-
-	if (size < 3)
-		return 0;
-
-	for (i = 0; i < (size - 1); i++)
-		for (j = (i + 1); j < size; j++)
-			if (value[i] > value[j]) {
-				temp = value[i];
-				value[i] = value[j];
-				value[j] = temp;
-			}
-	return value[((size - 1) / 2)];
-}
-
-static int get_stable_ps_adc_value(uint8_t *ps_adc1, uint8_t *ps_adc2)
-{
-	int ret = 0;
-	int i = 0;
-	uint8_t mid_adc1 = 0;
-	uint8_t mid_adc2 = 0;
-	uint8_t adc1[3] = {0, 0, 0};
-	uint8_t adc2[3] = {0, 0, 0};
-
-	for (i = 0; i < 3; i++) {
-		ret = get_ps_adc_value(&adc1[i], &adc2[i]);
-		if (ret < 0) {
-			pr_err("[PS_ERR][cm3629 error]%s: get_ps_adc_value\n",
-				__func__);
-			return -EIO;
-		}
-	}
-
-/*
-	D(" Before sort: adc1[] = [%d, %d, %d], adc2[] = [%d, %d, %d]\n",
-	  adc1[0], adc1[1], adc1[2], adc2[0], adc2[1], adc2[2]);
-*/
-	mid_adc1 = mid_value(adc1, 3);
-	mid_adc2 = mid_value(adc2, 3);
-/*
-	D("After sort: adc1[] = [%d, %d, %d], adc2[] = [%d, %d, %d]\n",
-	  adc1[0], adc1[1], adc1[2], adc2[0], adc2[1], adc2[2]);
-*/
-
-	*ps_adc1 = mid_adc1;
-	*ps_adc2 = mid_adc2;
-
-	return 0;
-}
-
-static void polling_do_work(struct work_struct *w)
-{
-	struct cm3629_info *lpi = lp_info;
-	uint8_t ps_adc1 = 0;
-	uint8_t ps_adc2 = 0;
-	int i = 0;
-	int ret = 0;
-	char cmd[3];
-
-	/*D("lpi->ps_enable = %d\n", lpi->ps_enable);*/
-	if (lpi->ps_enable == 0)
-		return;
-
-	ret = get_stable_ps_adc_value(&ps_adc1, &ps_adc2);
-/*
-	D("[cm3629] Polling: ps_adc1 = 0x%02X, ps_adc2 = 0x%02X, "
-	  "ps_next_base_value = 0x%02X, ps1_thd_set = 0x%02X\n",
-	  ps_adc1, ps_adc2, lpi->mapping_table[lpi->ps_base_index],
-	  lpi->ps1_thd_set);
-*/
-
-	if ((ps_adc1 == 0) || (ret < 0)) {
-		queue_delayed_work(lpi->lp_wq, &polling_work,
-			msecs_to_jiffies(POLLING_DELAY));
-		return;
-	}
-
-	for (i = lpi->ps_base_index; i >= 1; i--) {
-		if (ps_adc1 > lpi->mapping_table[i])
-			break;
-		else if ((ps_adc1 > lpi->mapping_table[(i-1)]) &&
-		    (ps_adc1 <= lpi->mapping_table[i])) {
-			lpi->ps_base_index = (i-1);
-
-			if (i == (lpi->mapping_size - 1))
-				lpi->ps1_thd_set = 0xFF;
-			else
-				lpi->ps1_thd_set = (lpi->mapping_table[i] +
-						   lpi->ps_th_add);
-
-			if (lpi->ps1_thd_set <= ps_adc1)
-				lpi->ps1_thd_set = 0xFF;
-
-			/* settng command code(0x01) = 0x03*/
-			cmd[0] = lpi->ps1_thd_set;
-			if (lpi->ps1_thh_diff == 0)
-				cmd[1] = lpi->ps1_thd_set + 1;
-			else
-				cmd[1] = lpi->ps1_thd_set + lpi->ps1_thh_diff;
-
-			if (cmd[1] < cmd[0])
-				cmd[1] = cmd[0];
-
-			_cm3629_I2C_Write2(lpi->cm3629_slave_address,
-				PS_1_thd, cmd, 3);
-			D("[PS][cm3629] SET THD: lpi->ps1_thd_set = %d,"
-				" cmd[0] = 0x%x, cmd[1] = 0x%x\n",
-				lpi->ps1_thd_set, cmd[0], cmd[1]);
-			break;
-		}
-	}
-
-	queue_delayed_work(lpi->lp_wq, &polling_work,
-		msecs_to_jiffies(POLLING_DELAY));
-}
-#endif
-
 static irqreturn_t cm3629_irq_handler(int irq, void *data)
 {
 	struct cm3629_info *lpi = data;
@@ -927,10 +787,6 @@ static int psensor_enable(struct cm3629_info *lpi)
 	int ret;
 	char ps_conf[3];
 	char cmd[2];
-#ifdef POLLING_PROXIMITY
-	uint8_t ps_adc1 = 0;
-	uint8_t ps_adc2 = 0;
-#endif
 	mutex_lock(&ps_enable_mutex);
 
 	D("[PS][cm3629] %s +\n", __func__);
@@ -951,14 +807,7 @@ static int psensor_enable(struct cm3629_info *lpi)
 
 	psensor_initial_cmd(lpi);
 
-	if (lpi->enable_polling_ignore == 1 &&
-		lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
-		/* default report FAR */
-		input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 1);
-		input_sync(lpi->ps_input_dev);
-		blocking_notifier_call_chain(&psensor_notifier_list, 1+2, NULL);
-	} else
-		report_psensor_input_event(lpi, 0);
+	report_psensor_input_event(lpi, 0);
 
 	cmd[0] = lpi->ps_conf1_val | CM3629_PS1_SD | CM3629_PS2_SD;
 	cmd[1] = lpi->ps_conf2_val;
@@ -987,19 +836,6 @@ static int psensor_enable(struct cm3629_info *lpi)
 		return ret;
 	}
 
-#ifdef POLLING_PROXIMITY
-	if (lpi->enable_polling_ignore == 1) {
-		if (lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
-			msleep(40);
-			ret = get_stable_ps_adc_value(&ps_adc1, &ps_adc2);
-			D("[PS][cm3629] INITIAL ps_adc1 = 0x%02X\n", ps_adc1);
-			if ((ret == 0) && (lpi->mapping_table != NULL) &&
-			    ((ps_adc1 >= lpi->ps1_thd_set - 1)))
-				queue_delayed_work(lpi->lp_wq, &polling_work,
-					msecs_to_jiffies(POLLING_DELAY));
-		}
-	}
-#endif
 	mutex_unlock(&ps_enable_mutex);
 	D("[PS][cm3629] %s -\n", __func__);
 	return ret;
@@ -1052,22 +888,6 @@ static int psensor_disable(struct cm3629_info *lpi)
 	blocking_notifier_call_chain(&psensor_notifier_list, 0, NULL);
 	lpi->ps_enable = 0;
 
-#ifdef POLLING_PROXIMITY
-	if (lpi->enable_polling_ignore == 1 && lpi->mfg_mode != NO_IGNORE_BOOT_MODE) {
-		cancel_delayed_work(&polling_work);
-		lpi->ps_base_index = (lpi->mapping_size - 1);
-
-		lpi->ps1_thd_set = lpi->original_ps_thd_set;
-		/* settng command code(0x01) = 0x03*/
-		cmd[0] = lpi->ps1_thd_set;
-		if (lpi->ps1_thh_diff == 0)
-			cmd[1] = lpi->ps1_thd_set + 1;
-		else
-			cmd[1] = lpi->ps1_thd_set + lpi->ps1_thh_diff;
-		_cm3629_I2C_Write2(lpi->cm3629_slave_address,
-			PS_1_thd, cmd, 3);
-	}
-#endif
 	mutex_unlock(&ps_enable_mutex);
 	D("[PS][cm3629] %s --%d\n", __func__, lpi->ps_enable);
 	return ret;
@@ -2072,33 +1892,6 @@ static ssize_t ps_workaround_table_store(struct device *dev,
 static DEVICE_ATTR(ps_workaround_table, 0664, ps_workaround_table_show, ps_workaround_table_store);
 
 
-static ssize_t ps_fixed_thd_add_show(struct device *dev,
-				  struct device_attribute *attr, char *buf)
-{
-	struct cm3629_info *lpi = lp_info;
-
-	return sprintf(buf, "Fixed added threshold = %d\n", lpi->ps_th_add);
-}
-static ssize_t ps_fixed_thd_add_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	struct cm3629_info *lpi = lp_info;
-	int value = 0;
-
-	sscanf(buf, "%d", &value);
-
-	D("%s: input: value = %d\n", __func__, value);
-
-	if ((value >= 0) && (value <= 255))
-		lpi->ps_th_add = value;
-
-	D("%s: lpi->ps_th_add = %d\n", __func__, lpi->ps_th_add);
-
-	return count;
-}
-static DEVICE_ATTR(ps_fixed_thd_add, 0664, ps_fixed_thd_add_show, ps_fixed_thd_add_store);
-
 static ssize_t ls_dark_level_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -2417,7 +2210,6 @@ static int cm3629_probe(struct i2c_client *client,
 	lpi->mapping_table = pdata->mapping_table;
 	lpi->mapping_size = pdata->mapping_size;
 	lpi->ps_base_index = (pdata->mapping_size - 1);
-	lpi->enable_polling_ignore = pdata->enable_polling_ignore;
 	lpi->ps1_thd_no_cal = pdata->ps1_thd_no_cal;
 	lpi->ps1_thd_with_cal = pdata->ps1_thd_with_cal;
 	lpi->ps2_thd_no_cal = pdata->ps2_thd_no_cal;
@@ -2427,7 +2219,6 @@ static int cm3629_probe(struct i2c_client *client,
 	lpi->ps2_adc_offset = pdata->ps2_adc_offset;
 	lpi->ps_delay_time = pdata->ps_delay_time;
 	lpi->no_need_change_setting = pdata->no_need_change_setting;
-	lpi->ps_th_add = TH_ADD;
 	lpi->dark_level = pdata->dark_level;
 
 	lp_info = lpi;
@@ -2492,10 +2283,6 @@ static int cm3629_probe(struct i2c_client *client,
 
 	psensor_set_kvalue(lpi);
 
-#ifdef POLLING_PROXIMITY
-	if (lpi->enable_polling_ignore == 1)
-		lpi->original_ps_thd_set = lpi->ps1_thd_set;
-#endif
 	ret = cm3629_setup(lpi);
 	if (ret < 0) {
 		pr_err("[PS_ERR][cm3629 error]%s: cm3629_setup error!\n", __func__);
@@ -2583,10 +2370,6 @@ static int cm3629_probe(struct i2c_client *client,
 		goto err_create_ps_device;
 
 	ret = device_create_file(lpi->ps_dev, &dev_attr_ps_workaround_table);
-	if (ret)
-		goto err_create_ps_device;
-
-	ret = device_create_file(lpi->ps_dev, &dev_attr_ps_fixed_thd_add);
 	if (ret)
 		goto err_create_ps_device;
 
