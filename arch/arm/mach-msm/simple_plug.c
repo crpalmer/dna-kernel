@@ -95,7 +95,7 @@ cpus_up_down(int nr_run_stat)
 	time_cores_running[nr_run_stat-1]++;
 
 	while(n_online < nr_run_stat) {
-		pr_info(PR_NAME "starting cpu%d, want %d online\n", n_online, nr_run_stat);
+		pr_debug(PR_NAME "starting cpu%d, want %d online\n", n_online, nr_run_stat);
 		times_core_up[n_online]++;
 		cpu_up(n_online);
 		n_online++;
@@ -103,7 +103,7 @@ cpus_up_down(int nr_run_stat)
 
 	while(n_online > nr_run_stat) {
 		n_online--;
-		pr_info(PR_NAME "unplugging cpu%d, want %d online\n", n_online, nr_run_stat);
+		pr_debug(PR_NAME "unplugging cpu%d, want %d online\n", n_online, nr_run_stat);
 		times_core_down[n_online]++;
 		cpu_down(n_online);
 	}
@@ -115,7 +115,7 @@ static void unplug_other_cores(void)
 
 	for (cpu = 1; cpu < NUM_CORES; cpu++) {
 		if (cpu_online(cpu)) {
-			pr_info(PR_NAME "unplugging cpu%d\n", cpu);
+			pr_debug(PR_NAME "unplugging cpu%d\n", cpu);
 			cpu_down(cpu);
 		}
 	}
@@ -130,7 +130,7 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 		 */
 		init_cpus = 0;
 		if (! cpu_online(0)) {
-			pr_info(PR_NAME "bringing cpu0 online\n");
+			pr_debug(PR_NAME "bringing cpu0 online\n");
 			cpu_up(0);
 		}
 
