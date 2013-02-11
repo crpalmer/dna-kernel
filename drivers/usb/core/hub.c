@@ -3600,7 +3600,7 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 	struct usb_device *udev;
 	int status, i;
 
-	dev_info (hub_dev,
+	dev_dbg(hub_dev,
 		"port %d, status %04x, change %04x, %s\n",
 		port1, portstatus, portchange, portspeed(hub, portstatus));
 
