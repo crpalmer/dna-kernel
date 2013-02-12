@@ -930,11 +930,15 @@ static long psensor_ioctl(struct file *file, unsigned int cmd,
 			err = psensor_enable(lpi);
 			if (!err)
 				ps_hal_enable = 1;
+			pr_info("[cm3629] psensor_enable=%d PID: %d, Task: %.*s\n",
+				err, current->pid, TASK_COMM_LEN, current->comm);
 			return err;
 		} else {
 			err = psensor_disable(lpi);
 			if (!err)
 				ps_hal_enable = 0;
+			pr_info("[cm3629] psensor_disable=%d PID: %d, Task: %.*s\n",
+				err, current->pid, TASK_COMM_LEN, current->comm);
 			return err;
 		}
 		break;
