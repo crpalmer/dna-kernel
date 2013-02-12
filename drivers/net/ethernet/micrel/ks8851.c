@@ -410,7 +410,7 @@ static void ks8851_read_mac_addr(struct net_device *dev)
 
 	mutex_lock(&ks->lock);
 
-	for (i = 0; i < sizeof(ETH_ALEN) / (sizeof(int)); i++)
+	for (i = 0; i < ETH_ALEN; i++)
 		dev->dev_addr[i] = ks8851_rdreg8(ks, KS_MAR(i));
 
 	mutex_unlock(&ks->lock);

@@ -458,7 +458,7 @@ static int bma250_get_range(struct i2c_client *client, unsigned char *Range)
 	comres = bma250_smbus_read_byte(client, BMA250_RANGE_SEL__REG,
 			&data);
 	data = BMA250_GET_BITSLICE(data, BMA250_RANGE_SEL);
-	*Range = data = 0;
+	*Range = data;
 
 
 	return comres;

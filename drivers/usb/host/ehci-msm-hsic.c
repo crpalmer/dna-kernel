@@ -1688,9 +1688,9 @@ static irqreturn_t msm_hsic_wakeup_irq(int irq, void *data)
 	spin_unlock(&mehci->wakeup_lock);
 
 	if (!atomic_read(&mehci->pm_usage_cnt)) {
-		dev_info(mehci->dev, "%s: Remote wakeup makes hsic run pm runtime resume. \n", __func__);
+		dev_dbg(mehci->dev, "%s: Remote wakeup makes hsic run pm runtime resume. \n", __func__);
 		ret = pm_runtime_get(mehci->dev);
-		dev_info(mehci->dev, "%s: hsic pm_runtime_get return: %d\n",
+		dev_dbg(mehci->dev, "%s: hsic pm_runtime_get return: %d\n",
 					__func__, ret);
 		/*
                  * HSIC runtime resume can race with us.

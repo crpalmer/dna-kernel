@@ -622,7 +622,7 @@ static void monitor_tsens_status(struct work_struct *work)
 	int_status = readl_relaxed(TSENS_INT_STATUS_ADDR);
 	config = readl_relaxed(TSENS_8960_CONFIG_ADDR);
 
-	pr_info("TSENS_CNTL_ADDR[0x%08X], TSENS_THRESHOLD_ADDR[0x%08X], TSENS_INT_STATUS_ADDR[0x%08X], TSENS_8960_CONFIG_ADDR[0x%08X]\n", cntl, threshold, int_status, config);
+	pr_debug("TSENS_CNTL_ADDR[0x%08X], TSENS_THRESHOLD_ADDR[0x%08X], TSENS_INT_STATUS_ADDR[0x%08X], TSENS_8960_CONFIG_ADDR[0x%08X]\n", cntl, threshold, int_status, config);
 
 	cntl &= (uint32_t) SENSORS_EN;
 	cntl >>= TSENS_SENSOR0_SHIFT;
@@ -632,7 +632,7 @@ static void monitor_tsens_status(struct work_struct *work)
 			+ (i << TSENS_STATUS_ADDR_OFFSET));
 		enable = cntl & (0x1 << i);
 		if(enable > 0)
-			pr_info("Sensor %d = %d C\n", i, tsens_tz_code_to_degC(code, i));
+			pr_debug("Sensor %d = %d C\n", i, tsens_tz_code_to_degC(code, i));
 	}
 
 	if (monitor_tsense_wq) {
