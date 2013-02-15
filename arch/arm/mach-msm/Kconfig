@@ -1661,6 +1661,14 @@ config SIMPLE_PLUG
 	help
 	  Generic simple-plug cpu hotplug driver for ARM SOCs
 
+config SIMPLE_PLUG_STATS
+	bool "Enable simple-plug run-time statistics"
+	depends on SIMPLE_PLUG
+	default n
+	help
+	  This adds a slight CPU cost and therefore is disabled
+	  by default.
+
 config CPU_VOLTAGE_TABLE
 	bool "Enable CPU Voltage Table via sysfs for adjustements"
 	default n
