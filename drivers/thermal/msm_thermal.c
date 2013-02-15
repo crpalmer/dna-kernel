@@ -30,21 +30,17 @@
 
 #define NOT_THROTTLED		0
 
-static int enabled = 1;
-
-static unsigned watch_temp_degC = 50;
 static unsigned poll_ms = 1000;
 
 static unsigned temp_hysteresis = 5;
-static unsigned limit_temp_1_degC = 60;
-static unsigned limit_temp_2_degC = 70;
-static unsigned limit_temp_3_degC = 80;
+static unsigned limit_temp_1_degC = 70;
+static unsigned limit_temp_2_degC = 80;
+static unsigned limit_temp_3_degC = 90;
 
 static unsigned limit_freq_1 = 1350000;
 static unsigned limit_freq_2 =  918000;
 static unsigned limit_freq_3 =  384000;
 
-module_param(watch_temp_degC, uint, 0644);
 module_param(poll_ms, uint, 0644);
 
 module_param(limit_temp_1_degC, uint, 0644);
@@ -62,8 +58,9 @@ module_param(limited_max_freq, uint, 0444);
 
 static struct msm_thermal_data msm_thermal_info;
 static struct delayed_work check_temp_work;
+static struct work_struct trip_work;
 
-static int update_cpu_max_freq(int cpu, unsigned max_freq)
+static int update_cpu_max_freq(int cpu, unsigned max_freq, unsigned temp)
 {
 	int ret;
 
@@ -83,16 +80,16 @@ static int update_cpu_max_freq(int cpu, unsigned max_freq)
 	}
 
 	if (max_freq != MSM_CPUFREQ_NO_LIMIT)
-		pr_info("msm_thermal: Limiting cpu%d max frequency to %d\n",
-				cpu, max_freq);
+		pr_info("msm_thermal: limiting cpu%d max frequency to %d at %u degC\n",
+				cpu, max_freq, temp);
 	else
-		pr_info("msm_thermal: Max frequency reset for cpu%d\n", cpu);
+		pr_info("msm_thermal: Max frequency reset for cpu%d at %u degC\n", cpu, temp);
 
 	return ret;
 }
 
 static void
-update_all_cpus_max_freq_if_changed(unsigned max_freq)
+update_all_cpus_max_freq_if_changed(unsigned max_freq, unsigned temp)
 {
 	int cpu;
 	int ret;
@@ -108,7 +105,7 @@ update_all_cpus_max_freq_if_changed(unsigned max_freq)
 	
 	/* Update new limits */
 	for_each_possible_cpu(cpu) {
-		ret = update_cpu_max_freq(cpu, max_freq);
+		ret = update_cpu_max_freq(cpu, max_freq, temp);
 		if (ret)
 			pr_warn("Unable to limit cpu%d max freq to %d\n",
 					cpu, max_freq);
@@ -116,11 +113,12 @@ update_all_cpus_max_freq_if_changed(unsigned max_freq)
 }
 
 static void
-schedule_work_if_enabled(void)
+schedule_next_work(void)
 {
-	if (enabled)
-		schedule_delayed_work(&check_temp_work,
-			msecs_to_jiffies(poll_ms));
+	if (limited_max_freq == MSM_CPUFREQ_NO_LIMIT)
+		tsens_set_tz_warm_temp_degC(msm_thermal_info.sensor_id, limit_temp_1_degC, &trip_work);
+	else
+		schedule_delayed_work(&check_temp_work, msecs_to_jiffies(poll_ms));
 }
 
 static unsigned
@@ -168,60 +166,16 @@ static void check_temp_and_throttle_if_needed(struct work_struct *work)
 	temp = (unsigned) temp_ul;
 	max_freq = select_frequency(temp);
 
-	if (temp >= watch_temp_degC) {
-		pr_info("msm_thermal: TSENS sensor %d is %u degC max-freq %u\n",
-			tsens_dev.sensor_num, temp, max_freq);
-	} else
-		pr_debug("msm_thermal: TSENS sensor %d is %u degC\n",
-				tsens_dev.sensor_num, temp);
+	pr_debug("msm_thermal: TSENS sensor %d is %u degC\n", tsens_dev.sensor_num, temp);
 
-	update_all_cpus_max_freq_if_changed(max_freq);
+	update_all_cpus_max_freq_if_changed(max_freq, temp);
 }
 
 static void check_temp(struct work_struct *work)
 {
 	check_temp_and_throttle_if_needed(work);
-	schedule_work_if_enabled();
+	schedule_next_work();
 }
-
-static void disable_msm_thermal(void)
-{
-	int cpu = 0;
-
-	/* make sure check_temp is no longer running */
-	cancel_delayed_work(&check_temp_work);
-	flush_scheduled_work();
-
-	if (limited_max_freq == MSM_CPUFREQ_NO_LIMIT)
-		return;
-
-	for_each_possible_cpu(cpu) {
-		update_cpu_max_freq(cpu, MSM_CPUFREQ_NO_LIMIT);
-	}
-}
-
-static int set_enabled(const char *val, const struct kernel_param *kp)
-{
-	int ret;
-
-	ret = param_set_bool(val, kp);
-	if (!enabled)
-		disable_msm_thermal();
-	else
-		schedule_work_if_enabled();
-
-	pr_info("msm_thermal: enabled = %d\n", enabled);
-
-	return ret;
-}
-
-static struct kernel_param_ops module_ops = {
-	.set = set_enabled,
-	.get = param_get_bool,
-};
-
-module_param_cb(enabled, &module_ops, &enabled, 0644);
-MODULE_PARM_DESC(enabled, "enforce thermal limit on cpu");
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 
@@ -252,9 +206,10 @@ int __init msm_thermal_init(struct msm_thermal_data *pdata)
 	register_early_suspend(&msm_thermal_early_suspend_struct_driver);
 #endif
 
-	enabled = 1;
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
-	schedule_delayed_work(&check_temp_work, 0);
+	INIT_WORK(&trip_work, check_temp);
+
+	schedule_delayed_work(&check_temp_work, 10000);
 
 	return 0;
 }
