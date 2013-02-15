@@ -152,7 +152,7 @@ struct tsens_tm_device_sensor {
 	struct thermal_zone_device	*tz_dev;
 	enum thermal_device_mode	mode;
 	unsigned int			sensor_num;
-	struct work_struct		work;
+	struct work_struct		*work;
 	int				offset;
 	int				calib_data;
 	int				calib_data_backup;
@@ -505,9 +505,6 @@ static int tsens_tz_get_crit_temp(struct thermal_zone_device *thermal,
 static int tsens_tz_notify(struct thermal_zone_device *thermal,
 				int count, enum thermal_trip_type type)
 {
-	/* TSENS driver does not shutdown the device.
-	   All Thermal notification are sent to the
-	   thermal daemon to take appropriate action */
 	return 1;
 }
 
@@ -600,6 +597,30 @@ static int tsens_tz_set_trip_temp(struct thermal_zone_device *thermal,
 	return 0;
 }
 
+int
+tsens_set_tz_warm_temp_degC(int sensor_num, int temp, struct work_struct *work)
+{
+	struct thermal_zone_device *thermal;
+	int ret;
+
+	if (! tmdev || sensor_num < 0 || sensor_num >= tmdev->tsens_num_sensor)
+		return -EINVAL;
+
+	thermal = tmdev->sensor[sensor_num].tz_dev;
+
+	ret = tsens_tz_set_trip_temp(thermal, TSENS_TRIP_STAGE2, temp);
+	if (ret < 0)
+		return ret;
+
+	ret = tsens_tz_activate_trip_type(thermal, TSENS_TRIP_STAGE2, THERMAL_TRIP_ACTIVATION_ENABLED);
+	if (ret < 0)
+		return ret;
+
+	tmdev->sensor[sensor_num].work = work;
+
+	return 0;
+}
+
 static struct thermal_zone_device_ops tsens_thermal_zone_ops = {
 	.get_temp = tsens_tz_get_temp,
 	.get_mode = tsens_tz_get_mode,
@@ -632,21 +653,12 @@ static void monitor_tsens_status(struct work_struct *work)
 			+ (i << TSENS_STATUS_ADDR_OFFSET));
 		enable = cntl & (0x1 << i);
 		if(enable > 0)
-			pr_debug("Sensor %d = %d C\n", i, tsens_tz_code_to_degC(code, i));
+			pr_info("msm_thermal: Sensor %d = %d C\n", i, tsens_tz_code_to_degC(code, i));
 	}
 
 	if (monitor_tsense_wq) {
 		queue_delayed_work(monitor_tsense_wq, &monitor_tsens_status_worker, msecs_to_jiffies(60000));
 	}
-}
-
-static void notify_uspace_tsens_fn(struct work_struct *work)
-{
-	struct tsens_tm_device_sensor *tm = container_of(work,
-		struct tsens_tm_device_sensor, work);
-
-	sysfs_notify(&tm->tz_dev->device.kobj,
-					NULL, "type");
 }
 
 static void tsens_scheduler_fn(struct work_struct *work)
@@ -697,11 +709,14 @@ static void tsens_scheduler_fn(struct work_struct *work)
 				mask |= TSENS_LOWER_STATUS_CLR;
 			if (upper_th_x || lower_th_x) {
 				/* Notify user space */
-				schedule_work(&tm->sensor[i].work);
+				if (tm->sensor[i].work)
+					schedule_work(tm->sensor[i].work);
+				tm->sensor[i].work = NULL;
 				adc_code = readl_relaxed(sensor_addr);
-				pr_debug("Trigger (%d degrees) for sensor %d\n",
+				pr_info("msm_thermal: trigger (%d degrees) for sensor %d\n",
 					tsens_tz_code_to_degC(adc_code, i), i);
 			}
+
 		}
 		sensor >>= 1;
 		sensor_addr += TSENS_SENSOR_STATUS_SIZE;
@@ -948,8 +963,7 @@ static int tsens_calib_sensors8660(void)
 		tmdev->sensor[TSENS_MAIN_SENSOR].calib_data;
 
 	tmdev->prev_reading_avail = false;
-	INIT_WORK(&tmdev->sensor[TSENS_MAIN_SENSOR].work,
-						notify_uspace_tsens_fn);
+	tmdev->sensor[TSENS_MAIN_SENSOR].work = NULL;
 
 	return 0;
 }
@@ -977,7 +991,7 @@ static int tsens_calib_sensors8960(void)
 			- (tmdev->sensor[i].calib_data *
 			tmdev->sensor[i].slope_mul_tsens_factor);
 		tmdev->prev_reading_avail = false;
-		INIT_WORK(&tmdev->sensor[i].work, notify_uspace_tsens_fn);
+		tmdev->sensor[i].work = NULL;
 	}
 
 	return 0;
