@@ -1676,6 +1676,14 @@ config SIMPLE_PLUG
 	help
 	  Generic simple-plug cpu hotplug driver for ARM SOCs
 
+config SIMPLE_PLUG_STATS
+	bool "Enable simple-plug run-time statistics"
+	depends on SIMPLE_PLUG
+	default n
+	help
+	  This adds a slight CPU cost and therefore is disabled
+	  by default.
+
 config MSM_CPU_AVS
 	bool "Enable software controlled Adaptive Voltage Scaling (AVS)"
 	depends on (ARCH_MSM_SCORPION && QSD_SVS)

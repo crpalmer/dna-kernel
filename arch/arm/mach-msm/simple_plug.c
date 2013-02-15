@@ -30,19 +30,22 @@
 #define HISTORY_SIZE			10
 #define NUM_CORES			4
 
-struct delayed_work simple_plug_work;
-static int init_cpus = 1;
+static struct delayed_work first_work;
+static struct delayed_work simple_plug_work;
 
 static unsigned int simple_plug_active = 1;
 static unsigned int min_cores = 1;
 static unsigned int max_cores = NUM_CORES;
 static unsigned int sampling_ms = DEF_SAMPLING_MS;
-static unsigned int reset_stats;
 
-static unsigned int nr_avg;
+#ifdef CONFIG_SIMPLE_PLUG_STATS
+static unsigned int reset_stats;
 static unsigned int time_cores_running[NUM_CORES];
 static unsigned int times_core_up[NUM_CORES];
 static unsigned int times_core_down[NUM_CORES];
+#endif
+
+static unsigned int nr_avg;
 static unsigned int nr_run_history[HISTORY_SIZE];
 static unsigned int nr_last_i;
 
@@ -50,12 +53,15 @@ module_param(simple_plug_active, uint, 0644);
 module_param(min_cores, uint, 0644);
 module_param(max_cores, uint, 0644);
 module_param(sampling_ms, uint, 0644);
-module_param(reset_stats, uint, 0644);
 
-module_param(nr_avg, uint, 0444);
+#ifdef CONFIG_SIMPLE_PLUG_STATS
+module_param(reset_stats, uint, 0644);
 module_param_array(time_cores_running, uint, NULL, 0444);
 module_param_array(times_core_up, uint, NULL, 0444);
 module_param_array(times_core_down, uint, NULL, 0444);
+#endif
+
+module_param(nr_avg, uint, 0444);
 module_param_array(nr_run_history, uint, NULL, 0444);
 
 static int n_online;
@@ -92,11 +98,15 @@ cpus_up_down(int nr_run_stat)
 {
 	BUG_ON(nr_run_stat < 1 || nr_run_stat > NUM_CORES);
 
+#ifdef CONFIG_SIMPLE_PLUG_STATS
 	time_cores_running[nr_run_stat-1]++;
+#endif
 
 	while(n_online < nr_run_stat) {
 		pr_debug(PR_NAME "starting cpu%d, want %d online\n", n_online, nr_run_stat);
+#ifdef CONFIG_SIMPLE_PLUG_STATS
 		times_core_up[n_online]++;
+#endif
 		cpu_up(n_online);
 		n_online++;
 	}
@@ -104,7 +114,9 @@ cpus_up_down(int nr_run_stat)
 	while(n_online > nr_run_stat) {
 		n_online--;
 		pr_debug(PR_NAME "unplugging cpu%d, want %d online\n", n_online, nr_run_stat);
+#ifdef CONFIG_SIMPLE_PLUG_STATS
 		times_core_down[n_online]++;
+#endif
 		cpu_down(n_online);
 	}
 }
@@ -124,25 +136,14 @@ static void unplug_other_cores(void)
 
 static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 {
-	if (init_cpus) {
-		/* Get the CPUs into a known good state so we don't leave
-		 * random cores online after booting.
-		 */
-		init_cpus = 0;
-		if (! cpu_online(0)) {
-			pr_debug(PR_NAME "bringing cpu0 online\n");
-			cpu_up(0);
-		}
-
-		unplug_other_cores();
-	}
-
+#ifdef CONFIG_SIMPLE_PLUG_STATS
 	if (reset_stats) {
 		reset_stats = 0;
 		memset(time_cores_running, 0, sizeof(time_cores_running));
 		memset(times_core_up, 0, sizeof(times_core_up));
 		memset(times_core_down, 0, sizeof(times_core_down));
 	}
+#endif
 	
 	if (simple_plug_active == 1) {
 		int cores = desired_number_of_cores();
@@ -153,6 +154,21 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 		msecs_to_jiffies(sampling_ms));
 }
 
+
+static void __cpuinit first_work_fn(struct work_struct *work)
+{
+	/* Get the CPUs into a known good state so we don't leave
+	 * random cores online after booting.
+	 */
+	if (! cpu_online(0)) {
+		pr_debug(PR_NAME "bringing cpu0 online\n");
+		cpu_up(0);
+	}
+
+	unplug_other_cores();
+
+	simple_plug_work_fn(work);
+}
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void simple_plug_early_suspend(struct early_suspend *handler)
@@ -201,7 +217,7 @@ int __init simple_plug_init(void)
 		if (cpu_online(cpu))
 			pr_info(PR_NAME "cpu%d is online\n", cpu);
 
-	init_cpus = 1;
+	INIT_DELAYED_WORK(&first_work, first_work_fn);
 	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -215,7 +231,7 @@ int __init simple_plug_init(void)
 	 * resolve itself.
 	 */
 	
-	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(5000)); // sampling_ms));
+	schedule_delayed_work_on(0, &first_work, msecs_to_jiffies(5000)); // sampling_ms));
 
 	return 0;
 }
