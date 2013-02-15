@@ -29,6 +29,7 @@
 #include <linux/earlysuspend.h>
 
 #define NOT_THROTTLED		0
+#define NO_TRIGGER_TEMPERATURE	-1
 
 static unsigned poll_ms = 1000;
 
@@ -43,13 +44,16 @@ static unsigned limit_freq_3 =  384000;
 
 module_param(poll_ms, uint, 0644);
 
+#if 0
 module_param(limit_temp_1_degC, uint, 0644);
 module_param(limit_temp_2_degC, uint, 0644);
 module_param(limit_temp_3_degC, uint, 0644);
+#endif
 module_param(limit_freq_1, uint, 0644);
 module_param(limit_freq_2, uint, 0644);
 module_param(limit_freq_3, uint, 0644);
 
+static unsigned trigger_temperature = NO_TRIGGER_TEMPERATURE;
 static unsigned release_temperature = NOT_THROTTLED;
 static unsigned limited_max_freq = MSM_CPUFREQ_NO_LIMIT;
 
@@ -57,7 +61,7 @@ module_param(release_temperature, uint, 0444);
 module_param(limited_max_freq, uint, 0444);
 
 static struct msm_thermal_data msm_thermal_info;
-static struct delayed_work check_temp_work;
+static struct delayed_work first_work;
 static struct work_struct trip_work;
 
 static int update_cpu_max_freq(int cpu, unsigned max_freq, unsigned temp)
@@ -113,36 +117,40 @@ update_all_cpus_max_freq_if_changed(unsigned max_freq, unsigned temp)
 }
 
 static void
-schedule_next_work(void)
+configure_sensor_trip_points(void)
 {
-	if (limited_max_freq == MSM_CPUFREQ_NO_LIMIT)
-		tsens_set_tz_warm_temp_degC(msm_thermal_info.sensor_id, limit_temp_1_degC, &trip_work);
-	else
-		schedule_delayed_work(&check_temp_work, msecs_to_jiffies(poll_ms));
+	if (trigger_temperature != NO_TRIGGER_TEMPERATURE)
+		tsens_set_tz_warm_temp_degC(msm_thermal_info.sensor_id, trigger_temperature, &trip_work);
+
+	if (release_temperature != NOT_THROTTLED)
+		tsens_set_tz_cool_temp_degC(msm_thermal_info.sensor_id, release_temperature, &trip_work);
 }
 
 static unsigned
 select_frequency(unsigned temp)
 {
-
 	if (temp >= limit_temp_3_degC) {
+		trigger_temperature = NO_TRIGGER_TEMPERATURE;
 		release_temperature = limit_temp_3_degC - temp_hysteresis;
 		return limit_freq_3;
 	}
 
 	if (release_temperature < limit_temp_2_degC && temp >= limit_temp_2_degC) {
+		trigger_temperature = limit_temp_3_degC;
 		release_temperature = limit_temp_2_degC - temp_hysteresis;
 		return limit_freq_2;
 	}
 
 	if (release_temperature < limit_temp_1_degC && temp >= limit_temp_1_degC) {
+		trigger_temperature = limit_temp_2_degC;
 		release_temperature = limit_temp_1_degC - temp_hysteresis;
 		return limit_freq_1;
 	}
 
-	if (temp > release_temperature)
+	if (release_temperature != NOT_THROTTLED && temp > release_temperature)
 		return limited_max_freq;
 
+	trigger_temperature = limit_temp_1_degC;
 	release_temperature = NOT_THROTTLED;
 	return MSM_CPUFREQ_NO_LIMIT;
 }
@@ -174,42 +182,19 @@ static void check_temp_and_throttle_if_needed(struct work_struct *work)
 static void check_temp(struct work_struct *work)
 {
 	check_temp_and_throttle_if_needed(work);
-	schedule_next_work();
+	configure_sensor_trip_points();
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-
-static void msm_thermal_early_suspend(struct early_suspend *handler)
-{
-	cancel_delayed_work_sync(&check_temp_work);
-}
-
-static void __cpuinit msm_thermal_late_resume(struct early_suspend *handler)
-{
-	schedule_delayed_work_on(0, &check_temp_work,
-		msecs_to_jiffies(poll_ms));
-}
-
-static struct early_suspend msm_thermal_early_suspend_struct_driver = {
-	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
-	.suspend = msm_thermal_early_suspend,
-	.resume = msm_thermal_late_resume,
-};
-#endif	/* CONFIG_HAS_EARLYSUSPEND */
 int __init msm_thermal_init(struct msm_thermal_data *pdata)
 {
 	BUG_ON(!pdata);
 	BUG_ON(pdata->sensor_id >= TSENS_MAX_SENSORS);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	register_early_suspend(&msm_thermal_early_suspend_struct_driver);
-#endif
-
-	INIT_DELAYED_WORK(&check_temp_work, check_temp);
+	INIT_DELAYED_WORK(&first_work, check_temp);
 	INIT_WORK(&trip_work, check_temp);
 
-	schedule_delayed_work(&check_temp_work, 10000);
+	schedule_delayed_work(&first_work, 10000);
 
 	return 0;
 }
