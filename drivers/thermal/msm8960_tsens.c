@@ -597,8 +597,8 @@ static int tsens_tz_set_trip_temp(struct thermal_zone_device *thermal,
 	return 0;
 }
 
-int
-tsens_set_tz_warm_temp_degC(int sensor_num, int temp, struct work_struct *work)
+static int
+tsens_set_tz_trip_temp_degC(int sensor_num, enum tsens_trip_type trip, int temp, struct work_struct *work)
 {
 	struct thermal_zone_device *thermal;
 	int ret;
@@ -608,17 +608,29 @@ tsens_set_tz_warm_temp_degC(int sensor_num, int temp, struct work_struct *work)
 
 	thermal = tmdev->sensor[sensor_num].tz_dev;
 
-	ret = tsens_tz_set_trip_temp(thermal, TSENS_TRIP_STAGE2, temp);
+	ret = tsens_tz_set_trip_temp(thermal, trip, temp);
 	if (ret < 0)
 		return ret;
 
-	ret = tsens_tz_activate_trip_type(thermal, TSENS_TRIP_STAGE2, THERMAL_TRIP_ACTIVATION_ENABLED);
+	ret = tsens_tz_activate_trip_type(thermal, trip, THERMAL_TRIP_ACTIVATION_ENABLED);
 	if (ret < 0)
 		return ret;
 
 	tmdev->sensor[sensor_num].work = work;
 
 	return 0;
+}
+
+int
+tsens_set_tz_warm_temp_degC(int sensor_num, int temp, struct work_struct *work)
+{
+	return tsens_set_tz_trip_temp_degC(sensor_num, TSENS_TRIP_STAGE2, temp, work);
+}
+
+int
+tsens_set_tz_cool_temp_degC(int sensor_num, int temp, struct work_struct *work)
+{
+	return tsens_set_tz_trip_temp_degC(sensor_num, TSENS_TRIP_STAGE1, temp, work);
 }
 
 static struct thermal_zone_device_ops tsens_thermal_zone_ops = {
