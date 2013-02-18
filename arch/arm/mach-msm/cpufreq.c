@@ -43,13 +43,6 @@ struct cpufreq_work_struct {
 	int status;
 };
 
-#ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
-/* Because we are hotplugging CPU1 using mpdecision, init should
-   not change min/max after initial fixup to accomodate user changes */
-int cpuinitcount = 0;
-#define NUM_CORES 4
-#endif
-
 static DEFINE_PER_CPU(struct cpufreq_work_struct, cpufreq_work);
 static struct workqueue_struct *msm_cpufreq_wq;
 #endif
@@ -302,18 +295,14 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 		cpumask_setall(policy->cpus);
 
 	if (cpufreq_frequency_table_cpuinfo(policy, table)) {
-/* #ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
-		if (cpuinitcount < NUM_CORES) { // CPU0 + CPU1 + CPU2 + CPU3
+#ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
 		policy->cpuinfo.min_freq = CONFIG_MSM_CPU_FREQ_MIN;
 		policy->cpuinfo.max_freq = CONFIG_MSM_CPU_FREQ_MAX;
-		}
-#endif */
+#endif
 	}
 #ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
-	if (cpuinitcount < NUM_CORES) {
 	policy->min = CONFIG_MSM_CPU_FREQ_MIN;
 	policy->max = CONFIG_MSM_CPU_FREQ_MAX;
-	}
 #endif
 
 	cur_freq = acpuclk_get_rate(policy->cpu);
@@ -321,8 +310,8 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	    CPUFREQ_RELATION_H, &index) &&
 	    cpufreq_frequency_table_target(policy, table, cur_freq,
 	    CPUFREQ_RELATION_L, &index)) {
-		pr_info("cpufreq: cpu%d at invalid freq: %d - init # %d\n",
-				policy->cpu, cur_freq, cpuinitcount);
+		pr_info("cpufreq: cpu%d at invalid freq: %d\n",
+				policy->cpu, cur_freq);
 		return -EINVAL;
 	}
 
@@ -332,12 +321,12 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 				SETRATE_CPUFREQ);
 		if (ret)
 			return ret;
-		pr_info("cpufreq: cpu%d init at %d switching to %d - init # %d\n",
-				policy->cpu, cur_freq, table[index].frequency, cpuinitcount);
+		pr_info("cpufreq: cpu%d init at %d switching to %d\n",
+				policy->cpu, cur_freq, table[index].frequency);
 		cur_freq = table[index].frequency;
 	}
 
-	policy->cur = CONFIG_MSM_CPU_FREQ_MAX;
+	policy->cur = cur_freq;
 
 	policy->cpuinfo.transition_latency =
 		acpuclk_get_switch_time() * NSEC_PER_USEC;
@@ -346,8 +335,9 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	INIT_WORK(&cpu_work->work, set_cpu_work);
 	init_completion(&cpu_work->complete);
 #endif
-
-	cpuinitcount++;
+	/* set safe default min and max speeds */
+	policy->max = CONFIG_MSM_CPU_FREQ_MAX;
+	policy->min = CONFIG_MSM_CPU_FREQ_MIN;
 
 	return 0;
 }
