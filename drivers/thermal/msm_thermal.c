@@ -34,13 +34,15 @@
 static unsigned poll_ms = 1000;
 
 static unsigned temp_hysteresis = 5;
-static unsigned limit_temp_1_degC = 70;
-static unsigned limit_temp_2_degC = 80;
-static unsigned limit_temp_3_degC = 90;
+static unsigned limit_temp_1_degC = 50;
+static unsigned limit_temp_2_degC = 75;
+static unsigned limit_temp_3_degC = 83;
+static unsigned limit_temp_4_degC = 90;
 
-static unsigned limit_freq_1 = 1350000;
-static unsigned limit_freq_2 =  918000;
-static unsigned limit_freq_3 =  384000;
+static unsigned limit_freq_1 = 1512000;
+static unsigned limit_freq_2 = 1350000;
+static unsigned limit_freq_3 =  918000;
+static unsigned limit_freq_4 =  384000;
 
 module_param(poll_ms, uint, 0644);
 
@@ -48,10 +50,12 @@ module_param(poll_ms, uint, 0644);
 module_param(limit_temp_1_degC, uint, 0644);
 module_param(limit_temp_2_degC, uint, 0644);
 module_param(limit_temp_3_degC, uint, 0644);
+module_param(limit_temp_4_degC, uint, 0644);
 #endif
 module_param(limit_freq_1, uint, 0644);
 module_param(limit_freq_2, uint, 0644);
 module_param(limit_freq_3, uint, 0644);
+module_param(limit_freq_4, uint, 0644);
 
 static unsigned trigger_temperature = NO_TRIGGER_TEMPERATURE;
 static unsigned release_temperature = NOT_THROTTLED;
@@ -129,8 +133,14 @@ configure_sensor_trip_points(void)
 static unsigned
 select_frequency(unsigned temp)
 {
-	if (temp >= limit_temp_3_degC) {
+	if (temp >= limit_temp_4_degC) {
 		trigger_temperature = NO_TRIGGER_TEMPERATURE;
+		release_temperature = limit_temp_4_degC - temp_hysteresis;
+		return limit_freq_4;
+	}
+
+	if (release_temperature < limit_temp_3_degC && temp >= limit_temp_3_degC) {
+		trigger_temperature = limit_temp_4_degC;
 		release_temperature = limit_temp_3_degC - temp_hysteresis;
 		return limit_freq_3;
 	}
