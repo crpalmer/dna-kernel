@@ -38,4 +38,4 @@ include/linux/version.h
 kernel/bounds.s
 lib/lib.a
 usr/.initramfs_data.cpio.d
-
+.config.old
