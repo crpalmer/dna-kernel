@@ -1300,7 +1300,7 @@ static int bma250_set_selftest_st(struct i2c_client *client, unsigned char
 		selftest)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_EN_SELF_TEST__REG,
 			&data);
@@ -1314,7 +1314,7 @@ static int bma250_set_selftest_st(struct i2c_client *client, unsigned char
 static int bma250_set_selftest_stn(struct i2c_client *client, unsigned char stn)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_NEG_SELF_TEST__REG,
 			&data);
