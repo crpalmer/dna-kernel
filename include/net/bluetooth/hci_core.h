@@ -27,6 +27,9 @@
 
 #include <net/bluetooth/hci.h>
 #include <linux/wakelock.h>
+#include <linux/interrupt.h>
+#include <linux/module.h>
+
 /* HCI upper protocols */
 #define HCI_PROTO_L2CAP	0
 #define HCI_PROTO_SCO	1
