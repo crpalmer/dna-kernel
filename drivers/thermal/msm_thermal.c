@@ -28,51 +28,51 @@
 #include <mach/perflock.h>
 #include <linux/earlysuspend.h>
 
-#define NOT_THROTTLED		0
+#define NO_RELEASE_TEMPERATURE	0
 #define NO_TRIGGER_TEMPERATURE	-1
 
-static unsigned poll_ms = 1000;
+#define N_TEMP_LIMITS	4
 
 static unsigned temp_hysteresis = 5;
-static unsigned limit_temp_1_degC = 50;
-static unsigned limit_temp_2_degC = 75;
-static unsigned limit_temp_3_degC = 83;
-static unsigned limit_temp_4_degC = 90;
+static unsigned int limit_temp_degC[N_TEMP_LIMITS] = { 50, 75, 83, 90 };
+static unsigned int limit_freq[N_TEMP_LIMITS] = { 1512000, 1350000, 918000, 384000 };
 
-static unsigned limit_freq_1 = 1512000;
-static unsigned limit_freq_2 = 1350000;
-static unsigned limit_freq_3 =  918000;
-static unsigned limit_freq_4 =  384000;
+module_param_array(limit_temp_degC, uint, NULL, 0644);
+module_param_array(limit_freq, uint, NULL, 0644);
 
-module_param(poll_ms, uint, 0644);
+static int throttled_bin = -1;
 
-#if 0
-module_param(limit_temp_1_degC, uint, 0644);
-module_param(limit_temp_2_degC, uint, 0644);
-module_param(limit_temp_3_degC, uint, 0644);
-module_param(limit_temp_4_degC, uint, 0644);
-#endif
-module_param(limit_freq_1, uint, 0644);
-module_param(limit_freq_2, uint, 0644);
-module_param(limit_freq_3, uint, 0644);
-module_param(limit_freq_4, uint, 0644);
-
-static unsigned trigger_temperature = NO_TRIGGER_TEMPERATURE;
-static unsigned release_temperature = NOT_THROTTLED;
-static unsigned limited_max_freq = MSM_CPUFREQ_NO_LIMIT;
-
-module_param(release_temperature, uint, 0444);
-module_param(limited_max_freq, uint, 0444);
+module_param(throttled_bin, int, 0444);
 
 static struct msm_thermal_data msm_thermal_info;
 static struct delayed_work first_work;
 static struct work_struct trip_work;
 
-static int update_cpu_max_freq(int cpu, unsigned max_freq, unsigned temp)
+static int max_freq(int throttled_bin)
+{
+	if (throttled_bin < 0) return MSM_CPUFREQ_NO_LIMIT;
+	else return limit_freq[throttled_bin];
+}
+
+static int limit_temp(int throttled_bin)
+{
+	if (throttled_bin < 0) return limit_temp_degC[0];
+	else if (throttled_bin == N_TEMP_LIMITS-1) return NO_TRIGGER_TEMPERATURE;
+	else return limit_temp_degC[throttled_bin+1];
+}
+
+static int release_temp(int throttled_bin)
+{
+	if (throttled_bin < 0) return NO_RELEASE_TEMPERATURE;
+	else return limit_temp_degC[throttled_bin] - temp_hysteresis;
+}
+	
+static int update_cpu_max_freq(int cpu, int throttled_bin, unsigned temp)
 {
 	int ret;
+	int max_frequency = max_freq(throttled_bin);
 
-	ret = msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, max_freq);
+	ret = msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, max_frequency);
 	if (ret)
 		return ret;
 
@@ -80,16 +80,16 @@ static int update_cpu_max_freq(int cpu, unsigned max_freq, unsigned temp)
 	if (ret)
 		return ret;
 
-	if (max_freq != MSM_CPUFREQ_NO_LIMIT) {
+	if (max_frequency != MSM_CPUFREQ_NO_LIMIT) {
 		struct cpufreq_policy policy;
 
 		if ((ret = cpufreq_get_policy(&policy, cpu)) == 0)
-			ret = cpufreq_driver_target(&policy, max_freq, CPUFREQ_RELATION_L);
+			ret = cpufreq_driver_target(&policy, max_frequency, CPUFREQ_RELATION_L);
 	}
 
-	if (max_freq != MSM_CPUFREQ_NO_LIMIT)
+	if (max_frequency != MSM_CPUFREQ_NO_LIMIT)
 		pr_info("msm_thermal: limiting cpu%d max frequency to %d at %u degC\n",
-				cpu, max_freq, temp);
+				cpu, max_frequency, temp);
 	else
 		pr_info("msm_thermal: Max frequency reset for cpu%d at %u degC\n", cpu, temp);
 
@@ -97,72 +97,54 @@ static int update_cpu_max_freq(int cpu, unsigned max_freq, unsigned temp)
 }
 
 static void
-update_all_cpus_max_freq_if_changed(unsigned max_freq, unsigned temp)
+update_all_cpus_max_freq_if_changed(int new_throttled_bin, unsigned temp)
 {
 	int cpu;
 	int ret;
 
-	if (max_freq == limited_max_freq)
+	if (throttled_bin == new_throttled_bin)
 		return;
 
 #ifdef CONFIG_PERFLOCK_BOOT_LOCK
 	release_boot_lock();
 #endif
 
-	limited_max_freq = max_freq;
+	throttled_bin = new_throttled_bin;
 	
 	/* Update new limits */
 	for_each_possible_cpu(cpu) {
-		ret = update_cpu_max_freq(cpu, max_freq, temp);
+		ret = update_cpu_max_freq(cpu, throttled_bin, temp);
 		if (ret)
-			pr_warn("Unable to limit cpu%d max freq to %d\n",
-					cpu, max_freq);
+			pr_warn("Unable to limit cpu%d\n", cpu);
 	}
 }
 
 static void
 configure_sensor_trip_points(void)
 {
+	int trigger_temperature = limit_temp(throttled_bin);
+	int release_temperature = release_temp(throttled_bin);
+
 	if (trigger_temperature != NO_TRIGGER_TEMPERATURE)
 		tsens_set_tz_warm_temp_degC(msm_thermal_info.sensor_id, trigger_temperature, &trip_work);
 
-	if (release_temperature != NOT_THROTTLED)
+	if (release_temperature != NO_RELEASE_TEMPERATURE)
 		tsens_set_tz_cool_temp_degC(msm_thermal_info.sensor_id, release_temperature, &trip_work);
 }
 
-static unsigned
-select_frequency(unsigned temp)
+static int
+select_throttled_bin(unsigned temp)
 {
-	if (temp >= limit_temp_4_degC) {
-		trigger_temperature = NO_TRIGGER_TEMPERATURE;
-		release_temperature = limit_temp_4_degC - temp_hysteresis;
-		return limit_freq_4;
+	int i;
+	int new_bin = -1;
+
+	for (i = 0; i < N_TEMP_LIMITS; i++) {
+		if (temp >= limit_temp_degC[i]) new_bin = i;
 	}
 
-	if (release_temperature < limit_temp_3_degC && temp >= limit_temp_3_degC) {
-		trigger_temperature = limit_temp_4_degC;
-		release_temperature = limit_temp_3_degC - temp_hysteresis;
-		return limit_freq_3;
-	}
-
-	if (release_temperature < limit_temp_2_degC && temp >= limit_temp_2_degC) {
-		trigger_temperature = limit_temp_3_degC;
-		release_temperature = limit_temp_2_degC - temp_hysteresis;
-		return limit_freq_2;
-	}
-
-	if (release_temperature < limit_temp_1_degC && temp >= limit_temp_1_degC) {
-		trigger_temperature = limit_temp_2_degC;
-		release_temperature = limit_temp_1_degC - temp_hysteresis;
-		return limit_freq_1;
-	}
-
-	if (release_temperature != NOT_THROTTLED && temp > release_temperature)
-		return limited_max_freq;
-
-	trigger_temperature = limit_temp_1_degC;
-	release_temperature = NOT_THROTTLED;
-	return MSM_CPUFREQ_NO_LIMIT;
+	if (new_bin > throttled_bin) return new_bin;
+	if (temp <= release_temp(throttled_bin)) return new_bin;
+	return throttled_bin;
 }
 
 static void check_temp_and_throttle_if_needed(struct work_struct *work)
@@ -170,7 +152,7 @@ static void check_temp_and_throttle_if_needed(struct work_struct *work)
 	struct tsens_device tsens_dev;
 	unsigned long temp_ul = 0;
 	unsigned temp;
-	unsigned max_freq;
+	int new_bin;
 	int ret;
 
 	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
@@ -182,11 +164,11 @@ static void check_temp_and_throttle_if_needed(struct work_struct *work)
 	}
 
 	temp = (unsigned) temp_ul;
-	max_freq = select_frequency(temp);
+	new_bin = select_throttled_bin(temp);
 
-	pr_debug("msm_thermal: TSENS sensor %d is %u degC\n", tsens_dev.sensor_num, temp);
+	pr_debug("msm_thermal: TSENS sensor %d is %u degC old-bin %d new-bin %d\n", tsens_dev.sensor_num, temp, throttled_bin, new_bin);
 
-	update_all_cpus_max_freq_if_changed(max_freq, temp);
+	update_all_cpus_max_freq_if_changed(new_bin, temp);
 }
 
 static void check_temp(struct work_struct *work)
