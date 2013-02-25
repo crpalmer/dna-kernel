@@ -802,7 +802,7 @@ static int xc5000_is_firmware_loaded(struct dvb_frontend *fe)
 {
 	struct xc5000_priv *priv = fe->tuner_priv;
 	int ret;
-	u16 id;
+	u16 id = 0;
 
 	ret = xc5000_readreg(priv, XREG_PRODUCT_ID, &id);
 	if (ret == XC_RESULT_SUCCESS) {
