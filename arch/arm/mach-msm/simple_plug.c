@@ -49,6 +49,8 @@ static unsigned int nr_avg;
 static unsigned int nr_run_history[HISTORY_SIZE];
 static unsigned int nr_last_i;
 
+static unsigned int n_online;
+
 module_param(simple_plug_active, uint, 0644);
 module_param(min_cores, uint, 0644);
 module_param(max_cores, uint, 0644);
@@ -63,8 +65,7 @@ module_param_array(times_core_down, uint, NULL, 0444);
 
 module_param(nr_avg, uint, 0444);
 module_param_array(nr_run_history, uint, NULL, 0444);
-
-static int n_online;
+module_param(n_online, uint, 0444);
 
 static unsigned int desired_number_of_cores(void)
 {
