@@ -22,6 +22,7 @@
 #include <linux/cpu.h>
 #include <linux/sched.h>
 #include <linux/module.h>
+#include <linux/cpufreq.h>
 
 #define SIMPLE_PLUG_MAJOR_VERSION	1
 #define SIMPLE_PLUG_MINOR_VERSION	0
@@ -104,11 +105,21 @@ cpus_up_down(int nr_run_stat)
 #endif
 
 	while(n_online < nr_run_stat) {
+		struct cpufreq_policy policy;
+		int ret;
+
 		pr_debug(PR_NAME "starting cpu%d, want %d online\n", n_online, nr_run_stat);
 #ifdef CONFIG_SIMPLE_PLUG_STATS
 		times_core_up[n_online]++;
 #endif
 		cpu_up(n_online);
+
+                if ((ret = cpufreq_get_policy(&policy, n_online)) == 0) {
+		        if ((ret = cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_L)) < 0)
+				pr_info(PR_NAME "failed to target freq=%d for cpu%d.\n", policy.max, n_online);
+		} else
+			pr_info(PR_NAME "failed to get policy for cpu%d, ret=%d.\n", n_online, ret);
+
 		n_online++;
 	}
 
