@@ -1853,6 +1853,7 @@ _adreno_ft(struct kgsl_device *device,
 		 *  that do not want to be fault tolerant (ex: OPENCL)
 		 */
 		if (adreno_context->flags & CTXT_FLAGS_NO_FAULT_TOLERANCE) {
+			ft_data->status = 1;
 			KGSL_FT_ERR(device,
 			"No FT set for this context play good cmds\n");
 			goto play_good_cmds;
