@@ -68,9 +68,11 @@ module_param(nr_avg, uint, 0444);
 module_param_array(nr_run_history, uint, NULL, 0444);
 module_param(n_online, uint, 0444);
 
+#define FSHIFT_ONE	(1<<FSHIFT)
+
 static unsigned int desired_number_of_cores(void)
 {
-	int target_cores;
+	int target_cores, up_cores, down_cores;
 	int avg;
 
 	nr_avg -= nr_run_history[nr_last_i];
@@ -78,14 +80,24 @@ static unsigned int desired_number_of_cores(void)
 	nr_last_i = (nr_last_i + 1) % HISTORY_SIZE;
 
 	/* Compute number of cores of average active work.
-	 * If potentially decreasing the number of cores, truncate up
-	 * If potentially increasing the number of cores, truncate down.
+	 * To add core N we must have a load of at least N+0.5
+	 * To remove core N we must have load of N-0.5 or less
 	 */
 
 	avg = nr_avg / HISTORY_SIZE;
-	target_cores = avg >> FSHIFT;
-	if (target_cores < n_online)
-		target_cores = (avg + (1<<FSHIFT)-1) >> FSHIFT;
+
+	if (avg > FSHIFT_ONE/2) 
+		up_cores = (avg - FSHIFT_ONE/2) >> FSHIFT;
+	else
+		up_cores = 1;
+
+	down_cores = (avg + FSHIFT_ONE/2) >> FSHIFT;
+
+	if (up_cores > n_online)
+		target_cores = up_cores;
+	else if (down_cores < n_online)
+		target_cores = down_cores;
+	else target_cores = n_online;
 
 	if (target_cores > max_cores)
 		return max_cores;
