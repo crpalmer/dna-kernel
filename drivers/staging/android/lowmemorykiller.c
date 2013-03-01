@@ -65,6 +65,8 @@ static unsigned long lowmem_deathpending_timeout;
 	} while (0)
 
 
+#ifdef CRPALMER_WE_DONT_HAVE_CMA_FOR_DNA
+
 static int can_use_cma_pages(struct zone *zone, gfp_t gfp_mask)
 {
 	int can_use = 0;
@@ -90,13 +92,16 @@ static int can_use_cma_pages(struct zone *zone, gfp_t gfp_mask)
 	return can_use;
 }
 
+#endif
 
 static int nr_free_zone_pages(struct zone *zone, gfp_t gfp_mask)
 {
 	int sum = zone_page_state(zone, NR_FREE_PAGES);
 
+#ifdef CRPALMER_WE_DONT_HAVE_CMA_FOR_DNA
 	if (!can_use_cma_pages(zone, gfp_mask))
 		sum -= zone_page_state(zone, NR_FREE_CMA_PAGES);
+#endif
 
 	return sum;
 }
