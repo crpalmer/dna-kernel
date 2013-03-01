@@ -120,6 +120,13 @@ int kgsl_add_event(struct kgsl_device *device, u32 id, u32 ts,
 	if (n == &device->events)
 		list_add_tail(&event->list, &device->events);
 
+	 /*
+	 * Increase the active count on the device to avoid going into power
+	 * saving modes while events are pending
+	 */
+
+	device->active_cnt++;
+
 	queue_work(device->work_queue, &device->ts_expired_ws);
 	return 0;
 }
@@ -155,6 +162,8 @@ static void kgsl_cancel_events_ctxt(struct kgsl_device *device,
 
 		list_del(&event->list);
 		kfree(event);
+
+		kgsl_active_count_put(device);
 	}
 }
 
@@ -189,6 +198,8 @@ void kgsl_cancel_events(struct kgsl_device *device,
 
 		list_del(&event->list);
 		kfree(event);
+
+		kgsl_active_count_put(device);
 	}
 }
 EXPORT_SYMBOL(kgsl_cancel_events);
@@ -505,6 +516,8 @@ void kgsl_timestamp_expired(struct work_struct *work)
 
 		list_del(&event->list);
 		kfree(event);
+
+		kgsl_active_count_put(device);
 	}
 
 	mutex_unlock(&device->mutex);
@@ -1119,10 +1132,7 @@ static long _device_waittimestamp(struct kgsl_device_private *dev_priv,
 				      result);
 
 	/* Fire off any pending suspend operations that are in flight */
-
-	INIT_COMPLETION(dev_priv->device->suspend_gate);
-	dev_priv->device->active_cnt--;
-	complete(&dev_priv->device->suspend_gate);
+	kgsl_active_count_put(dev_priv->device);
 
 	return result;
 }
