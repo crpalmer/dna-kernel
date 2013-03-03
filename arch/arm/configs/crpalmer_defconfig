@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 3.4.33 Kernel Configuration
+# Linux/arm 3.4.34 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_ARM_HAS_SG_CHAIN=y
@@ -2633,6 +2633,7 @@ CONFIG_HID_SUPPORT=y
 CONFIG_HID=y
 # CONFIG_HID_BATTERY_STRENGTH is not set
 CONFIG_HIDRAW=y
+CONFIG_UHID=y
 
 #
 # USB Input Devices
