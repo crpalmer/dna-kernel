@@ -680,7 +680,7 @@ static void tsens_scheduler_fn(struct work_struct *work)
 	unsigned int threshold, threshold_low, i, code, reg, sensor, mask;
 	unsigned int sensor_addr;
 	bool upper_th_x, lower_th_x;
-	int adc_code;
+	unsigned triggered = 0;
 
 	if (tmdev->hw_type == APQ_8064) {
 		reg = readl_relaxed(TSENS_8064_STATUS_CNTL);
@@ -711,7 +711,7 @@ static void tsens_scheduler_fn(struct work_struct *work)
 	for (i = 0; i < tmdev->tsens_num_sensor; i++) {
 		if (i == TSENS_8064_SEQ_SENSORS)
 			sensor_addr += TSENS_8064_S4_S5_OFFSET;
-		if (sensor & TSENS_MASK1) {
+		if ((sensor & TSENS_MASK1) != 0 && tm->sensor[i].work) {
 			code = readl_relaxed(sensor_addr);
 			upper_th_x = code >= threshold;
 			lower_th_x = code <= threshold_low;
@@ -720,13 +720,7 @@ static void tsens_scheduler_fn(struct work_struct *work)
 			if (lower_th_x)
 				mask |= TSENS_LOWER_STATUS_CLR;
 			if (upper_th_x || lower_th_x) {
-				/* Notify user space */
-				if (tm->sensor[i].work)
-					schedule_work(tm->sensor[i].work);
-				tm->sensor[i].work = NULL;
-				adc_code = readl_relaxed(sensor_addr);
-				pr_info("msm_thermal: trigger (%d degrees) for sensor %d\n",
-					tsens_tz_code_to_degC(adc_code, i), i);
+				triggered |= (1 << i);
 			}
 
 		}
@@ -737,7 +731,28 @@ static void tsens_scheduler_fn(struct work_struct *work)
 		writel_relaxed(reg & mask, TSENS_8064_STATUS_CNTL);
 	else
 	writel_relaxed(reg & mask, TSENS_CNTL_ADDR);
+
 	mb();
+
+	/* Actually schedule the work after changing the masks so that
+	 * we don't overwrite any changes that these callbacks want
+	 * to make.
+	 *
+	 * Put a memory barrier before to ensure that we have actually
+	 * made the change to the sensor.
+	 */
+
+	if (triggered)
+		for (i = 0; i < tmdev->tsens_num_sensor; i++)
+			if ((triggered & (1 <<i)) != 0) {
+				struct work_struct *work;
+
+				pr_info("msm_thermal: trigger for sensor %d\n", i);
+				work = tm->sensor[i].work;
+				tm->sensor[i].work = NULL;
+				if (work)
+					schedule_work(work);
+			}
 }
 
 static irqreturn_t tsens_isr(int irq, void *data)
