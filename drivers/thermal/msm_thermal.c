@@ -188,7 +188,7 @@ int __init msm_thermal_init(struct msm_thermal_data *pdata)
 	INIT_DELAYED_WORK(&first_work, check_temp);
 	INIT_WORK(&trip_work, check_temp);
 
-	schedule_delayed_work(&first_work, 10000);
+	schedule_delayed_work(&first_work, msecs_to_jiffies(30*1000));
 
 	return 0;
 }
