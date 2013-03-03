@@ -125,6 +125,8 @@ configure_sensor_trip_points(void)
 	int trigger_temperature = limit_temp(throttled_bin);
 	int release_temperature = release_temp(throttled_bin);
 
+	pr_info("msm_thermal: setting trip range %d..%d on sensor %d.\n", release_temperature, trigger_temperature, msm_thermal_info.sensor_id);
+
 	if (trigger_temperature != NO_TRIGGER_TEMPERATURE)
 		tsens_set_tz_warm_temp_degC(msm_thermal_info.sensor_id, trigger_temperature, &trip_work);
 
