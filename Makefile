@@ -2,8 +2,7 @@ VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 35
 EXTRAVERSION =
-CRPALMER_VERSION=crpalmer-1.0.19
-NAME = $(CRPALMER_VERSION)
+NAME = Saber-toothed Squirrel
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -172,8 +171,6 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
 				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
 				  -e s/sh[234].*/sh/ )
 
-CCACHE=ccache
-
 # Cross compiling and selecting different set of gcc/bin-utils
 # ---------------------------------------------------------------------------
 #
@@ -198,7 +195,7 @@ export KBUILD_BUILDHOST := $(SUBARCH)
 ARCH		?= $(SUBARCH)
 CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
 ARCH		:= arm
-CROSS_COMPILE	:= $(CCACHE) /opt/toolchains/linaro-4.7/bin/arm-eabi-
+CROSS_COMPILE	:= arm-eabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
@@ -248,7 +245,7 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
-HOSTCC       = $(CCACHE) gcc
+HOSTCC       = gcc
 HOSTCXX      = g++
 HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
 HOSTCXXFLAGS = -O2
@@ -1020,8 +1017,7 @@ define filechk_utsrelease.h
 endef
 
 define filechk_version.h
-	(echo \#define LINUX_CODE_NAME \"$(NAME)\"; \
-	echo \#define LINUX_VERSION_CODE $(shell                             \
+	(echo \#define LINUX_VERSION_CODE $(shell                             \
 	expr $(VERSION) \* 65536 + 0$(PATCHLEVEL) \* 256 + 0$(SUBLEVEL));    \
 	echo '#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))';)
 endef
@@ -1581,37 +1577,6 @@ endif
 clean := -f $(if $(KBUILD_SRC),$(srctree)/)scripts/Makefile.clean obj
 
 endif	# skip-makefile
-
-# Droid DNA specific target to build the update.zip
-
-DNA_ZIP=~/dna/updates/update-$(CRPALMER_VERSION).zip
-UPDATE_ROOT=dna/update
-CERT=dna/keys/certificate.pem
-KEY=dna/keys/key.pk8
-
-dna/update-this-version.zip:
-	make $(DNA_ZIP)
-
-$(CERT):
-	mkdir -p dna/keys
-	cd dna/keys && \
-		openssl genrsa -out key.pem 1024 && \
-		openssl req -new -key key.pem -out request.pem && \
-		openssl x509 -req -days 9999 -in request.pem -signkey key.pem -out certificate.pem && \
-		openssl pkcs8 -topk8 -outform DER -in key.pem -inform PEM -out key.pk8 -nocrypt
-
-$(DNA_ZIP): arch/arm/boot/zImage dna/bootimg.cfg dna/updater-script $(CERT)
-	-rm -rf $(UPDATE_ROOT)
-	mkdir -p $(UPDATE_ROOT)/system/lib/modules
-	cp `find . -name '*.ko'` $(UPDATE_ROOT)/system/lib/modules
-	mkdir -p $(UPDATE_ROOT)/META-INF/com/google/android
-	cp dna/update-binary $(UPDATE_ROOT)/META-INF/com/google/android
-	sed 's/@@VERSION@@/$(CRPALMER_VERSION)/' < dna/updater-script > $(UPDATE_ROOT)/META-INF/com/google/android/updater-script
-	abootimg --create $(UPDATE_ROOT)/boot.img -k arch/arm/boot/zImage -f dna/bootimg.cfg -r dna/initrd.img
-	-rm -f dna/update.zip
-	cd $(UPDATE_ROOT) && zip -r ../update.zip .
-	java -jar dna/signapk.jar $(CERT) $(KEY) dna/update.zip $@
-
 
 PHONY += FORCE
 FORCE:
