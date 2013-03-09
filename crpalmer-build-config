@@ -3,6 +3,7 @@ HOST_CC="ccache gcc"
 LOCAL_BUILD_DIR=dna
 TARGET_DIR=~/dna/updates
 SYSTEM_PARTITION="/dev/block/mmcblk0p32"
+DEFCONFIG=crpalmer_defconfig
 
 # ----
 
