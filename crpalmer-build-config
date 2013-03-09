@@ -7,7 +7,7 @@ SYSTEM_PARTITION="/dev/block/mmcblk0p32"
 # ----
 
 N_CORES=4
-VERSION=crpalmer-1.1.20
+VERSION=crpalmer-1.0.20
 
 # ----
 
