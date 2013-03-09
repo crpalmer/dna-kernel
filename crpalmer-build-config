@@ -1,0 +1,23 @@
+CROSS_COMPILE="ccache /opt/toolchains/linaro-4.7/bin/arm-eabi-"
+HOST_CC="ccache gcc"
+LOCAL_BUILD_DIR=dna
+TARGET_DIR=~/dna/updates
+SYSTEM_PARTITION="/dev/block/mmcblk0p32"
+
+# ----
+
+N_CORES=4
+VERSION=crpalmer-1.1.20
+
+# ----
+
+BANNER=`cat <<EOF
+ui_print("**********************************************");
+ui_print("*                                            *");
+ui_print("*                  crpalmer's                *");
+ui_print("*             HTC Droid DNA Kernel           *");
+ui_print("*                                            *");
+ui_print("* Version: $VERSION                   *");
+ui_print("*                                            *");
+ui_print("**********************************************");
+EOF`
