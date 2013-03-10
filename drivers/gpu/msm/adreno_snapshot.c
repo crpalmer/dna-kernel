@@ -18,7 +18,6 @@
 #include "adreno_pm4types.h"
 #include "a2xx_reg.h"
 #include "a3xx_reg.h"
-#include <mach/msm_rtb_enable.h>
 
 /* Number of dwords of ringbuffer history to record */
 #define NUM_DWORDS_OF_RINGBUFFER_HISTORY 100

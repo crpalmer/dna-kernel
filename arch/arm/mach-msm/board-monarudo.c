@@ -4835,7 +4835,7 @@ static void __init monarudo_cdp_init(void)
 
 	msm_rotator_update_bus_vectors(1920, 1080);
 	monarudo_init_fb();
-	monarudo_init_gpu();
+	apq8064_init_gpu();
 
 	platform_add_devices(apq8064_footswitch, apq8064_num_footswitch);
 #ifdef CONFIG_MSM_CAMERA

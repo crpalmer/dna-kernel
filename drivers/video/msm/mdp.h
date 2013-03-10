@@ -44,21 +44,9 @@ extern spinlock_t mdp_spin_lock;
 extern int mdp_rev;
 extern int mdp_iommu_split_domain;
 extern struct mdp_csc_cfg mdp_csc_convert[4];
-
 extern struct workqueue_struct *mdp_hist_wq;
 
-extern u32 mdp_ov0_blt_ctl;
-enum {
-	MDP4_BLT_SWITCH_TG_OFF,
-	MDP4_BLT_SWITCH_TG_ON_ISR
-};
-
-/*
- * We may have the other modes of blt ctl:
- * MDP4_BLT_SWITCH_TG_ON_POLL
- * MDP4_BLT_ALWAYS_ON
- * MDP4_BLT_ALWAYS_OFF
- */
+extern uint32 mdp_intr_mask;
 
 #define MDP4_REVISION_V1		0
 #define MDP4_REVISION_V2		1
@@ -101,6 +89,16 @@ struct mdp_table_entry {
 extern struct mdp_ccs mdp_ccs_yuv2rgb ;
 extern struct mdp_ccs mdp_ccs_rgb2yuv ;
 extern unsigned char hdmi_prim_display;
+extern unsigned char hdmi_prim_resolution;
+
+struct vsync {
+	ktime_t vsync_time;
+	struct device *dev;
+	struct work_struct vsync_work;
+	int vsync_irq_enabled;
+};
+
+extern struct vsync vsync_cntrl;
 
 /*
  * MDP Image Structure
@@ -240,9 +238,9 @@ struct mdp_dma_data {
 };
 
 struct mdp_reg {
-	uint32_t reg;
-	uint32_t val;
-	uint32_t mask;
+        uint32_t reg;
+        uint32_t val;
+        uint32_t mask;
 };
 
 extern struct list_head mdp_hist_lut_list;
@@ -305,6 +303,7 @@ extern struct mdp_hist_mgmt *mdp_hist_mgmt_array[];
 #define MDP_HISTOGRAM_TERM_DMA_S 0x20000
 #define MDP_HISTOGRAM_TERM_VG_1 0x40000
 #define MDP_HISTOGRAM_TERM_VG_2 0x80000
+#define MDP_VSYNC_TERM 0x1000
 
 #define ACTIVE_START_X_EN BIT(31)
 #define ACTIVE_START_Y_EN BIT(31)
@@ -324,6 +323,7 @@ extern struct mdp_hist_mgmt *mdp_hist_mgmt_array[];
 #define MDP_PPP_DONE 				BIT(0)
 #define TV_OUT_DMA3_DONE    BIT(6)
 #define TV_ENC_UNDERRUN     BIT(7)
+#define MDP_PRIM_RDPTR      BIT(8)
 #define TV_OUT_DMA3_START   BIT(13)
 #define MDP_HIST_DONE       BIT(20)
 
@@ -832,6 +832,11 @@ static inline int mdp_bus_scale_update_request(uint32_t index)
 	return 0;
 }
 #endif
+void mdp_dma_vsync_ctrl(int enable);
+void mdp_dma_video_vsync_ctrl(int enable);
+void mdp_dma_lcdc_vsync_ctrl(int enable);
+void mdp3_vsync_irq_enable(int intr, int term);
+void mdp3_vsync_irq_disable(int intr, int term);
 
 #ifdef MDP_HW_VSYNC
 void vsync_clk_prepare_enable(void);
@@ -882,6 +887,11 @@ static inline void mdp_dsi_cmd_overlay_suspend(struct msm_fb_data_type *mfd)
 {
 	/* empty */
 }
+static inline int msmfb_overlay_vsync_ctrl(struct fb_info *info,
+						void __user *argp)
+{
+	return 0;
+}
 #endif
 
 int mdp_ppp_v4l2_overlay_set(struct fb_info *info, struct mdp_overlay *req);
@@ -897,5 +907,26 @@ static inline void mdp_vid_quant_set(void)
 {
 	/* empty */
 }
+#endif
+
+#ifdef CONFIG_UPDATE_LCDC_LUT
+#define R_MASK    0x00ff0000
+#define G_MASK    0x000000ff
+#define B_MASK    0x0000ff00
+#define R_SHIFT   16
+#define G_SHIFT   0
+#define B_SHIFT   8
+#define lut2r(lut) ((lut & R_MASK) >> R_SHIFT)
+#define lut2g(lut) ((lut & G_MASK) >> G_SHIFT)
+#define lut2b(lut) ((lut & B_MASK) >> B_SHIFT)
+
+#ifdef CONFIG_LCD_KCAL
+#define NUM_QLUT  256
+#define MAX_KCAL_V (NUM_QLUT-1)
+#define scaled_by_kcal(rgb, kcal) \
+		(((((unsigned int)(rgb) * (unsigned int)(kcal)) << 16) / \
+		(unsigned int)MAX_KCAL_V) >> 16)
+#endif
+int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut);
 #endif
 #endif /* MDP_H */

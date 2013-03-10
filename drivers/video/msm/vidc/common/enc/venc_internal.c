@@ -34,15 +34,13 @@
 #include "vcd_res_tracker_api.h"
 #include "venc_internal.h"
 
-/*HTC_START*/
-extern u32 vidc_msg_debug;
-#define DBG(x...)				\
-	if (vidc_msg_debug) {			\
-		printk(KERN_DEBUG "[VID] " x);	\
-	}
-/*HTC_END*/
+#if DEBUG
+#define DBG(x...) printk(KERN_DEBUG x)
+#else
+#define DBG(x...)
+#endif
 
-#define ERR(x...) printk(KERN_ERR "[VID] " x)
+#define ERR(x...) printk(KERN_ERR x)
 static unsigned int vidc_mmu_subsystem[] = {
 	MSM_SUBSYSTEM_VIDEO};
 
@@ -1870,10 +1868,9 @@ u32 vid_enc_set_recon_buffers(struct video_client_ctx *client_ctx,
 					(unsigned long *)&iova,
 					(unsigned long *)&buffer_size,
 					UNCACHED, 0);
-			if (rc || !iova) {
-				ERR(
-				"%s():ION map iommu addr fail, rc = %d, iova = 0x%lx\n",
-					__func__, rc, iova);
+			if (rc) {
+				ERR("%s():ION map iommu addr fail\n",
+					 __func__);
 				goto map_ion_error;
 			}
 			control->physical_addr =  (u8 *) iova;

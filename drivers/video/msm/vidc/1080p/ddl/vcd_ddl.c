@@ -198,7 +198,8 @@ u32 ddl_open(u32 **ddl_handle, u32 decoding)
 		ddl->client_state = DDL_CLIENT_OPEN;
 		ddl->codec_data.hdr.decoding = decoding;
 		ddl->decoding = decoding;
-		ddl_set_default_meta_data_hdr(ddl);
+		if (!res_trk_check_for_sec_session())
+			ddl_set_default_meta_data_hdr(ddl);
 		ddl_set_initial_default_values(ddl);
 		*ddl_handle	= (u32 *) ddl;
 	} else {
@@ -472,12 +473,6 @@ u32 ddl_encode_frame(u32 *ddl_handle,
 		&ddl->codec_data.encoder;
 	u32 vcd_status = VCD_S_SUCCESS;
 	struct vcd_transc *transc;
-	/* HTC_START (klockwork issue)*/
-	if (!ddl) {
-		DDL_MSG_ERROR("ddl_enc_frame:Bad_handle");
-		return VCD_ERR_BAD_HANDLE;
-	}
-	/* HTC_END */
 	transc = (struct vcd_transc *)(ddl->client_data);
 	DDL_MSG_LOW("%s: transc = 0x%x", __func__, (u32)ddl->client_data);
 	if (encoder->slice_delivery_info.enable) {

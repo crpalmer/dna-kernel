@@ -22,6 +22,7 @@
 #include "kgsl_pwrctrl.h"
 #include "kgsl_log.h"
 #include "kgsl_pwrscale.h"
+#include <linux/sync.h>
 
 #define KGSL_TIMEOUT_NONE       0
 #define KGSL_TIMEOUT_DEFAULT    0xFFFFFFFF
@@ -57,6 +58,7 @@ struct platform_device;
 struct kgsl_device_private;
 struct kgsl_context;
 struct kgsl_power_stats;
+struct kgsl_event;
 
 struct kgsl_functable {
 	/* Mandatory functions - these functions must be implemented
@@ -67,7 +69,7 @@ struct kgsl_functable {
 		unsigned int offsetwords, unsigned int *value);
 	void (*regwrite) (struct kgsl_device *device,
 		unsigned int offsetwords, unsigned int value);
-	int (*idle) (struct kgsl_device *device, unsigned int timeout);
+	int (*idle) (struct kgsl_device *device);
 	unsigned int (*isidle) (struct kgsl_device *device);
 	int (*suspend_context) (struct kgsl_device *device);
 	int (*start) (struct kgsl_device *device, unsigned int init_ram);
@@ -110,6 +112,9 @@ struct kgsl_functable {
 	int (*setproperty) (struct kgsl_device *device,
 		enum kgsl_property_type type, void *value,
 		unsigned int sizebytes);
+	int (*postmortem_dump) (struct kgsl_device *device, int manual);
+	void (*next_event)(struct kgsl_device *device,
+		struct kgsl_event *event);
 };
 
 /* MH register values */
@@ -130,10 +135,6 @@ struct kgsl_event {
 	void *owner;
 };
 
-struct kgsl_gpubusy {
-	s64 busy;
-	s64 total;
-};
 
 struct kgsl_device {
 	struct device *dev;
@@ -157,7 +158,6 @@ struct kgsl_device {
 	struct kgsl_pwrctrl pwrctrl;
 	int open_count;
 
-	struct atomic_notifier_head ts_notifier_list;
 	struct mutex mutex;
 	uint32_t state;
 	uint32_t requested_state;
@@ -180,7 +180,6 @@ struct kgsl_device {
 	int snapshot_frozen;	/* 1 if the snapshot output is frozen until
 				   it gets read by the user.  This avoids
 				   losing the output on multiple hangs  */
-	int snapshot_no_panic;	/* HTC: deprecate kernel panic after GPU HANG if 1 */
 	struct kobject snapshot_kobj;
 
 	/*
@@ -202,13 +201,9 @@ struct kgsl_device {
 	struct list_head events;
 	s64 on_time;
 
-	/* gpu busy time */
-	struct kgsl_gpubusy gputime;
-	struct kgsl_gpubusy gputime_in_state[KGSL_MAX_PWRLEVELS];
-#ifdef CONFIG_MSM_KGSL_GPU_USAGE
-	struct kgsl_process_private *current_process_priv;
-#endif
-
+	/* Postmortem Control switches */
+	int pm_regs_enabled;
+	int pm_ib_enabled;
 };
 
 void kgsl_timestamp_expired(struct work_struct *work);
@@ -217,7 +212,6 @@ void kgsl_timestamp_expired(struct work_struct *work);
 	.hwaccess_gate = COMPLETION_INITIALIZER((_dev).hwaccess_gate),\
 	.suspend_gate = COMPLETION_INITIALIZER((_dev).suspend_gate),\
 	.recovery_gate = COMPLETION_INITIALIZER((_dev).recovery_gate),\
-	.ts_notifier_list = ATOMIC_NOTIFIER_INIT((_dev).ts_notifier_list),\
 	.idle_check_ws = __WORK_INITIALIZER((_dev).idle_check_ws,\
 			kgsl_idle_check),\
 	.ts_expired_ws  = __WORK_INITIALIZER((_dev).ts_expired_ws,\
@@ -244,6 +238,12 @@ struct kgsl_context {
 	 * context was responsible for causing it
 	 */
 	unsigned int reset_status;
+
+	/*
+	 * Timeline used to create fences that can be signaled when a
+	 * sync_pt timestamp expires.
+	 */
+	struct sync_timeline *timeline;
 };
 
 struct kgsl_process_private {
@@ -259,10 +259,6 @@ struct kgsl_process_private {
 		unsigned int cur;
 		unsigned int max;
 	} stats[KGSL_MEM_ENTRY_MAX];
-#ifdef CONFIG_MSM_KGSL_GPU_USAGE
-	struct kgsl_gpubusy gputime;
-	struct kgsl_gpubusy gputime_in_state[KGSL_MAX_PWRLEVELS];
-#endif
 };
 
 struct kgsl_device_private {
@@ -285,12 +281,6 @@ static inline void kgsl_process_add_stats(struct kgsl_process_private *priv,
 		priv->stats[type].max = priv->stats[type].cur;
 }
 
-static inline void kgsl_process_sub_stats(struct kgsl_process_private *priv,
-	unsigned int type, size_t size)
-{
-	priv->stats[type].cur -= size;
-}
-
 static inline void kgsl_regread(struct kgsl_device *device,
 				unsigned int offsetwords,
 				unsigned int *value)
@@ -305,9 +295,9 @@ static inline void kgsl_regwrite(struct kgsl_device *device,
 	device->ftbl->regwrite(device, offsetwords, value);
 }
 
-static inline int kgsl_idle(struct kgsl_device *device, unsigned int timeout)
+static inline int kgsl_idle(struct kgsl_device *device)
 {
-	return device->ftbl->idle(device, timeout);
+	return device->ftbl->idle(device);
 }
 
 static inline unsigned int kgsl_gpuid(struct kgsl_device *device,
@@ -384,12 +374,6 @@ kgsl_find_context(struct kgsl_device_private *dev_priv, uint32_t id)
 
 int kgsl_check_timestamp(struct kgsl_device *device,
 		struct kgsl_context *context, unsigned int timestamp);
-
-int kgsl_register_ts_notifier(struct kgsl_device *device,
-			      struct notifier_block *nb);
-
-int kgsl_unregister_ts_notifier(struct kgsl_device *device,
-				struct notifier_block *nb);
 
 int kgsl_device_platform_probe(struct kgsl_device *device);
 

@@ -20,7 +20,6 @@
 #include "kgsl_cffdump.h"
 #include "adreno.h"
 #include "adreno_a2xx_trace.h"
-#include <mach/msm_rtb_enable.h>
 
 /*
  * These are the registers that are dumped with GPU snapshot
@@ -1747,9 +1746,6 @@ static void a2xx_cp_intrcallback(struct kgsl_device *device)
 		KGSL_CMD_WARN(rb->device, "ringbuffer ib1/rb interrupt\n");
 		queue_work(device->work_queue, &device->ts_expired_ws);
 		wake_up_interruptible_all(&device->wait_queue);
-		atomic_notifier_call_chain(&(device->ts_notifier_list),
-					   device->id,
-					   NULL);
 	}
 }
 

@@ -42,7 +42,6 @@
 #include "mdp4.h"
 #endif
 #include "mipi_dsi.h"
-#include <mach/msm_rtb_enable.h>
 
 uint32 mdp4_extn_disp;
 
@@ -51,11 +50,10 @@ static struct clk *mdp_pclk;
 static struct clk *mdp_lut_clk;
 int mdp_rev;
 int mdp_iommu_split_domain;
-u32 mdp_max_clk = 200000000;
-u32 mdp_ov0_blt_ctl = MDP4_BLT_SWITCH_TG_OFF;
+u32 mdp_max_clk = 266667000;
 
 static struct platform_device *mdp_init_pdev;
-static struct regulator *footswitch, *hdmi_pll_fs;
+static struct regulator *footswitch;
 static unsigned int mdp_footswitch_on;
 
 struct completion mdp_ppp_comp;
@@ -70,6 +68,8 @@ uint32 mdp_lcdc_underflow_cnt;
 
 boolean mdp_current_clk_on = FALSE;
 boolean mdp_is_in_isr = FALSE;
+
+struct vsync vsync_cntrl;
 
 /*
  * legacy mdp_in_processing is only for DMA2-MDDI
@@ -87,7 +87,7 @@ MDP_BLOCK_TYPE mdp_debug[MDP_MAX_BLOCK];
 
 atomic_t mdp_block_power_cnt[MDP_MAX_BLOCK];
 
-spinlock_t mdp_spin_lock;
+ spinlock_t mdp_spin_lock;
 struct workqueue_struct *mdp_dma_wq;	/*mdp dma wq */
 struct workqueue_struct *mdp_vsync_wq;	/*mdp vsync wq */
 
@@ -98,13 +98,13 @@ static struct workqueue_struct *mdp_pipe_ctrl_wq; /* mdp mdp pipe ctrl wq */
 static struct delayed_work mdp_pipe_ctrl_worker;
 
 static boolean mdp_suspended = FALSE;
+ulong mdp4_display_intf;
 DEFINE_MUTEX(mdp_suspend_mutex);
 
 #ifdef CONFIG_FB_MSM_MDP40
 struct mdp_dma_data dma2_data;
 struct mdp_dma_data dma_s_data;
 struct mdp_dma_data dma_e_data;
-ulong mdp4_display_intf;
 #else
 static struct mdp_dma_data dma2_data;
 static struct mdp_dma_data dma_s_data;
@@ -481,6 +481,7 @@ error:
 
 DEFINE_MUTEX(mdp_lut_push_sem);
 static int mdp_lut_i;
+
 static int mdp_lut_hw_update(struct fb_cmap *cmap)
 {
 	int i;
@@ -555,6 +556,41 @@ static int mdp_lut_update_lcdc(struct fb_info *info, struct fb_cmap *cmap)
 
 	return 0;
 }
+
+#ifdef CONFIG_UPDATE_LCDC_LUT
+int mdp_preset_lut_update_lcdc(struct fb_cmap *cmap, uint32_t *internal_lut)
+{
+	uint32_t out;
+	int i;
+	u16 r, g, b;
+
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+
+	for (i = 0; i < cmap->len; i++) {
+		r = lut2r(internal_lut[i]);
+		g = lut2g(internal_lut[i]);
+		b = lut2b(internal_lut[i]);
+#ifdef CONFIG_LCD_KCAL
+		r = scaled_by_kcal(r, *(cmap->red));
+		g = scaled_by_kcal(g, *(cmap->green));
+		b = scaled_by_kcal(b, *(cmap->blue));
+#endif
+		MDP_OUTP(MDP_BASE + 0x94800 +
+			(0x400*mdp_lut_i) + cmap->start*4 + i*4,
+				((g & 0xff) |
+				 ((b & 0xff) << 8) |
+				 ((r & 0xff) << 16)));
+	}
+
+	/*mask off non LUT select bits*/
+	out = inpdw(MDP_BASE + 0x90070) & ~((0x1 << 10) | 0x7);
+	MDP_OUTP(MDP_BASE + 0x90070, (mdp_lut_i << 10) | 0x7 | out);
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+	mdp_lut_i = (mdp_lut_i + 1)%2;
+
+	return 0;
+}
+#endif
 
 static void mdp_lut_enable(void)
 {
@@ -1273,8 +1309,56 @@ error:
 }
 #endif
 
-/* Returns < 0 on error, 0 on timeout, or > 0 on successful wait */
+static void send_vsync_work(struct work_struct *work)
+{
+	char buf[64];
+	char *envp[2];
 
+	snprintf(buf, sizeof(buf), "VSYNC=%llu",
+			ktime_to_ns(vsync_cntrl.vsync_time));
+	envp[0] = buf;
+	envp[1] = NULL;
+	kobject_uevent_env(&(vsync_cntrl.dev->kobj), KOBJ_CHANGE, envp);
+}
+
+void mdp3_vsync_irq_enable(int intr, int term)
+{
+	unsigned long flag;
+
+	spin_lock_irqsave(&mdp_spin_lock, flag);
+	outp32(MDP_INTR_CLEAR, intr);
+	mdp_intr_mask |= intr;
+	outp32(MDP_INTR_ENABLE, mdp_intr_mask);
+	mdp_enable_irq(term);
+	spin_unlock_irqrestore(&mdp_spin_lock, flag);
+}
+
+void mdp3_vsync_irq_disable(int intr, int term)
+{
+	unsigned long flag;
+
+	spin_lock_irqsave(&mdp_spin_lock, flag);
+	/* required to synchronize between frame update and vsync
+	 * since both use the same LCDC_FRAME_START interrupt
+	 */
+	if (intr == LCDC_FRAME_START && dma2_data.waiting == FALSE) {
+		mdp_intr_mask &= ~intr;
+		outp32(MDP_INTR_ENABLE, mdp_intr_mask);
+	}
+	mdp_disable_irq(term);
+	spin_unlock_irqrestore(&mdp_spin_lock, flag);
+}
+
+#ifdef CONFIG_FB_MSM_MDP303
+/* vsync_isr_handler: Called from isr context*/
+static void vsync_isr_handler(void)
+{
+	vsync_cntrl.vsync_time = ktime_get();
+	schedule_work(&(vsync_cntrl.vsync_work));
+}
+#endif
+
+/* Returns < 0 on error, 0 on timeout, or > 0 on successful wait */
 int mdp_ppp_pipe_wait(void)
 {
 	int ret = 1;
@@ -1411,6 +1495,15 @@ void mdp_pipe_kickoff(uint32 term, struct msm_fb_data_type *mfd)
 		outpdw(MDP_BASE + 0x000c, 0x0);	/* start DMA */
 #else
 		outpdw(MDP_BASE + 0x0044, 0x0);	/* start DMA */
+
+#ifdef CONFIG_FB_MSM_MDP303
+
+#ifdef CONFIG_FB_MSM_MIPI_DSI
+		mipi_dsi_cmd_mdp_start();
+#endif
+
+#endif
+
 #endif
 #endif
 #ifdef CONFIG_FB_MSM_MDP40
@@ -1422,15 +1515,12 @@ void mdp_pipe_kickoff(uint32 term, struct msm_fb_data_type *mfd)
 		outpdw(MDP_BASE + 0x0014, 0x0);	/* start DMA */
 	} else if (term == MDP_OVERLAY0_TERM) {
 		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-		mdp_lut_enable();
 		outpdw(MDP_BASE + 0x0004, 0);
 	} else if (term == MDP_OVERLAY1_TERM) {
 		mdp_pipe_ctrl(MDP_OVERLAY1_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-		mdp_lut_enable();
 		outpdw(MDP_BASE + 0x0008, 0);
 	} else if (term == MDP_OVERLAY2_TERM) {
 		mdp_pipe_ctrl(MDP_OVERLAY2_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-		mdp_lut_enable();
 		outpdw(MDP_BASE + 0x00D0, 0);
 	}
 #else
@@ -1510,6 +1600,7 @@ void mdp_clk_ctrl(int on)
 				mdp_clk_disable_unprepare();
 		}
 	}
+	pr_debug("%s: on=%d cnt=%d\n", __func__, on, mdp_clk_cnt);
 	mutex_unlock(&mdp_suspend_mutex);
 }
 
@@ -1733,6 +1824,10 @@ irqreturn_t mdp_isr(int irq, void *ptr)
 	if (!mdp_interrupt)
 		goto out;
 
+	/*Primary Vsync interrupt*/
+	if (mdp_interrupt & MDP_PRIM_RDPTR)
+		vsync_isr_handler();
+
 	/* DMA3 TV-Out Start */
 	if (mdp_interrupt & TV_OUT_DMA3_START) {
 		/* let's disable TV out interrupt */
@@ -1780,12 +1875,19 @@ irqreturn_t mdp_isr(int irq, void *ptr)
 			dma = &dma2_data;
 			spin_lock_irqsave(&mdp_spin_lock, flag);
 			/* let's disable LCDC interrupt */
-			mdp_intr_mask &= ~LCDC_FRAME_START;
-			outp32(MDP_INTR_ENABLE, mdp_intr_mask);
 			if (dma->waiting) {
 				dma->waiting = FALSE;
 				complete(&dma->comp);
 			}
+
+			if (vsync_cntrl.vsync_irq_enabled)
+				vsync_isr_handler();
+
+			if (!vsync_cntrl.vsync_irq_enabled && !(dma->waiting)) {
+				mdp_intr_mask &= ~LCDC_FRAME_START;
+				outp32(MDP_INTR_ENABLE, mdp_intr_mask);
+			}
+
 			spin_unlock_irqrestore(&mdp_spin_lock, flag);
 		}
 
@@ -1916,7 +2018,7 @@ static void mdp_drv_init(void)
 	for (i = 0; i < MDP_MAX_BLOCK; i++) {
 		atomic_set(&mdp_block_power_cnt[i], 0);
 	}
-
+	INIT_WORK(&(vsync_cntrl.vsync_work), send_vsync_work);
 #ifdef MSM_FB_ENABLE_DBGFS
 	{
 		struct dentry *root;
@@ -2000,6 +2102,7 @@ static int mdp_off(struct platform_device *pdev)
 	int ret = 0;
 	struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
 
+	pr_debug("%s:+\n", __func__);
 	mdp_histogram_ctrl_all(FALSE);
 
 	mdp_clk_ctrl(1);
@@ -2019,50 +2122,69 @@ static int mdp_off(struct platform_device *pdev)
 
 	if (mdp_rev >= MDP_REV_41 && mfd->panel.type == MIPI_CMD_PANEL)
 		mdp_dsi_cmd_overlay_suspend(mfd);
+	pr_debug("%s:-\n", __func__);
 	return ret;
 }
 
-static struct msm_panel_common_pdata *mdp_pdata;
+#ifdef CONFIG_FB_MSM_MDP303
+unsigned is_mdp4_hw_reset(void)
+{
+	return 0;
+}
+void mdp4_hw_init(void)
+{
+	/* empty */
+}
+#endif
 
 static int mdp_on(struct platform_device *pdev)
 {
 	int ret = 0;
-#ifdef CONFIG_FB_MSM_MDP40
 	struct msm_fb_data_type *mfd;
-
 	mfd = platform_get_drvdata(pdev);
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	mdp_clk_ctrl(1);
-	mdp4_hw_init();
-	outpdw(MDP_BASE + 0x0038, mdp4_display_intf);
-	if (mfd->panel.type == MIPI_CMD_PANEL) {
-		mdp_vsync_cfg_regs(mfd, FALSE);
-		mdp4_dsi_cmd_on(pdev);
-	} else if (mfd->panel.type == MIPI_VIDEO_PANEL)
-		mdp4_dsi_video_on(pdev);
-	else if (mfd->panel.type == HDMI_PANEL ||
-			mfd->panel.type == LCDC_PANEL ||
-			mfd->panel.type == LVDS_PANEL)
-		mdp4_lcdc_on(pdev);
 
-	mdp_clk_ctrl(0);
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-#endif
+	pr_debug("%s:+\n", __func__);
+
+	if (mdp_rev >= MDP_REV_40) {
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+		mdp_clk_ctrl(1);
+		mdp4_hw_init();
+		outpdw(MDP_BASE + 0x0038, mdp4_display_intf);
+		if (mfd->panel.type == MIPI_CMD_PANEL) {
+			mdp_vsync_cfg_regs(mfd, FALSE);
+			mdp4_dsi_cmd_on(pdev);
+		} else if (mfd->panel.type == MIPI_VIDEO_PANEL) {
+			mdp4_dsi_video_on(pdev);
+		} else if (mfd->panel.type == HDMI_PANEL ||
+				mfd->panel.type == LCDC_PANEL ||
+				mfd->panel.type == LVDS_PANEL) {
+			mdp4_lcdc_on(pdev);
+		}
+
+		mdp_clk_ctrl(0);
+		mdp4_overlay_reset();
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+	}
+
+	if ((mdp_rev == MDP_REV_303) &&
+			(mfd->panel.type == MIPI_CMD_PANEL))
+		vsync_cntrl.dev = mfd->fbi->dev;
 
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+
 	ret = panel_next_on(pdev);
+	if (mfd->panel.type == MIPI_VIDEO_PANEL)
+		mdp4_overlay_dsi_video_start();
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
 	mdp_histogram_ctrl_all(TRUE);
-
-	if (mdp_pdata->mdp_gamma)
-		mdp_pdata->mdp_gamma();
+	pr_debug("%s:-\n", __func__);
 
 	return ret;
 }
 
 static int mdp_resource_initialized;
-//static struct msm_panel_common_pdata *mdp_pdata;
+static struct msm_panel_common_pdata *mdp_pdata;
 
 uint32 mdp_hw_revision;
 
@@ -2166,39 +2288,18 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 	}
 	disable_irq(mdp_irq);
 
-	hdmi_pll_fs = regulator_get(&pdev->dev, "hdmi_pll_fs");
-	if (IS_ERR(hdmi_pll_fs)) {
-		hdmi_pll_fs = NULL;
-	} else {
-		if (mdp_rev != MDP_REV_44) {
-			ret = regulator_set_voltage(hdmi_pll_fs, 1800000,
-				1800000);
-			if (ret) {
-				pr_err("set_voltage failed for hdmi_pll_fs, ret=%d\n",
-					ret);
-			}
-		}
-	}
-
 	footswitch = regulator_get(&pdev->dev, "vdd");
-	if (IS_ERR(footswitch)) {
+	if (IS_ERR(footswitch))
 		footswitch = NULL;
-	} else {
-		if (hdmi_pll_fs)
-			regulator_enable(hdmi_pll_fs);
-
+	else {
 		regulator_enable(footswitch);
 		mdp_footswitch_on = 1;
 
-#ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY
 		if (mdp_rev == MDP_REV_42 && !cont_splashScreen) {
 			regulator_disable(footswitch);
 			msleep(20);
 			regulator_enable(footswitch);
 		}
-#endif
-		if (hdmi_pll_fs)
-			regulator_disable(hdmi_pll_fs);
 	}
 
 	mdp_clk = clk_get(&pdev->dev, "core_clk");
@@ -2227,7 +2328,8 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 	}
 
 #ifdef CONFIG_FB_MSM_MDP40
-	if (mdp_pdata && mdp_pdata->mdp_max_clk)
+
+	if (mdp_pdata)
 		mdp_max_clk = mdp_pdata->mdp_max_clk;
 	else
 		pr_err("%s cannot get mdp max clk!\n", __func__);
@@ -2246,13 +2348,12 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 		clk_set_rate(mdp_lut_clk, mdp_clk_rate);
 	mutex_unlock(&mdp_clk_lock);
 
-
 	MSM_FB_DEBUG("mdp_clk: mdp_clk=%d\n", (int)clk_get_rate(mdp_clk));
 #endif
 	return 0;
 }
-static int
-mdp_write_reg_mask(uint32_t reg, uint32_t val, uint32_t mask)
+
+static int mdp_write_reg_mask(uint32_t reg, uint32_t val, uint32_t mask)
 {
         uint32_t oldval, newval;
 
@@ -2274,14 +2375,14 @@ void mdp_color_enhancement(const struct mdp_reg *reg_seq, int size)
 
         printk(KERN_INFO "%s\n", __func__);
 
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+        mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
         for (i = 0; i < size; i++) {
                 if (reg_seq[i].mask == 0x0)
                         outpdw(MDP_BASE + reg_seq[i].reg, reg_seq[i].val);
                 else
                         mdp_write_reg_mask(reg_seq[i].reg, reg_seq[i].val, reg_seq[i].mask);
         }
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+        mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
         return ;
 }
@@ -2329,16 +2430,12 @@ static int mdp_probe(struct platform_device *pdev)
 		if (rc)
 			return rc;
 
-		mdp_clk_ctrl(1);
-
 		mdp_hw_version();
 
 		/* initializing mdp hw */
 #ifdef CONFIG_FB_MSM_MDP40
 		if (!(mdp_pdata->cont_splash_enabled))
 			mdp4_hw_init();
-		else
-			mdp4_overlay_cfg_init();
 #else
 		mdp_hw_init();
 #endif
@@ -2346,12 +2443,7 @@ static int mdp_probe(struct platform_device *pdev)
 #ifdef CONFIG_FB_MSM_OVERLAY
 		mdp_hw_cursor_init();
 #endif
-
-		if (!(mdp_pdata->cont_splash_enabled))
-			mdp_clk_ctrl(0);
-
 		mdp_resource_initialized = 1;
-
 		return 0;
 	}
 
@@ -2376,13 +2468,17 @@ static int mdp_probe(struct platform_device *pdev)
 	/* link to the latest pdev */
 	mfd->pdev = msm_fb_dev;
 	mfd->mdp_rev = mdp_rev;
+	mfd->vsync_init = NULL;
 
 	if (mdp_pdata) {
-		if (mdp_pdata->cont_splash_enabled && mfd->panel.type != MIPI_CMD_PANEL) {
+		if (mdp_pdata->cont_splash_enabled) {
 			mfd->cont_splash_done = 0;
 			if (!contSplash_update_done) {
-				mdp_pipe_ctrl(MDP_CMD_BLOCK,
-					MDP_BLOCK_POWER_ON, FALSE);
+				if (mfd->panel.type == MIPI_VIDEO_PANEL ||
+				    mfd->panel.type == LCDC_PANEL)
+					mdp_pipe_ctrl(MDP_CMD_BLOCK,
+						MDP_BLOCK_POWER_ON, FALSE);
+				mdp_clk_ctrl(1);
 				contSplash_update_done = 1;
 			}
 		} else
@@ -2423,8 +2519,7 @@ static int mdp_probe(struct platform_device *pdev)
 	pdata->off = mdp_off;
 	pdata->next = pdev;
 
-	if ((mfd->cont_splash_done))
-		mdp_clk_ctrl(1);
+	mdp_clk_ctrl(1);
 
 	mdp_prim_panel_type = mfd->panel.type;
 	switch (mfd->panel.type) {
@@ -2502,7 +2597,7 @@ static int mdp_probe(struct platform_device *pdev)
 	case MIPI_VIDEO_PANEL:
 #ifndef CONFIG_FB_MSM_MDP303
 		mipi = &mfd->panel_info.mipi;
-		mdp4_dsi_vsync_init(0);
+		mfd->vsync_init = mdp4_dsi_vsync_init;
 		mfd->hw_refresh = TRUE;
 		mfd->dma_fnc = mdp4_dsi_video_overlay;
 		mfd->lut_update = mdp_lut_update_lcdc;
@@ -2525,11 +2620,13 @@ static int mdp_probe(struct platform_device *pdev)
 		mfd->do_histogram = mdp_do_histogram;
 		mfd->start_histogram = mdp_histogram_start;
 		mfd->stop_histogram = mdp_histogram_stop;
+		mfd->vsync_ctrl = mdp_dma_video_vsync_ctrl;
 		if (mfd->panel_info.pdest == DISPLAY_1)
 			mfd->dma = &dma2_data;
 		else {
 			printk(KERN_ERR "Invalid Selection of destination panel\n");
 			rc = -ENODEV;
+			mdp_clk_ctrl(0);
 			goto mdp_probe_err;
 		}
 
@@ -2544,7 +2641,7 @@ static int mdp_probe(struct platform_device *pdev)
 #ifndef CONFIG_FB_MSM_MDP303
 		mfd->dma_fnc = mdp4_dsi_cmd_overlay;
 		mipi = &mfd->panel_info.mipi;
-		mdp4_dsi_rdptr_init(0);
+		mfd->vsync_init = mdp4_dsi_rdptr_init;
 		if (mfd->panel_info.pdest == DISPLAY_1) {
 			if_no = PRIMARY_INTF_SEL;
 			mfd->dma = &dma2_data;
@@ -2570,11 +2667,13 @@ static int mdp_probe(struct platform_device *pdev)
 		mfd->do_histogram = mdp_do_histogram;
 		mfd->start_histogram = mdp_histogram_start;
 		mfd->stop_histogram = mdp_histogram_stop;
+		mfd->vsync_ctrl = mdp_dma_vsync_ctrl;
 		if (mfd->panel_info.pdest == DISPLAY_1)
 			mfd->dma = &dma2_data;
 		else {
 			printk(KERN_ERR "Invalid Selection of destination panel\n");
 			rc = -ENODEV;
+			mdp_clk_ctrl(0);
 			goto mdp_probe_err;
 		}
 		INIT_WORK(&mfd->dma_update_worker,
@@ -2586,13 +2685,16 @@ static int mdp_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_FB_MSM_DTV
 	case DTV_PANEL:
-		mdp4_dtv_vsync_init(0);
+		mfd->vsync_init = mdp4_dtv_vsync_init;
 		pdata->on = mdp4_dtv_on;
 		pdata->off = mdp4_dtv_off;
 		mfd->hw_refresh = TRUE;
 		mfd->cursor_update = mdp_hw_cursor_update;
 		mfd->dma_fnc = mdp4_dtv_overlay;
 		mfd->dma = &dma_e_data;
+		mfd->do_histogram = mdp_do_histogram;
+		mfd->start_histogram = mdp_histogram_start;
+		mfd->stop_histogram = mdp_histogram_stop;
 		mdp4_display_intf_sel(EXTERNAL_INTF_SEL, DTV_INTF);
 		break;
 #endif
@@ -2622,7 +2724,7 @@ static int mdp_probe(struct platform_device *pdev)
 #endif
 
 #ifdef CONFIG_FB_MSM_MDP40
-		mdp4_lcdc_vsync_init(0);
+		mfd->vsync_init = mdp4_lcdc_vsync_init;
 		if (mfd->panel.type == HDMI_PANEL) {
 			mfd->dma = &dma_e_data;
 			mdp4_display_intf_sel(EXTERNAL_INTF_SEL, LCDC_RGB_INTF);
@@ -2632,6 +2734,7 @@ static int mdp_probe(struct platform_device *pdev)
 		}
 #else
 		mfd->dma = &dma2_data;
+		mfd->vsync_ctrl = mdp_dma_lcdc_vsync_ctrl;
 		spin_lock_irqsave(&mdp_spin_lock, flag);
 		mdp_intr_mask &= ~MDP_DMA_P_DONE;
 		outp32(MDP_INTR_ENABLE, mdp_intr_mask);
@@ -2668,6 +2771,7 @@ static int mdp_probe(struct platform_device *pdev)
 				pr_err("%s: writeback panel not supprted\n",
 					 __func__);
 				platform_device_put(msm_fb_dev);
+				mdp_clk_ctrl(0);
 				return -ENODEV;
 			}
 			pdata->on = mdp4_overlay_writeback_on;
@@ -2681,18 +2785,17 @@ static int mdp_probe(struct platform_device *pdev)
 	default:
 		printk(KERN_ERR "mdp_probe: unknown device type!\n");
 		rc = -ENODEV;
-		if ((mfd->cont_splash_done))
-			mdp_clk_ctrl(0);
+		mdp_clk_ctrl(0);
 		goto mdp_probe_err;
 	}
-#ifdef CONFIG_FB_MSM_MDP40
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	mdp4_display_intf = inpdw(MDP_BASE + 0x0038);
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-#endif
 
-	if ((mfd->cont_splash_done))
-		mdp_clk_ctrl(0);
+	if (mdp_rev >= MDP_REV_40) {
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+		mdp4_display_intf = inpdw(MDP_BASE + 0x0038);
+		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+	}
+
+	mdp_clk_ctrl(0);
 
 #ifdef CONFIG_MSM_BUS_SCALING
 	if (!mdp_bus_scale_handle && mdp_pdata &&
@@ -2726,6 +2829,8 @@ static int mdp_probe(struct platform_device *pdev)
 
 	pdev_list[pdev_list_cnt++] = pdev;
 	mdp4_extn_disp = 0;
+	if (mfd->vsync_init != NULL)
+		mfd->vsync_init(0, mfd);
 	return 0;
 
       mdp_probe_err:
@@ -2747,9 +2852,6 @@ void mdp_footswitch_ctrl(boolean on)
 		return;
 	}
 
-	if (hdmi_pll_fs)
-		regulator_enable(hdmi_pll_fs);
-
 	if (on && !mdp_footswitch_on) {
 		pr_debug("Enable MDP FS\n");
 		regulator_enable(footswitch);
@@ -2759,9 +2861,6 @@ void mdp_footswitch_ctrl(boolean on)
 		regulator_disable(footswitch);
 		mdp_footswitch_on = 0;
 	}
-
-	if (hdmi_pll_fs)
-		regulator_disable(hdmi_pll_fs);
 
 	mutex_unlock(&mdp_suspend_mutex);
 }
@@ -2810,16 +2909,12 @@ static void mdp_early_suspend(struct early_suspend *h)
 #ifdef CONFIG_FB_MSM_DTV
 	mdp4_dtv_set_black_screen();
 #endif
-#if 0 // Fix me, it causes hung or dog reset when idle power collapse is enabled
 	mdp_footswitch_ctrl(FALSE);
-#endif
 }
 
 static void mdp_early_resume(struct early_suspend *h)
 {
-#if 0 // Fix me, it causes hung or dog reset when idle power collapse is enabled
 	mdp_footswitch_ctrl(TRUE);
-#endif
 	mutex_lock(&mdp_suspend_mutex);
 	mdp_suspended = FALSE;
 	mutex_unlock(&mdp_suspend_mutex);

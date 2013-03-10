@@ -18,4 +18,3 @@
 #define CREATE_TRACE_POINTS
 #include "a3xx_reg.h"
 #include "adreno_a3xx_trace.h"
-#include <mach/msm_rtb_enable.h>
