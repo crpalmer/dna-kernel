@@ -323,11 +323,11 @@ u32 vcd_reset_device_context(struct vcd_drv_ctxt *drv_ctxt,
 	rc = vcd_power_event(&drv_ctxt->dev_ctxt, NULL,
 						 VCD_EVT_PWR_DEV_TERM_BEGIN);
 	VCD_FAILED_RETURN(rc, "VCD_EVT_PWR_DEV_TERM_BEGIN failed");
-	if (ddl_reset_hw(0)) {
+	if (ddl_reset_hw(0))
 		VCD_MSG_HIGH("HW Reset done");
-	} else {
+	else
 		VCD_MSG_FATAL("HW Reset failed");
-	}
+
 	(void)vcd_power_event(dev_ctxt, NULL, VCD_EVT_PWR_DEV_TERM_END);
 
 	return VCD_S_SUCCESS;
@@ -858,7 +858,7 @@ static u32 vcd_close_in_ready
 	} else {
 		VCD_MSG_ERROR("Unsupported API in client state %d",
 				  cctxt->clnt_state.state);
-		vcd_destroy_client_context(cctxt);
+
 		rc = VCD_ERR_BAD_STATE;
 	}
 

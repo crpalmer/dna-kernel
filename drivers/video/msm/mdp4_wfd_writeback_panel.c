@@ -23,7 +23,7 @@
 #include "msm_fb.h"
 #include <mach/msm_rtb_enable.h>
 
-static struct early_suspend writeback_suspend;
+// static struct early_suspend writeback_suspend;
 
 static int __devinit writeback_panel_probe(struct platform_device *pdev)
 {
@@ -77,10 +77,10 @@ static int __init writeback_panel_init(void)
 		goto fail_device_registration;
 	}
 
-	writeback_suspend.level = 0;
-	writeback_suspend.suspend = mdp4_overlay_writeback_early_suspend;
-	writeback_suspend.resume = mdp4_overlay_writeback_early_resume;
-	register_early_suspend(&writeback_suspend);
+//	writeback_suspend.level = 0;
+//	writeback_suspend.suspend = mdp4_overlay_writeback_early_suspend;
+//	writeback_suspend.resume = mdp4_overlay_writeback_early_resume;
+//	register_early_suspend(&writeback_suspend);
 	return rc;
 fail_device_registration:
 	platform_driver_unregister(&writeback_panel_driver);

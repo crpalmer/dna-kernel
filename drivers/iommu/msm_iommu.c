@@ -30,7 +30,6 @@
 #include <mach/iommu_hw-8xxx.h>
 #include <mach/iommu.h>
 #include <mach/msm_smsm.h>
-#include <mach/msm_rtb_enable.h>
 
 #define MRC(reg, processor, op1, crn, crm, op2)				\
 __asm__ __volatile__ (							\
@@ -63,18 +62,18 @@ static inline void clean_pte(unsigned long *start, unsigned long *end,
 
 static int msm_iommu_tex_class[4];
 
-static volatile struct iommu_domain *flush_iotlb_domain = NULL;
-static volatile int flush_iotlb_footprint = 0;
-static volatile struct msm_iommu_ctx_drvdata *flush_iotlb_ctx_drvdata = NULL;
-static volatile struct iommu_domain *flush_iotlb_va_domain = NULL;
-static volatile int flush_iotlb_va_footprint = 0;
-static volatile struct msm_iommu_ctx_drvdata *flush_iotlb_va_ctx_drvdata = NULL;
-
 DEFINE_MUTEX(msm_iommu_lock);
 
+/**
+ * Remote spinlock implementation based on Peterson's algorithm to be used
+ * to synchronize IOMMU config port access between CPU and GPU.
+ * This implements Process 0 of the spin lock algorithm. GPU implements
+ * Process 1. Flag and turn is stored in shared memory to allow GPU to
+ * access these.
+ */
 struct msm_iommu_remote_lock {
-int initialized;
-struct remote_iommu_petersons_spinlock *lock;
+	int initialized;
+	struct remote_iommu_petersons_spinlock *lock;
 };
 
 static struct msm_iommu_remote_lock msm_iommu_remote_lock;
@@ -84,7 +83,7 @@ static void _msm_iommu_remote_spin_lock_init(void)
 {
 	msm_iommu_remote_lock.lock = smem_alloc(SMEM_SPINLOCK_ARRAY, 32);
 	memset(msm_iommu_remote_lock.lock, 0,
-		sizeof(*msm_iommu_remote_lock.lock));
+			sizeof(*msm_iommu_remote_lock.lock));
 }
 
 void msm_iommu_remote_p0_spin_lock(void)
@@ -95,7 +94,7 @@ void msm_iommu_remote_p0_spin_lock(void)
 	smp_mb();
 
 	while (msm_iommu_remote_lock.lock->flag[PROC_GPU] == 1 &&
-		msm_iommu_remote_lock.lock->turn == 1)
+	       msm_iommu_remote_lock.lock->turn == 1)
 		cpu_relax();
 }
 
@@ -166,25 +165,15 @@ static int __flush_iotlb_va(struct iommu_domain *domain, unsigned int va)
 	int ret = 0;
 	int asid;
 
-	flush_iotlb_va_domain = domain;
-	flush_iotlb_va_footprint = 0;
-	dsb();
-
 	list_for_each_entry(ctx_drvdata, &priv->list_attached, attached_elm) {
-		flush_iotlb_va_ctx_drvdata = ctx_drvdata;
 		if (!ctx_drvdata->pdev || !ctx_drvdata->pdev->dev.parent)
 			BUG();
 
 		iommu_drvdata = dev_get_drvdata(ctx_drvdata->pdev->dev.parent);
-		flush_iotlb_va_footprint = 1;
-		dsb();
-
 		if (!iommu_drvdata)
 			BUG();
 
 		ret = __enable_clocks(iommu_drvdata);
-		flush_iotlb_va_footprint = 2;
-		dsb();
 		if (ret)
 			goto fail;
 
@@ -192,25 +181,16 @@ static int __flush_iotlb_va(struct iommu_domain *domain, unsigned int va)
 
 		asid = GET_CONTEXTIDR_ASID(iommu_drvdata->base,
 					   ctx_drvdata->num);
-		flush_iotlb_va_footprint = 3;
-		dsb();
 
 		SET_TLBIVA(iommu_drvdata->base, ctx_drvdata->num,
 			   asid | (va & TLBIVA_VA));
-		flush_iotlb_va_footprint = 4;
 		mb();
+
 		msm_iommu_remote_spin_unlock();
-		flush_iotlb_va_footprint = 41;
-		dsb();
+
 		__disable_clocks(iommu_drvdata);
-		flush_iotlb_va_footprint = 5;
-		dsb();
 	}
 fail:
-	flush_iotlb_va_footprint = 6;
-	flush_iotlb_va_domain = NULL;
-	flush_iotlb_va_ctx_drvdata = NULL;
-	dsb();
 	return ret;
 }
 
@@ -222,24 +202,15 @@ static int __flush_iotlb(struct iommu_domain *domain)
 	int ret = 0;
 	int asid;
 
-	flush_iotlb_footprint = 0;
-	flush_iotlb_domain = domain;
-	dsb();
-
 	list_for_each_entry(ctx_drvdata, &priv->list_attached, attached_elm) {
-		flush_iotlb_ctx_drvdata = ctx_drvdata;
 		if (!ctx_drvdata->pdev || !ctx_drvdata->pdev->dev.parent)
 			BUG();
 
 		iommu_drvdata = dev_get_drvdata(ctx_drvdata->pdev->dev.parent);
 		if (!iommu_drvdata)
 			BUG();
-		flush_iotlb_footprint = 1;
-		dsb();
 
 		ret = __enable_clocks(iommu_drvdata);
-		flush_iotlb_footprint = 2;
-		dsb();
 		if (ret)
 			goto fail;
 
@@ -247,27 +218,15 @@ static int __flush_iotlb(struct iommu_domain *domain)
 
 		asid = GET_CONTEXTIDR_ASID(iommu_drvdata->base,
 					   ctx_drvdata->num);
-		flush_iotlb_footprint = 3;
-		dsb();
 
 		SET_TLBIASID(iommu_drvdata->base, ctx_drvdata->num, asid);
-		flush_iotlb_footprint = 4;
 		mb();
 
 		msm_iommu_remote_spin_unlock();
 
-		flush_iotlb_footprint = 41;
-		dsb();
 		__disable_clocks(iommu_drvdata);
-		flush_iotlb_footprint = 5;
-		dsb();
 	}
 fail:
-	WARN_ON(ret);
-	flush_iotlb_footprint = 6;
-	flush_iotlb_domain = NULL;
-	flush_iotlb_ctx_drvdata = NULL;
-	dsb();
 	return ret;
 }
 

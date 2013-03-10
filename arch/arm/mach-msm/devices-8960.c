@@ -44,6 +44,7 @@
 #include <asm/mach/flash.h>
 #include <mach/msm_tsif.h>
 #include <mach/msm_serial_hs_lite.h>
+#include <mach/kgsl.h>
 #include "clock.h"
 #include "devices.h"
 #include "devices-msm8x60.h"

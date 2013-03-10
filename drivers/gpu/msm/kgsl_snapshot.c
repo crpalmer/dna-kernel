@@ -22,7 +22,6 @@
 #include "kgsl_device.h"
 #include "kgsl_sharedmem.h"
 #include "kgsl_snapshot.h"
-#include <mach/msm_rtb_enable.h>
 
 /* Placeholder for the list of memory objects frozen after a hang */
 
@@ -633,23 +632,6 @@ static ssize_t trigger_store(struct kgsl_device *device, const char *buf,
 	return count;
 }
 
-static ssize_t no_panic_show(struct kgsl_device *device, char *buf)
-{
-	return snprintf(buf, PAGE_SIZE, "%x\n", device->snapshot_no_panic);
-}
-
-static ssize_t no_panic_store(struct kgsl_device *device, const char *buf,
-	size_t count)
-{
-	if (device && count > 0) {
-		mutex_lock(&device->mutex);
-		device->snapshot_no_panic = simple_strtol(buf, NULL, 10);
-		mutex_unlock(&device->mutex);
-	}
-
-	return count;
-}
-
 static struct bin_attribute snapshot_attr = {
 	.attr.name = "dump",
 	.attr.mode = 0444,
@@ -666,7 +648,6 @@ struct kgsl_snapshot_attribute attr_##_name = { \
 
 SNAPSHOT_ATTR(trigger, 0600, NULL, trigger_store);
 SNAPSHOT_ATTR(timestamp, 0444, timestamp_show, NULL);
-SNAPSHOT_ATTR(no_panic, 0644, no_panic_show, no_panic_store);
 
 static void snapshot_sysfs_release(struct kobject *kobj)
 {
@@ -755,10 +736,6 @@ int kgsl_device_snapshot_init(struct kgsl_device *device)
 		goto done;
 
 	ret  = sysfs_create_file(&device->snapshot_kobj, &attr_timestamp.attr);
-	if (ret)
-		goto done;
-
-	ret  = sysfs_create_file(&device->snapshot_kobj, &attr_no_panic.attr);
 
 done:
 	return ret;

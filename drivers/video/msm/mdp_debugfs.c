@@ -37,7 +37,6 @@
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 #include "hdmi_msm.h"
 #endif
-#include <mach/msm_rtb_enable.h>
 
 #define MDP_DEBUG_BUF	2048
 

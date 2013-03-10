@@ -24,7 +24,6 @@
 
 #include <mach/iommu_hw-8xxx.h>
 #include <mach/iommu.h>
-#include <mach/msm_rtb_enable.h>
 
 struct iommu_ctx_iter_data {
 	/* input */

@@ -15,7 +15,6 @@
 #define _VIDC_H_
 
 #include "vidc_hwio_reg.h"
-#include <mach/msm_rtb_enable.h>
 
 #define VIDC_1080P_RISC2HOST_CMD_EMPTY               0
 #define VIDC_1080P_RISC2HOST_CMD_OPEN_CH_RET         1
