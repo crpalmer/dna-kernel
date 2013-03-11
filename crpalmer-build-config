@@ -4,6 +4,7 @@ LOCAL_BUILD_DIR=dna
 TARGET_DIR=~/dna/updates
 SYSTEM_PARTITION="/dev/block/mmcblk0p32"
 DEFCONFIG=crpalmer_defconfig
+FLASH_BOOT='package_extract_file("boot.img", "/tmp/boot.img"), write_raw_image("/tmp/boot.img", "boot")'
 
 # ----
 
