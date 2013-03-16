@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-#define pr_fmt(fmt)	"[BATT][BMS] " fmt
-#define pr_fmt_debug(fmt)    "[BATT][BMS]%s: " fmt, __func__
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/platform_device.h>
@@ -28,6 +25,7 @@
 #include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/mutex.h>
+#include <linux/device.h>
 #include <mach/board_htc.h>
 
 #ifdef CONFIG_HTC_BATT_8960
@@ -37,12 +35,7 @@
 #if defined(pr_debug)
 #undef pr_debug
 #endif
-#define pr_debug(fmt, ...) do { \
-		if (flag_enable_bms_chg_log) \
-			printk(KERN_INFO pr_fmt_debug(fmt), ##__VA_ARGS__); \
-	} while (0)
-/* dump BMS & CHG log */
-static bool flag_enable_bms_chg_log;
+#define pr_debug(...) dev_dbg(the_chip->dev, __VA_ARGS__)
 
 #define BMS_CONTROL		0x224
 #define BMS_S1_DELAY	0x225
@@ -231,7 +224,8 @@ module_param_cb(bms_end_percent, &bms_ro_param_ops, &bms_end_percent, 0644);
 module_param_cb(bms_end_ocv_uv, &bms_ro_param_ops, &bms_end_ocv_uv, 0644);
 module_param_cb(bms_end_cc_uah, &bms_ro_param_ops, &bms_end_cc_uah, 0644);
 
-static int dump_cc_uah(void);
+static void dump_cc_uah(void);
+static int get_cc_uah(struct pm8921_soc_params *raw);
 
 static int interpolate_fcc(struct pm8921_bms_chip *chip, int batt_temp);
 static void readjust_fcc_table(void)
@@ -1023,7 +1017,7 @@ static int read_soc_params_raw(struct pm8921_bms_chip *chip,
 		convert_vbatt_raw_to_uv(chip, usb_chg,
 			last_good_ocv_raw_ori, &last_good_ocv_uv_ori_uv);
 		last_ocv_uv = raw->last_good_ocv_uv;
-		pr_info("%s: last_good_ocv_raw/ori=0x%x/0x%x, last_good_ocv_uv/ori=%duV/%duV\n",
+		pr_debug("%s: last_good_ocv_raw/ori=0x%x/0x%x, last_good_ocv_uv/ori=%duV/%duV\n",
 				__func__, raw->last_good_ocv_raw, last_good_ocv_raw_ori,
 				raw->last_good_ocv_uv, last_good_ocv_uv_ori_uv);
 	} else if (chip->prev_last_good_ocv_raw != raw->last_good_ocv_raw) {
@@ -1040,7 +1034,7 @@ static int read_soc_params_raw(struct pm8921_bms_chip *chip,
 		} else {
 			ocv_updated_flag &= OCV_UPDATE_STORAGE_USE_MASK;
 		}
-		pr_info("%s: last_good_ocv_raw/uv=0x%x/%duV, ocv_updated_flag=0x%x\n",
+		pr_debug("%s: last_good_ocv_raw/uv=0x%x/%duV, ocv_updated_flag=0x%x\n",
 				__func__, raw->last_good_ocv_raw, raw->last_good_ocv_uv,
 				ocv_updated_flag);
 	} else {
@@ -1652,7 +1646,7 @@ int pm8921_bms_get_batt_soc(int *result)
 	read_soc_params_raw(the_chip, &raw);
 
 	*result = calculate_state_of_charge(the_chip, &raw,
-					batt_temp, last_chargecycles, 1);
+					batt_temp, last_chargecycles, 0);
 	if (bms_discharge_percent &&
 			((bms_discharge_percent - *result) >= 5)) {
 		pr_info("OCV can be update due to %d - %d >= 5\n",
@@ -1666,7 +1660,9 @@ int pm8921_bms_get_batt_soc(int *result)
 
 int pm8921_bms_get_batt_cc(int *result)
 {
-	*result = dump_cc_uah();
+	struct pm8921_soc_params raw;
+
+	*result = get_cc_uah(&raw);
 
 	return 0;
 }
@@ -2644,28 +2640,36 @@ static void create_debugfs_entries(struct pm8921_bms_chip *chip)
 	}
 }
 
-static int dump_cc_uah(void)
+static int get_cc_uah(struct pm8921_soc_params *raw)
 {
 	unsigned long flags;
-	struct pm8921_soc_params raw;
 	int cc_uah;
 
 	if (!the_chip) {
 		pr_err("driver not initialized\n");
 		return 0;
 	}
-	read_soc_params_raw(the_chip, &raw);
+	read_soc_params_raw(the_chip, raw);
 
 	spin_lock_irqsave(&the_chip->bms_100_lock, flags);
 	/* calculate cc micro_volt_hour */
-	calculate_cc_uah(the_chip, raw.cc, &cc_uah);
+	calculate_cc_uah(the_chip, raw->cc, &cc_uah);
+	spin_unlock_irqrestore(&the_chip->bms_100_lock, flags);
+	return cc_uah;
+}
+
+static void dump_cc_uah(void)
+{
+#if 0
+	struct pm8921_soc_params raw;
+
+	int cc_uah = get_cc_uah(&raw);
 	pr_info("cc_uah = %duAh, raw->cc = %x,"
 			" cc = %lld after subtracting %d\n",
 				cc_uah, raw.cc,
 				(int64_t)raw.cc - the_chip->cc_reading_at_100,
 				the_chip->cc_reading_at_100);
-	spin_unlock_irqrestore(&the_chip->bms_100_lock, flags);
-	return cc_uah;
+#endif
 }
 
 int prev_cc_uah = 0;
@@ -2955,8 +2959,6 @@ static struct platform_driver pm8921_bms_driver = {
 
 static int __init pm8921_bms_init(void)
 {
-	flag_enable_bms_chg_log =
-		(get_kernel_flag() & KERNEL_FLAG_ENABLE_BMS_CHARGER_LOG) ? 1 : 0;
 	return platform_driver_register(&pm8921_bms_driver);
 }
 

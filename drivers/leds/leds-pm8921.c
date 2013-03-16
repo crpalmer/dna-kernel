@@ -11,8 +11,6 @@
  * GNU General Public License for more details.
  */
 
-#define pr_fmt(fmt)	"%s: " fmt, __func__
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -60,10 +58,15 @@
 
 #define PM8XXX_LPG_CTL_REGS		7
 
+#if 0
 #define LED_DBG(fmt, ...) \
 		({ if (0) printk(KERN_DEBUG "[LED]" fmt, ##__VA_ARGS__); })
 #define LED_INFO(fmt, ...) \
 		printk(KERN_INFO "[LED]" fmt, ##__VA_ARGS__)
+#else
+#define LED_DBG(fmt, ...) /* NOP */
+#define LED_INFO(fmt, ...) /* NOP */
+#endif
 #define LED_ERR(fmt, ...) \
 		printk(KERN_ERR "[LED][ERR]" fmt, ##__VA_ARGS__)
 

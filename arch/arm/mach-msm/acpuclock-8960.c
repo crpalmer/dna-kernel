@@ -1605,7 +1605,7 @@ static int __cpuinit acpuclock_cpu_callback(struct notifier_block *nfb,
 	case CPU_DEAD:
 	case CPU_DEAD_FROZEN:
 		prev_khz[cpu] = acpuclk_8960_get_rate(cpu);
-		pr_info("CPU%d unplug, freq = %d\n", cpu, prev_khz[cpu]);
+		pr_debug("CPU%d unplug, freq = %d\n", cpu, prev_khz[cpu]);
 		/* Fall through. */
 	case CPU_UP_CANCELED:
 	case CPU_UP_CANCELED_FROZEN:
@@ -1621,7 +1621,7 @@ static int __cpuinit acpuclock_cpu_callback(struct notifier_block *nfb,
 					      SETRATE_HOTPLUG);
 		if (!scalable[cpu].regulators_initialized)
 			regulator_init(cpu, max_acpu_level);
-		pr_info("CPU%d hotplug prepare, freq = %d\n", cpu, prev_khz[cpu]);
+		pr_debug("CPU%d hotplug prepare, freq = %d\n", cpu, prev_khz[cpu]);
 		break;
 	case CPU_STARTING:
 	case CPU_STARTING_FROZEN:
@@ -1633,7 +1633,7 @@ static int __cpuinit acpuclock_cpu_callback(struct notifier_block *nfb,
 		}
 		break;
 	case CPU_ONLINE:
-		pr_info("CPU%d hotplug done, freq = %d\n", cpu, prev_khz[cpu]);
+		pr_debug("CPU%d hotplug done, freq = %d\n", cpu, prev_khz[cpu]);
 	default:
 		break;
 	}

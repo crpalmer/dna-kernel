@@ -22,9 +22,11 @@
 #include <linux/mutex.h>	/* for struct mutex */
 #include <linux/pm_runtime.h>	/* for runtime PM */
 
+#if 0
 /* ++SSD_RIL */
 #define HTC_PM_DBG
 /* --SSD_RIL */
+#endif
 
 struct usb_device;
 struct usb_driver;

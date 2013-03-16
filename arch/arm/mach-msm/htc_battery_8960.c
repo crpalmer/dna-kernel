@@ -259,7 +259,7 @@ static void batt_lower_voltage_alarm_handler(int status)
 		critical_alarm_level--;
 		htc_batt_schedule_batt_info_update();
 	} else {
-		pr_info("[BATT] voltage_alarm level=%d (%d mV) raised back.\n",
+		BATT_LOG("[BATT] voltage_alarm level=%d (%d mV) raised back.\n",
 			critical_alarm_level,
 			htc_batt_info.critical_alarm_voltage_mv
 				+ BATT_CRITICAL_ALARM_STEP * critical_alarm_level);
@@ -283,7 +283,7 @@ static void unknown_usb_detect_worker(struct work_struct *work)
 /* TODO: synchornize this function */
 int htc_gauge_event_notify(enum htc_gauge_event event)
 {
-	pr_info("[BATT] %s gauge event=%d\n", __func__, event);
+	BATT_LOG("[BATT] %s gauge event=%d\n", __func__, event);
 
 	switch (event) {
 	case HTC_GAUGE_EVENT_READY:
@@ -340,7 +340,7 @@ int htc_gauge_event_notify(enum htc_gauge_event event)
 		}
 		break;
 	default:
-		pr_info("[BATT] unsupported gauge event(%d)\n", event);
+		BATT_LOG("[BATT] unsupported gauge event(%d)\n", event);
 		break;
 	}
 	return 0;
@@ -355,7 +355,7 @@ int htc_gauge_event_notify(enum htc_gauge_event event)
 int htc_charger_event_notify(enum htc_charger_event event)
 {
 	/* MATT TODO: check we need to queue a work here */
-	pr_info("[BATT] %s charger event=%d\n", __func__, event);
+	BATT_LOG("[BATT] %s charger event=%d\n", __func__, event);
 	switch (event) {
 	case HTC_CHARGER_EVENT_VBUS_IN:
 		/* latest_chg_src = CHARGER_USB; */
@@ -439,7 +439,7 @@ int htc_charger_event_notify(enum htc_charger_event event)
 		mutex_unlock(&htc_batt_info.info_lock);
 		break;
 	default:
-		pr_info("[BATT] unsupported charger event(%d)\n", event);
+		BATT_LOG("[BATT] unsupported charger event(%d)\n", event);
 		break;
 	}
 	return 0;
@@ -679,7 +679,7 @@ static int htc_battery_set_charging(int ctl)
 
 static void __context_event_handler(enum batt_context_event event)
 {
-	pr_info("[BATT] handle context event(%d)\n", event);
+	BATT_LOG("[BATT] handle context event(%d)\n", event);
 
 	switch (event) {
 	case EVENT_TALK_START:
@@ -1094,20 +1094,20 @@ static int bounding_fullly_charged_level(int upperbd, int current_level)
 		lowerbd = 0;
 
 	if (pingpong == 1 && upperbd <= current_level) {
-		pr_info("MFG: lowerbd=%d, upperbd=%d, current=%d,"
+		BATT_LOG("MFG: lowerbd=%d, upperbd=%d, current=%d,"
 				" pingpong:1->0 turn off\n", lowerbd, upperbd, current_level);
 		b_is_charge_off_by_bounding = 1;
 		pingpong = 0;
 	} else if (pingpong == 0 && lowerbd < current_level) {
-		pr_info("MFG: lowerbd=%d, upperbd=%d, current=%d,"
+		BATT_LOG("MFG: lowerbd=%d, upperbd=%d, current=%d,"
 				" toward 0, turn off\n", lowerbd, upperbd, current_level);
 		b_is_charge_off_by_bounding = 1;
 	} else if (pingpong == 0 && current_level <= lowerbd) {
-		pr_info("MFG: lowerbd=%d, upperbd=%d, current=%d,"
+		BATT_LOG("MFG: lowerbd=%d, upperbd=%d, current=%d,"
 				" pingpong:0->1 turn on\n", lowerbd, upperbd, current_level);
 		pingpong = 1;
 	} else {
-		pr_info("MFG: lowerbd=%d, upperbd=%d, current=%d,"
+		BATT_LOG("MFG: lowerbd=%d, upperbd=%d, current=%d,"
 				" toward %d, turn on\n", lowerbd, upperbd, current_level, pingpong);
 	}
 	return b_is_charge_off_by_bounding;
@@ -1228,6 +1228,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		if (is_voltage_critical_low(htc_batt_info.rep.batt_vol)) {
 			critical_low_enter = 1;
 			
+			/* batt voltage is under critical low condition */
 			pr_info("[BATT] battery level force decreses 6%% from %d%%"
 					" (soc=%d)on critical low (%d mV)\n", prev_level,
 						htc_batt_info.rep.level,
@@ -1237,7 +1238,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		} else {
 			if (time_since_last_update_ms <= ONE_PERCENT_LIMIT_PERIOD_MS) {
 				if (2 < drop_level) {
-					pr_info("[BATT] soc drop = %d%% > 2%% in %lu ms.\n",
+					BATT_LOG("[BATT] soc drop = %d%% > 2%% in %lu ms.\n",
 								drop_level,time_since_last_update_ms);
 					htc_batt_info.rep.level = prev_level - 2;
 				} else if (drop_level < 0) {
@@ -1252,7 +1253,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 			} else if ((chg_limit_reason & HTC_BATT_CHG_LIMIT_BIT_TALK) &&
 				(time_since_last_update_ms <= FIVE_PERCENT_LIMIT_PERIOD_MS)) {
 				if (5 < drop_level) {
-					pr_info("[BATT] soc drop = %d%% > 5%% in %lu ms.\n",
+					BATT_LOG("[BATT] soc drop = %d%% > 5%% in %lu ms.\n",
 								drop_level,time_since_last_update_ms);
 					htc_batt_info.rep.level = prev_level - 5;
 				} else if (drop_level < 0) {
@@ -1266,7 +1267,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 				}
 			} else {
 				if (3 < drop_level) {
-					pr_info("[BATT] soc drop = %d%% > 3%% in %lu ms.\n",
+					BATT_LOG("[BATT] soc drop = %d%% > 3%% in %lu ms.\n",
 								drop_level,time_since_last_update_ms);
 					htc_batt_info.rep.level = prev_level - 3;
 				} else if (drop_level < 0) {
@@ -1287,7 +1288,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		}
 		if ((htc_batt_info.rep.level == 0) && (prev_level > 1)) {
 			htc_batt_info.rep.level = 1;
-			pr_info("[BATT] battery level forcely report %d%%"
+			BATT_LOG("[BATT] battery level forcely report %d%%"
 					" since prev_level=%d%%\n",
 					htc_batt_info.rep.level, prev_level);
 		}
@@ -1373,7 +1374,7 @@ static void batt_worker(struct work_struct *work)
 	}
 	
 	if (critical_alarm_level < 0 && htc_batt_info.rep.level >= 5) {
-		pr_info("[BATT] critical_alarm_level: %d -> 2\n", critical_alarm_level);
+		BATT_LOG("[BATT] critical_alarm_level: %d -> 2\n", critical_alarm_level);
 		critical_alarm_level = 2;
 		critical_alarm_level_set = critical_alarm_level + 1;
 	}
@@ -1393,7 +1394,7 @@ static void batt_worker(struct work_struct *work)
 			htc_batt_info.icharger->enable_5v_output(htc_ext_5v_output_now);
 			htc_ext_5v_output_old = htc_ext_5v_output_now;
 		}
-		pr_info("[BATT] enable_5v_output: %d\n", htc_ext_5v_output_now);
+		BATT_LOG("[BATT] enable_5v_output: %d\n", htc_ext_5v_output_now);
 	}
 
 	
@@ -1449,7 +1450,7 @@ static void batt_worker(struct work_struct *work)
 			htc_batt_info.rep.charging_enabled =
 										htc_batt_info.rep.charging_source;
 
-		
+		/* STEP 5.3. control charger if state changed */
 		pr_info("[BATT] prev_chg_src=%d, prev_chg_en=%d,"
 				" chg_dis_reason/control/active=0x%x/0x%x/0x%x,"
 				" chg_limit_reason=0x%x,"
@@ -1532,7 +1533,7 @@ static void batt_worker(struct work_struct *work)
 	if (0 <= critical_alarm_level &&
 					critical_alarm_level < critical_alarm_level_set) {
 		critical_alarm_level_set = critical_alarm_level;
-		pr_info("[BATT] set voltage alarm level=%d\n", critical_alarm_level);
+		BATT_LOG("[BATT] set voltage alarm level=%d\n", critical_alarm_level);
 		htc_batt_info.igauge->set_lower_voltage_alarm_threshold(
 					htc_batt_info.critical_alarm_voltage_mv
 					+ (BATT_CRITICAL_ALARM_STEP * critical_alarm_level));
@@ -1544,7 +1545,7 @@ static void batt_worker(struct work_struct *work)
 	prev_pwrsrc_enabled = pwrsrc_enabled;
 
 	wake_unlock(&htc_batt_timer.battery_lock);
-	pr_info("[BATT] %s: done\n", __func__);
+	BATT_LOG("[BATT] %s: done\n", __func__);
 	return;
 }
 
@@ -1692,7 +1693,7 @@ static void mbat_in_func(struct work_struct *work)
 	
 #define LTE_GPIO_MBAT_IN (61)
 	if (gpio_get_value(LTE_GPIO_MBAT_IN) == 0) {
-		pr_info("re-enable MBAT_IN irq!! due to false alarm\n");
+		BATT_LOG("re-enable MBAT_IN irq!! due to false alarm\n");
 		enable_irq(MSM_GPIO_TO_INT(LTE_GPIO_MBAT_IN));
 		return;
 	}
@@ -1861,7 +1862,7 @@ static int htc_battery_probe(struct platform_device *pdev)
 	int i, rc = 0;
 	struct htc_battery_platform_data *pdata = pdev->dev.platform_data;
 	struct htc_battery_core *htc_battery_core_ptr;
-	pr_info("[BATT] %s() in\n", __func__);
+	BATT_LOG("[BATT] %s() in\n", __func__);
 
 	htc_battery_core_ptr = kmalloc(sizeof(struct htc_battery_core),
 					GFP_KERNEL);

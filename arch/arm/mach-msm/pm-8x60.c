@@ -119,8 +119,7 @@ enum {
 	MSM_PM_DEBUG_VREG = BIT(13),
 };
 
-static int msm_pm_debug_mask = MSM_PM_DEBUG_SUSPEND | MSM_PM_DEBUG_SUSPEND_LIMITS
-	| MSM_PM_DEBUG_RPM_STAT | MSM_PM_DEBUG_CLOCK | MSM_PM_DEBUG_RPM_TIMESTAMP;
+static int msm_pm_debug_mask = 0; // MSM_PM_DEBUG_SUSPEND | MSM_PM_DEBUG_SUSPEND_LIMITS | MSM_PM_DEBUG_RPM_STAT | MSM_PM_DEBUG_CLOCK | MSM_PM_DEBUG_RPM_TIMESTAMP;
 
 module_param_named(
 	debug_mask, msm_pm_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
