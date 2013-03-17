@@ -576,7 +576,8 @@ void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
 		mdp_pdata.ov1_wb_size;
 #endif
 }
-static int first_init = 1;
+static int first_init_lcd = 1;
+static int first_init_display = 1;
 static bool dsi_power_on;
 static int mipi_dsi_panel_power(int on)
 {
@@ -627,7 +628,7 @@ static int mipi_dsi_panel_power(int on)
 	}
 
 	if (on) {
-		if (!first_init) {
+		if (!first_init_lcd) {
 			rc = regulator_enable(reg_lvs5);
 			if (rc) {
 				pr_err("enable lvs5 failed, rc=%d\n", rc);
@@ -896,25 +897,15 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 		return -EINVAL;
 
 	mipi  = &mfd->panel_info.mipi;
-	if(!first_init) {
+	if(!first_init_lcd) {
 		if (mipi->mode == DSI_VIDEO_MODE) {
 			mipi_dsi_cmds_tx(&monarudo_panel_tx_buf, sharp_video_on_cmds,
 				ARRAY_SIZE(sharp_video_on_cmds));
-		        /* It needs 120ms when LP to HS for renesas */
-		        msleep(120);
-
-		        cmdreq.cmds = renesas_display_on_cmds;
-		        cmdreq.cmds_cnt = ARRAY_SIZE(renesas_display_on_cmds);
-		        cmdreq.flags = CMD_REQ_COMMIT;
-		        cmdreq.rlen = 0;
-		        cmdreq.cb = NULL;
-
-		        mipi_dsi_cmdlist_put(&cmdreq);
 
 		        PR_DISP_INFO("%s\n", __func__);
 		}
 	}
-	first_init = 0;
+	first_init_lcd = 0;
 	//mipi_renesas_manufacture_id(mfd);
 
 	return 0;
@@ -930,14 +921,6 @@ static int monarudo_lcd_off(struct platform_device *pdev)
 		return -ENODEV;
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
-
-        cmdreq.cmds = sharp_display_off_cmds;
-        cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
-        cmdreq.flags = CMD_REQ_COMMIT;
-        cmdreq.rlen = 0;
-        cmdreq.cb = NULL;
-
-        mipi_dsi_cmdlist_put(&cmdreq);
 
         PR_DISP_INFO("%s\n", __func__);
 
@@ -955,6 +938,37 @@ static int __devinit monarudo_lcd_probe(struct platform_device *pdev)
 
 	PR_DISP_INFO("%s\n", __func__);
 	return 0;
+}
+static void monarudo_display_on(struct msm_fb_data_type *mfd)
+{
+	if (! first_init_display) {
+		/* It needs 120ms when LP to HS for renesas */
+		msleep(120);
+
+		cmdreq.cmds = renesas_display_on_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_display_on_cmds);
+		cmdreq.flags = CMD_REQ_COMMIT;
+		cmdreq.rlen = 0;
+		cmdreq.cb = NULL;
+
+		mipi_dsi_cmdlist_put(&cmdreq);
+
+		PR_DISP_INFO("%s\n", __func__);
+	}
+	first_init_display = 0;
+}
+
+static void monarudo_display_off(struct msm_fb_data_type *mfd)
+{
+        cmdreq.cmds = sharp_display_off_cmds;
+        cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
+        cmdreq.flags = CMD_REQ_COMMIT;
+        cmdreq.rlen = 0;
+        cmdreq.cb = NULL;
+
+        mipi_dsi_cmdlist_put(&cmdreq);
+
+	PR_DISP_INFO("%s\n", __func__);
 }
 
 #define PWM_MIN                   13
@@ -1052,8 +1066,8 @@ static struct msm_fb_panel_data monarudo_panel_data = {
 	.on	= monarudo_lcd_on,
 	.off	= monarudo_lcd_off,
 	.set_backlight = monarudo_set_backlight,
-//	.display_on = monarudo_display_on,
-//	.display_off = monarudo_display_off,
+	.display_on = monarudo_display_on,
+	.display_off = monarudo_display_off,
 };
 
 static int ch_used[3] = {0};
