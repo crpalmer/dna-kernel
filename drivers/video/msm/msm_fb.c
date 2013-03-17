@@ -1948,6 +1948,19 @@ static int msm_fb_pan_display(struct fb_var_screeninfo *var,
 	return msm_fb_pan_display_ex(info, &disp_commit);
 }
 
+static int handle_deferred_display_on(struct msm_fb_data_type *mfd)
+{
+	if (mfd->request_display_on) {
+		msm_fb_display_on(mfd);
+		down(&mfd->sem);
+		mfd->request_display_on = 0;
+		up(&mfd->sem);
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 static int msm_fb_pan_display_sub(struct fb_var_screeninfo *var,
 			      struct fb_info *info)
 {
@@ -2051,18 +2064,14 @@ static int msm_fb_pan_display_sub(struct fb_var_screeninfo *var,
         pm_qos_update_request(&pm_qos_req_pan, PM_QOS_DEFAULT_VALUE);
 	msm_fb_signal_timeline(mfd);
 	up(&msm_fb_pan_sem);
-        if (mfd->request_display_on) {
-                msm_fb_display_on(mfd);
+        if (handle_deferred_display_on(mfd)) {
                 if (!ignore_bkl_zero) {
                         /* If userspace did not set backlight value, set a default backlight value before display on */
                         if (mfd->bl_level == 0)
                                 unset_bl_level = DEFAULT_BRIGHTNESS;
                         ignore_bkl_zero = true;
                 }
-                down(&mfd->sem);
-                mfd->request_display_on = 0;
                 bl_updated = 0;
-                up(&mfd->sem);
         }
 	if (unset_bl_level && !bl_updated) {
 		pdata = (struct msm_fb_panel_data *)mfd->pdev->
@@ -2094,6 +2103,7 @@ static void msm_fb_commit_wq_handler(struct work_struct *work)
 	if (fb_backup->disp_commit.flags &
 		MDP_DISPLAY_COMMIT_OVERLAY) {
 			mdp4_overlay_commit(info);
+			handle_deferred_display_on(mfd);
 	} else {
 		var = &fb_backup->disp_commit.var;
 		msm_fb_pan_display_sub(var, info);
