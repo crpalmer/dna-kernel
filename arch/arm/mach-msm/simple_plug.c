@@ -25,19 +25,20 @@
 #include <linux/cpufreq.h>
 
 #define SIMPLE_PLUG_MAJOR_VERSION	1
-#define SIMPLE_PLUG_MINOR_VERSION	0
+#define SIMPLE_PLUG_MINOR_VERSION	1
 
-#define DEF_SAMPLING_MS			(10)
+#define DEF_SAMPLING_MS			10
+#define DEF_VERIFY_MS			5000
 #define HISTORY_SIZE			10
 #define NUM_CORES			4
 
-static struct delayed_work first_work;
 static struct delayed_work simple_plug_work;
 
 static unsigned int simple_plug_active = 1;
 static unsigned int min_cores = 1;
 static unsigned int max_cores = NUM_CORES;
 static unsigned int sampling_ms = DEF_SAMPLING_MS;
+static unsigned int verify_ms = DEF_VERIFY_MS;
 
 #ifdef CONFIG_SIMPLE_PLUG_STATS
 static unsigned int reset_stats;
@@ -50,12 +51,18 @@ static unsigned int nr_avg;
 static unsigned int nr_run_history[HISTORY_SIZE];
 static unsigned int nr_last_i;
 
+/* set n_until_verify to 1 to cause it to do a verification on the very
+ * first invocation, this replaces the need for special startup checking
+ * of cores.
+ */
+static unsigned int n_until_verify = 1;
 static unsigned int n_online;
 
 module_param(simple_plug_active, uint, 0644);
 module_param(min_cores, uint, 0644);
 module_param(max_cores, uint, 0644);
 module_param(sampling_ms, uint, 0644);
+module_param(verify_ms, uint, 0644);
 
 #ifdef CONFIG_SIMPLE_PLUG_STATS
 module_param(reset_stats, uint, 0644);
@@ -70,7 +77,7 @@ module_param(n_online, uint, 0444);
 
 #define FSHIFT_ONE	(1<<FSHIFT)
 
-static unsigned int desired_number_of_cores(void)
+static unsigned __cpuinit desired_number_of_cores(void)
 {
 	int target_cores, up_cores, down_cores;
 	int avg;
@@ -107,8 +114,7 @@ static unsigned int desired_number_of_cores(void)
 		return target_cores;
 }
 
-static void
-cpus_up_down(int nr_run_stat)
+static void __cpuinit cpus_up_down(int nr_run_stat)
 {
 	BUG_ON(nr_run_stat < 1 || nr_run_stat > NUM_CORES);
 
@@ -145,17 +151,20 @@ cpus_up_down(int nr_run_stat)
 	}
 }
      
-static void unplug_other_cores(void)
+static void __cpuinit verify_cores(unsigned desired_n_cores)
 {
 	int cpu;
 
-	for (cpu = 1; cpu < NUM_CORES; cpu++) {
-		if (cpu_online(cpu)) {
-			pr_debug(PR_NAME "unplugging cpu%d\n", cpu);
+	for (cpu = 0; cpu < NUM_CORES; cpu++) {
+		if (cpu < desired_n_cores && ! cpu_online(cpu)) {
+			pr_info(PR_NAME "re-plugging cpu%d that someone took offline.\n", cpu);
+			cpu_up(cpu);
+		} else if (cpu >= desired_n_cores && cpu_online(cpu)) {
+			pr_info(PR_NAME "unplugging cpu%d that someone brought online\n", cpu);
 			cpu_down(cpu);
 		}
 	}
-	n_online = 1;
+	n_online = desired_n_cores;
 }
 
 static void __cpuinit simple_plug_work_fn(struct work_struct *work)
@@ -171,34 +180,25 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 	
 	if (simple_plug_active == 1) {
 		int cores = desired_number_of_cores();
-		cpus_up_down(cores);
+		if (--n_until_verify == 0) {
+			verify_cores(cores);
+			n_until_verify = (verify_ms+sampling_ms-1)/sampling_ms;
+			BUG_ON(n_until_verify == 0);
+		} else {
+			cpus_up_down(cores);
+		}
 	}
 
 	schedule_delayed_work_on(0, &simple_plug_work,
 		msecs_to_jiffies(sampling_ms));
 }
 
-
-static void __cpuinit first_work_fn(struct work_struct *work)
-{
-	/* Get the CPUs into a known good state so we don't leave
-	 * random cores online after booting.
-	 */
-	if (! cpu_online(0)) {
-		pr_debug(PR_NAME "bringing cpu0 online\n");
-		cpu_up(0);
-	}
-
-	unplug_other_cores();
-
-	simple_plug_work_fn(work);
-}
-
 #ifdef CONFIG_HAS_EARLYSUSPEND
-static void simple_plug_early_suspend(struct early_suspend *handler)
+
+static void __cpuinit simple_plug_early_suspend(struct early_suspend *handler)
 {
 	cancel_delayed_work_sync(&simple_plug_work);
-	unplug_other_cores();
+	verify_cores(1);
 }
 
 static void __cpuinit simple_plug_late_resume(struct early_suspend *handler)
@@ -216,8 +216,11 @@ static void __cpuinit simple_plug_late_resume(struct early_suspend *handler)
 	nr_avg = almost_2 * HISTORY_SIZE;
 
 	
-	/* Ask it to run very soon to allow that ramp-up to happen */
+	/* Ask it to run very soon to allow that ramp-up to happen
+	 * and let's ask it to immediately verify_cores
+	 */
 
+	n_until_verify = 1;
 	schedule_delayed_work_on(0, &simple_plug_work,
 		msecs_to_jiffies(1));
 }
@@ -229,20 +232,11 @@ static struct early_suspend simple_plug_early_suspend_struct_driver = {
 };
 #endif	/* CONFIG_HAS_EARLYSUSPEND */
 
-int __init simple_plug_init(void)
+static int __init simple_plug_init(void)
 {
-	int cpu;
-
 	pr_info(PR_NAME "version %d.%d by crpalmer\n",
 		 SIMPLE_PLUG_MAJOR_VERSION,
 		 SIMPLE_PLUG_MINOR_VERSION);
-
-	for (cpu = 0; cpu < NUM_CORES; cpu++)
-		if (cpu_online(cpu))
-			pr_info(PR_NAME "cpu%d is online\n", cpu);
-
-	INIT_DELAYED_WORK(&first_work, first_work_fn);
-	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&simple_plug_early_suspend_struct_driver);
@@ -255,7 +249,8 @@ int __init simple_plug_init(void)
 	 * resolve itself.
 	 */
 	
-	schedule_delayed_work_on(0, &first_work, msecs_to_jiffies(5000)); // sampling_ms));
+	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
+	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(5000));
 
 	return 0;
 }
