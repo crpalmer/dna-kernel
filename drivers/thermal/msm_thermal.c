@@ -34,7 +34,7 @@
 #define N_TEMP_LIMITS	4
 
 static unsigned temp_hysteresis = 5;
-static unsigned int limit_temp_degC[N_TEMP_LIMITS] = { 50, 75, 83, 90 };
+static unsigned int limit_temp_degC[N_TEMP_LIMITS] = { 65, 75, 83, 90 };
 static unsigned int limit_freq[N_TEMP_LIMITS] = { 1512000, 1350000, 918000, 384000 };
 
 module_param_array(limit_temp_degC, uint, NULL, 0644);
