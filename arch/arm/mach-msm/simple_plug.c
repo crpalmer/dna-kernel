@@ -27,8 +27,9 @@
 #define SIMPLE_PLUG_MAJOR_VERSION	1
 #define SIMPLE_PLUG_MINOR_VERSION	1
 
+#define STARTUP_DELAY_MS		5000
 #define DEF_SAMPLING_MS			10
-#define DEF_VERIFY_MS			5000
+#define DEF_VERIFY_MS			120000	/* 3 mins on average to fix */
 #define HISTORY_SIZE			10
 #define NUM_CORES			4
 
@@ -55,7 +56,8 @@ static unsigned int nr_last_i;
  * first invocation, this replaces the need for special startup checking
  * of cores.
  */
-static unsigned int n_until_verify = 1;
+static unsigned int n_until_verify;
+static bool verify_needed = false;
 static unsigned int n_online;
 
 module_param(simple_plug_active, uint, 0644);
@@ -114,41 +116,64 @@ static unsigned __cpuinit desired_number_of_cores(void)
 		return target_cores;
 }
 
-static void __cpuinit cpus_up_down(int nr_run_stat)
+static void
+set_max_frequency(int cpu)
 {
-	BUG_ON(nr_run_stat < 1 || nr_run_stat > NUM_CORES);
+	struct cpufreq_policy policy;
+	int ret;
+
+	if ((ret = cpufreq_get_policy(&policy, n_online)) == 0) {
+		if ((ret = cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_L)) < 0)
+			pr_info(PR_NAME "failed to target freq=%d for cpu%d.\n", policy.max, n_online);
+	} else
+		pr_info(PR_NAME "failed to get policy for cpu%d, ret=%d.\n", n_online, ret);
+}
+
+static bool cpu_state_is_not_valid(int cpu)
+{
+	return (cpu < n_online && ! cpu_online(cpu)) ||
+	       (cpu >= n_online && cpu_online(cpu));
+}
+
+static void __cpuinit cpus_up_down(int desired_n_online)
+{
+	int cpu;
+
+	BUG_ON(desired_n_online < 1 || desired_n_online > NUM_CORES);
 
 #ifdef CONFIG_SIMPLE_PLUG_STATS
-	time_cores_running[nr_run_stat-1]++;
+	time_cores_running[desired_n_online-1]++;
 #endif
 
-	while(n_online < nr_run_stat) {
-		struct cpufreq_policy policy;
-		int ret;
+	if (n_online == desired_n_online)
+		return;
 
-		pr_debug(PR_NAME "starting cpu%d, want %d online\n", n_online, nr_run_stat);
+	for (cpu = NUM_CORES-1; cpu >= 0; cpu--) {
+		if (cpu_state_is_not_valid(cpu)) {
+			pr_info(PR_NAME "cpu%d state was externally changed, scheduling verify", cpu);
+			verify_needed = true;
+			n_until_verify = (verify_ms+sampling_ms-1)/sampling_ms;
+			BUG_ON(n_until_verify == 0);
+			return;
+		}
+
+		if (cpu >= n_online && cpu < desired_n_online) {
+			pr_debug(PR_NAME "starting cpu%d, want %d online\n", cpu, desired_n_online);
 #ifdef CONFIG_SIMPLE_PLUG_STATS
-		times_core_up[n_online]++;
+			times_core_up[cpu]++;
 #endif
-		cpu_up(n_online);
-
-                if ((ret = cpufreq_get_policy(&policy, n_online)) == 0) {
-		        if ((ret = cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_L)) < 0)
-				pr_info(PR_NAME "failed to target freq=%d for cpu%d.\n", policy.max, n_online);
-		} else
-			pr_info(PR_NAME "failed to get policy for cpu%d, ret=%d.\n", n_online, ret);
-
-		n_online++;
+			cpu_up(cpu);
+			set_max_frequency(cpu);
+		} else if (cpu >= desired_n_online && cpu < n_online) {
+			pr_debug(PR_NAME "unplugging cpu%d, want %d online\n", cpu, desired_n_online);
+#ifdef CONFIG_SIMPLE_PLUG_STATS
+			times_core_down[cpu]++;
+#endif
+			cpu_down(cpu);
+		}
 	}
 
-	while(n_online > nr_run_stat) {
-		n_online--;
-		pr_debug(PR_NAME "unplugging cpu%d, want %d online\n", n_online, nr_run_stat);
-#ifdef CONFIG_SIMPLE_PLUG_STATS
-		times_core_down[n_online]++;
-#endif
-		cpu_down(n_online);
-	}
+	n_online = desired_n_online;
 }
      
 static void __cpuinit verify_cores(unsigned desired_n_cores)
@@ -160,10 +185,11 @@ static void __cpuinit verify_cores(unsigned desired_n_cores)
 			pr_info(PR_NAME "re-plugging cpu%d that someone took offline.\n", cpu);
 			cpu_up(cpu);
 		} else if (cpu >= desired_n_cores && cpu_online(cpu)) {
-			pr_info(PR_NAME "unplugging cpu%d that someone brought online\n", cpu);
+			pr_info(PR_NAME "unplugging cpu%d that we want offline\n", cpu);
 			cpu_down(cpu);
 		}
 	}
+
 	n_online = desired_n_cores;
 }
 
@@ -180,10 +206,11 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 	
 	if (simple_plug_active == 1) {
 		int cores = desired_number_of_cores();
-		if (--n_until_verify == 0) {
-			verify_cores(cores);
-			n_until_verify = (verify_ms+sampling_ms-1)/sampling_ms;
-			BUG_ON(n_until_verify == 0);
+		if (verify_needed) {
+			if (--n_until_verify == 0) {
+				verify_cores(cores);
+				verify_needed = false;
+			}
 		} else {
 			cpus_up_down(cores);
 		}
@@ -220,6 +247,7 @@ static void __cpuinit simple_plug_late_resume(struct early_suspend *handler)
 	 * and let's ask it to immediately verify_cores
 	 */
 
+	verify_needed = true;
 	n_until_verify = 1;
 	schedule_delayed_work_on(0, &simple_plug_work,
 		msecs_to_jiffies(1));
@@ -250,7 +278,7 @@ static int __init simple_plug_init(void)
 	 */
 	
 	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
-	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(5000));
+	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(STARTUP_DELAY_MS));
 
 	return 0;
 }
