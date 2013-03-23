@@ -46,6 +46,10 @@ static unsigned int reset_stats;
 static unsigned int time_cores_running[NUM_CORES];
 static unsigned int times_core_up[NUM_CORES];
 static unsigned int times_core_down[NUM_CORES];
+
+#define STATS(expr) (expr)
+#else
+#define STATS(expr) /* nop */
 #endif
 
 static unsigned int nr_avg;
@@ -141,9 +145,7 @@ static void __cpuinit cpus_up_down(int desired_n_online)
 
 	BUG_ON(desired_n_online < 1 || desired_n_online > NUM_CORES);
 
-#ifdef CONFIG_SIMPLE_PLUG_STATS
-	time_cores_running[desired_n_online-1]++;
-#endif
+	STATS(time_cores_running[desired_n_online-1]++);
 
 	if (n_online == desired_n_online)
 		return;
@@ -159,16 +161,12 @@ static void __cpuinit cpus_up_down(int desired_n_online)
 
 		if (cpu >= n_online && cpu < desired_n_online) {
 			pr_debug(PR_NAME "starting cpu%d, want %d online\n", cpu, desired_n_online);
-#ifdef CONFIG_SIMPLE_PLUG_STATS
-			times_core_up[cpu]++;
-#endif
+			STATS(times_core_up[cpu]++);
 			cpu_up(cpu);
 			set_max_frequency(cpu);
 		} else if (cpu >= desired_n_online && cpu < n_online) {
 			pr_debug(PR_NAME "unplugging cpu%d, want %d online\n", cpu, desired_n_online);
-#ifdef CONFIG_SIMPLE_PLUG_STATS
-			times_core_down[cpu]++;
-#endif
+			STATS(times_core_down[cpu]++);
 			cpu_down(cpu);
 		}
 	}
