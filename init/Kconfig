@@ -955,6 +955,16 @@ config CC_OPTIMIZE_FOR_SIZE
 
 	  If unsure, say Y.
 
+config CC_OPTIMIZE_ALOT
+	bool "Optimize a lot"
+	help
+	  Enabling this option will pass "-O3" instead of "-O2" to gcc>
+
+config CC_OPTIMIZE_FAST
+	bool "Optimize fast"
+	help
+	  Enabling this option will pass "-Ofast" instead of "-O2" to gcc>
+
 config SYSCTL
 	bool
 
