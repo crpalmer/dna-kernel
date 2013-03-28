@@ -237,12 +237,12 @@ on init
         write /proc/sys/net/netfilter/nf_conntrack_tcp_be_liberal 1
 
     # for pnp thermal condition
-    write sys/power/pnpmgr/thermal/thermal_c0 1512000
-    write sys/power/pnpmgr/thermal/thermal_c1 1512000
-    write sys/power/pnpmgr/thermal/thermal_c2 1512000
-    write sys/power/pnpmgr/thermal/thermal_c3 1512000
-    write sys/power/pnpmgr/thermal/thermal_final 1512000
-    write sys/power/pnpmgr/thermal/thermal_g0 400000000
+    # write sys/power/pnpmgr/thermal/thermal_c0 1512000
+    # write sys/power/pnpmgr/thermal/thermal_c1 1512000
+    # write sys/power/pnpmgr/thermal/thermal_c2 1512000
+    # write sys/power/pnpmgr/thermal/thermal_c3 1512000
+    # write sys/power/pnpmgr/thermal/thermal_final 1512000
+    # write sys/power/pnpmgr/thermal/thermal_g0 400000000
 
 on post-fs-data
     mkdir /data/radio 0770 radio radio
@@ -463,7 +463,6 @@ on boot
 # an ack packet comes out of order
     write /proc/sys/net/netfilter/nf_conntrack_tcp_be_liberal 1
 
-
     # enable sleep_clk2 on DLX XC board only
 on property:ro.devicerev=2
     mount -t debugfs none /sys/kernel/debug
@@ -474,22 +473,22 @@ on property:ro.devicerev=2
     write /sys/kernel/debug/pm8921-dbg/addr 0x10b
     write /sys/kernel/debug/pm8921-dbg/data 0x22
 
-service thermald /system/bin/thermald
+service thermald /system/bin/thermald.is-disabled-and-built-into-kernel
 		class core
 		user root
 		group root
 
-service mpdecision /system/bin/mpdecision --no_sleep --avg_comp
+service mpdecision /system/bin/mpdecision.is-disabled-and-built-into-kernel
 		class core
 		user root
 		disabled
 
-service pnpmgr /system/bin/pnpmgr
+service pnpmgr /system/bin/pnpmgr.disabled_because_all_htc_decisions_moved_to_kernel_code
     class core
     user root
     disabled
 
-service adaptive /system/bin/adaptive -c 0 -s 150 -b 210
+service adaptive /system/bin/adaptive.disabled_because_all_htc_decisions_moved_to_kernel_code -c 0 -s 150 -b 210
                 class core
                 user root
                 disabled
