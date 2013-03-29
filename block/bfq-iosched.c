@@ -2679,6 +2679,9 @@ static ssize_t bfq_weights_show(struct elevator_queue *e, char *page)
 	return num_char;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #define SHOW_FUNCTION(__FUNC, __VAR, __CONV)				\
 static ssize_t __FUNC(struct elevator_queue *e, char *page)		\
 {									\
@@ -2824,6 +2827,8 @@ static ssize_t bfq_low_latency_store(struct elevator_queue *e,
 
 	return ret;
 }
+
+#pragma GCC diagnostic pop
 
 #define BFQ_ATTR(name) \
 	__ATTR(name, S_IRUGO|S_IWUSR, bfq_##name##_show, bfq_##name##_store)
