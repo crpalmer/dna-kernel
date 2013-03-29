@@ -3755,7 +3755,7 @@ static void unplug_check_worker(struct work_struct *work)
 	struct pm8921_chg_chip *chip = container_of(dwork,
 				struct pm8921_chg_chip, unplug_check_work);
 	u8 reg_loop, active_path;
-	int rc, ibat, active_chg_plugged_in, usb_ma;
+	int rc, ibat, active_chg_plugged_in, usb_ma = 0;
 	int chg_gone = 0, is_wlc_remove = 0;
 	static int rb_trial_count = 0;
 	static int ovp_trial_count = 0;
@@ -5993,10 +5993,6 @@ static void ext_usb_vbatdet_irq_handler(struct work_struct *w)
 
 	pm8921_get_batt_voltage(&result);
 
-	pr_info("%s, vol:%d\n", __func__, result);
-
-	
-
 	if(!(the_chip->ext_usb->ichg->event_notify))
 	{
 		pr_err("%s event_notify api error!\n", __func__);
@@ -6021,8 +6017,6 @@ static void ext_usb_chgdone_irq_handler(struct work_struct *w)
 	int result;
 
 	pm8921_get_batt_voltage(&result);
-
-	pr_info("%s, vol:%d\n", __func__, result);
 
 	if(!(the_chip->ext_usb->ichg->event_notify))
 	{

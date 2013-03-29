@@ -167,7 +167,7 @@ static int bma250_smbus_read_byte_block(struct i2c_client *client,
 static int bma250_set_mode(struct i2c_client *client, unsigned char Mode)
 {
 	int comres = 0;
-	unsigned char data1;
+	unsigned char data1 = 0;
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
 #ifdef CONFIG_CIR_ALWAYS_READY
@@ -254,7 +254,7 @@ static int bma250_set_int1_pad_sel(struct i2c_client *client, unsigned char
 		int1sel)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 	unsigned char state;
 	state = 0x01;
 
@@ -328,7 +328,7 @@ static int bma250_set_int2_pad_sel(struct i2c_client *client, unsigned char
 		int2sel)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 	unsigned char state;
 	state = 0x01;
 
@@ -402,7 +402,7 @@ static int bma250_set_Int_Enable(struct i2c_client *client, unsigned char
 		InterruptType , unsigned char value)
 {
 	int comres = 0;
-	unsigned char data1, data2;
+	unsigned char data1 = 0, data2 = 0;
 
 
 	comres = bma250_smbus_read_byte(client, BMA250_INT_ENABLE1_REG, &data1);
@@ -512,7 +512,7 @@ static int bma250_get_mode(struct i2c_client *client, unsigned char *Mode)
 static int bma250_set_range(struct i2c_client *client, unsigned char Range)
 {
 	int comres = 0;
-	unsigned char data1;
+	unsigned char data1 = 0;
 
 
 	if (Range < 4) {
@@ -551,7 +551,7 @@ static int bma250_set_range(struct i2c_client *client, unsigned char Range)
 static int bma250_get_range(struct i2c_client *client, unsigned char *Range)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 
 	comres = bma250_smbus_read_byte(client, BMA250_RANGE_SEL__REG,
@@ -567,7 +567,7 @@ static int bma250_get_range(struct i2c_client *client, unsigned char *Range)
 static int bma250_set_bandwidth(struct i2c_client *client, unsigned char BW)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 	int Bandwidth = 0;
 
 
@@ -617,7 +617,7 @@ static int bma250_set_bandwidth(struct i2c_client *client, unsigned char BW)
 static int bma250_get_bandwidth(struct i2c_client *client, unsigned char *BW)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 
 	comres = bma250_smbus_read_byte(client, BMA250_BANDWIDTH__REG,
@@ -643,7 +643,7 @@ static int bma250_get_interruptstatus1(struct i2c_client *client, unsigned char
 		*intstatus)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_STATUS1_REG, &data);
 	*intstatus = data;
@@ -775,7 +775,7 @@ static int bma250_get_orient_flat_status(struct i2c_client *client, unsigned
 static int bma250_set_Int_Mode(struct i2c_client *client, unsigned char Mode)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 
 	comres = bma250_smbus_read_byte(client,
@@ -806,7 +806,7 @@ static int bma250_set_slope_duration(struct i2c_client *client, unsigned char
 		duration)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 
 	comres = bma250_smbus_read_byte(client,
@@ -977,7 +977,7 @@ static int bma250_set_tap_duration(struct i2c_client *client, unsigned char
 		duration)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_TAP_DUR__REG, &data);
 	data = BMA250_SET_BITSLICE(data, BMA250_TAP_DUR, duration);
@@ -1002,7 +1002,7 @@ static int bma250_get_tap_duration(struct i2c_client *client, unsigned char
 static int bma250_set_tap_shock(struct i2c_client *client, unsigned char setval)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_TAP_SHOCK_DURN__REG,
 			&data);
@@ -1030,7 +1030,7 @@ static int bma250_set_tap_quiet(struct i2c_client *client, unsigned char
 		duration)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_TAP_QUIET_DURN__REG,
 			&data);
@@ -1058,7 +1058,7 @@ static int bma250_set_tap_threshold(struct i2c_client *client, unsigned char
 		threshold)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_TAP_THRES__REG, &data);
 	data = BMA250_SET_BITSLICE(data, BMA250_TAP_THRES, threshold);
@@ -1071,7 +1071,7 @@ static int bma250_get_tap_threshold(struct i2c_client *client, unsigned char
 		*status)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_TAP_THRES_REG, &data);
 	data = BMA250_GET_BITSLICE(data, BMA250_TAP_THRES);
@@ -1083,7 +1083,7 @@ static int bma250_get_tap_threshold(struct i2c_client *client, unsigned char
 static int bma250_set_tap_samp(struct i2c_client *client, unsigned char samp)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_TAP_SAMPLES__REG, &data);
 	data = BMA250_SET_BITSLICE(data, BMA250_TAP_SAMPLES, samp);
@@ -1096,7 +1096,7 @@ static int bma250_set_tap_samp(struct i2c_client *client, unsigned char samp)
 static int bma250_get_tap_samp(struct i2c_client *client, unsigned char *status)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_TAP_THRES_REG, &data);
 	data = BMA250_GET_BITSLICE(data, BMA250_TAP_SAMPLES);
@@ -1108,7 +1108,7 @@ static int bma250_get_tap_samp(struct i2c_client *client, unsigned char *status)
 static int bma250_set_orient_mode(struct i2c_client *client, unsigned char mode)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_ORIENT_MODE__REG, &data);
 	data = BMA250_SET_BITSLICE(data, BMA250_ORIENT_MODE, mode);
@@ -1122,7 +1122,7 @@ static int bma250_get_orient_mode(struct i2c_client *client, unsigned char
 		*status)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_ORIENT_PARAM_REG, &data);
 	data = BMA250_GET_BITSLICE(data, BMA250_ORIENT_MODE);
@@ -1135,7 +1135,7 @@ static int bma250_set_orient_blocking(struct i2c_client *client, unsigned char
 		samp)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_ORIENT_BLOCK__REG,
 			&data);
@@ -1150,7 +1150,7 @@ static int bma250_get_orient_blocking(struct i2c_client *client, unsigned char
 		*status)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_ORIENT_PARAM_REG, &data);
 	data = BMA250_GET_BITSLICE(data, BMA250_ORIENT_BLOCK);
@@ -1163,7 +1163,7 @@ static int bma250_set_orient_hyst(struct i2c_client *client, unsigned char
 		orienthyst)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_ORIENT_HYST__REG, &data);
 	data = BMA250_SET_BITSLICE(data, BMA250_ORIENT_HYST, orienthyst);
@@ -1189,7 +1189,7 @@ static int bma250_set_theta_blocking(struct i2c_client *client, unsigned char
 		thetablk)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_THETA_BLOCK__REG, &data);
 	data = BMA250_SET_BITSLICE(data, BMA250_THETA_BLOCK, thetablk);
@@ -1203,7 +1203,7 @@ static int bma250_get_theta_blocking(struct i2c_client *client, unsigned char
 		*status)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_THETA_BLOCK_REG, &data);
 	data = BMA250_GET_BITSLICE(data, BMA250_THETA_BLOCK);
@@ -1216,7 +1216,7 @@ static int bma250_set_theta_flat(struct i2c_client *client, unsigned char
 		thetaflat)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_THETA_FLAT__REG, &data);
 	data = BMA250_SET_BITSLICE(data, BMA250_THETA_FLAT, thetaflat);
@@ -1242,7 +1242,7 @@ static int bma250_set_flat_hold_time(struct i2c_client *client, unsigned char
 		holdtime)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_FLAT_HOLD_TIME__REG,
 			&data);
@@ -1257,7 +1257,7 @@ static int bma250_get_flat_hold_time(struct i2c_client *client, unsigned char
 		*holdtime)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_FLAT_HOLD_TIME_REG,
 			&data);
@@ -1281,7 +1281,7 @@ static int bma250_set_offset_target_x(struct i2c_client *client, unsigned char
 		offsettarget)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client,
 			BMA250_COMP_TARGET_OFFSET_X__REG, &data);
@@ -1297,7 +1297,7 @@ static int bma250_get_offset_target_x(struct i2c_client *client, unsigned char
 		*offsettarget)
 {
 	int comres = 0 ;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_OFFSET_PARAMS_REG,
 			&data);
@@ -1311,7 +1311,7 @@ static int bma250_set_offset_target_y(struct i2c_client *client, unsigned char
 		offsettarget)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client,
 			BMA250_COMP_TARGET_OFFSET_Y__REG, &data);
@@ -1327,7 +1327,7 @@ static int bma250_get_offset_target_y(struct i2c_client *client, unsigned char
 		*offsettarget)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_OFFSET_PARAMS_REG,
 			&data);
@@ -1341,7 +1341,7 @@ static int bma250_set_offset_target_z(struct i2c_client *client, unsigned char
 		offsettarget)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client,
 			BMA250_COMP_TARGET_OFFSET_Z__REG, &data);
@@ -1371,7 +1371,7 @@ static int bma250_get_cal_ready(struct i2c_client *client, unsigned char
 		*calrdy)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_OFFSET_CTRL_REG, &data);
 	data = BMA250_GET_BITSLICE(data, BMA250_FAST_COMP_RDY_S);
@@ -1384,7 +1384,7 @@ static int bma250_set_cal_trigger(struct i2c_client *client, unsigned char
 		caltrigger)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_EN_FAST_COMP__REG,
 			&data);
@@ -1399,7 +1399,7 @@ static int bma250_set_selftest_st(struct i2c_client *client, unsigned char
 		selftest)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_EN_SELF_TEST__REG,
 			&data);
@@ -1413,7 +1413,7 @@ static int bma250_set_selftest_st(struct i2c_client *client, unsigned char
 static int bma250_set_selftest_stn(struct i2c_client *client, unsigned char stn)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client, BMA250_NEG_SELF_TEST__REG,
 			&data);
@@ -1427,7 +1427,7 @@ static int bma250_set_selftest_stn(struct i2c_client *client, unsigned char stn)
 static int bma250_set_ee_w(struct i2c_client *client, unsigned char eew)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client,
 			BMA250_UNLOCK_EE_WRITE_SETTING__REG, &data);
@@ -1440,7 +1440,7 @@ static int bma250_set_ee_w(struct i2c_client *client, unsigned char eew)
 static int bma250_set_ee_prog_trig(struct i2c_client *client)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 	unsigned char eeprog;
 	eeprog = 0x01;
 
@@ -1457,7 +1457,7 @@ static int bma250_get_eeprom_writing_status(struct i2c_client *client,
 							unsigned char *eewrite)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = 0;
 
 	comres = bma250_smbus_read_byte(client,
 				BMA250_EEPROM_CTRL_REG, &data);
@@ -1629,7 +1629,7 @@ static ssize_t bma250_register_show(struct device *dev,
 static ssize_t bma250_range_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -1643,7 +1643,7 @@ static ssize_t bma250_range_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -1660,7 +1660,7 @@ static ssize_t bma250_range_store(struct device *dev,
 static ssize_t bma250_bandwidth_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -1675,7 +1675,7 @@ static ssize_t bma250_bandwidth_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -1787,7 +1787,7 @@ static ssize_t bma250_set_k_value_store(struct device *dev,
 static ssize_t bma250_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -1801,7 +1801,7 @@ static ssize_t bma250_mode_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -1847,7 +1847,7 @@ static ssize_t bma250_delay_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -1927,7 +1927,7 @@ static ssize_t bma250_enable_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 
 	error = strict_strtoul(buf, 10, &data);
@@ -2075,7 +2075,7 @@ static ssize_t bma250_enable_int_store(struct device *dev,
 static ssize_t bma250_int_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2089,7 +2089,7 @@ static ssize_t bma250_int_mode_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2106,7 +2106,7 @@ static ssize_t bma250_int_mode_store(struct device *dev,
 static ssize_t bma250_slope_duration_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2121,7 +2121,7 @@ static ssize_t bma250_slope_duration_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2140,7 +2140,7 @@ static ssize_t bma250_slope_duration_store(struct device *dev,
 static ssize_t bma250_slope_threshold_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2155,7 +2155,7 @@ static ssize_t bma250_slope_threshold_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2172,7 +2172,7 @@ static ssize_t bma250_slope_threshold_store(struct device *dev,
 static ssize_t bma250_high_g_duration_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2187,7 +2187,7 @@ static ssize_t bma250_high_g_duration_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2206,7 +2206,7 @@ static ssize_t bma250_high_g_duration_store(struct device *dev,
 static ssize_t bma250_high_g_threshold_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2221,7 +2221,7 @@ static ssize_t bma250_high_g_threshold_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2239,7 +2239,7 @@ static ssize_t bma250_high_g_threshold_store(struct device *dev,
 static ssize_t bma250_low_g_duration_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2254,7 +2254,7 @@ static ssize_t bma250_low_g_duration_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2273,7 +2273,7 @@ static ssize_t bma250_low_g_duration_store(struct device *dev,
 static ssize_t bma250_low_g_threshold_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2288,7 +2288,7 @@ static ssize_t bma250_low_g_threshold_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2305,7 +2305,7 @@ static ssize_t bma250_low_g_threshold_store(struct device *dev,
 static ssize_t bma250_tap_threshold_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2320,7 +2320,7 @@ static ssize_t bma250_tap_threshold_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2337,7 +2337,7 @@ static ssize_t bma250_tap_threshold_store(struct device *dev,
 static ssize_t bma250_tap_duration_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2352,7 +2352,7 @@ static ssize_t bma250_tap_duration_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2370,7 +2370,7 @@ static ssize_t bma250_tap_duration_store(struct device *dev,
 static ssize_t bma250_tap_quiet_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2385,7 +2385,7 @@ static ssize_t bma250_tap_quiet_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2404,7 +2404,7 @@ static ssize_t bma250_tap_quiet_store(struct device *dev,
 static ssize_t bma250_tap_shock_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2419,7 +2419,7 @@ static ssize_t bma250_tap_shock_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2438,7 +2438,7 @@ static ssize_t bma250_tap_shock_store(struct device *dev,
 static ssize_t bma250_tap_samp_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
@@ -2453,7 +2453,7 @@ static ssize_t bma250_tap_samp_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	unsigned long data;
+	unsigned long data = 0;
 	int error;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
@@ -2471,7 +2471,7 @@ static ssize_t bma250_tap_samp_store(struct device *dev,
 static ssize_t bma250_orient_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	unsigned char data;
+	unsigned char data = 0;
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
