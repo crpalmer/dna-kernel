@@ -199,6 +199,7 @@ static void __cpuinit verify_cores(unsigned desired_n_cores)
 	}
 
 	n_online = desired_n_cores;
+	verify_needed = false;
 }
 
 static void __cpuinit simple_plug_work_fn(struct work_struct *work)
@@ -217,7 +218,6 @@ static void __cpuinit simple_plug_work_fn(struct work_struct *work)
 		if (verify_needed) {
 			if (--n_until_verify == 0) {
 				verify_cores(cores);
-				verify_needed = false;
 			}
 		} else {
 			cpus_up_down(cores);
