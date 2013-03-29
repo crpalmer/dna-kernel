@@ -871,6 +871,7 @@ extern int msm_show_resume_irq_mask;
 
 static void pm8921_show_resume_irq(void)
 {
+#ifdef CONFIG_MSM_SHOW_RESUME_IRQ
 	int i, irq;
 	struct pm_irq_chip *chip = pmic8921_chip->irq_chip;
 
@@ -888,6 +889,7 @@ static void pm8921_show_resume_irq(void)
 			}
 		}
 	}
+#endif
 }
 
 static int pm8921_suspend(void)
