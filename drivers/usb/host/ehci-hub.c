@@ -367,7 +367,7 @@ static int ehci_bus_resume (struct usb_hcd *hcd)
 	 * state we gave to it.
 	 */
 	power_okay = ehci_readl(ehci, &ehci->regs->intr_enable);
-	ehci_info(ehci, "resume root hub%s\n",
+	ehci_dbg(ehci, "resume root hub%s\n",
 			power_okay ? "" : " after power loss");
 
 	/* at least some APM implementations will try to deliver
@@ -471,11 +471,11 @@ skip_clear_resume:
 
 	/* Now we can safely re-enable irqs */
 	ehci_writel(ehci, INTR_MASK, &ehci->regs->intr_enable);
-	ehci_info(ehci, "debug resume wakeup- pivot 1\n");
+	ehci_dbg(ehci, "debug resume wakeup- pivot 1\n");
 	spin_unlock_irq (&ehci->lock);
-	ehci_info(ehci, "debug resume wakeup- pivot 2\n");
+	ehci_dbg(ehci, "debug resume wakeup- pivot 2\n");
 	ehci_handover_companion_ports(ehci);
-	ehci_info(ehci, "debug resume wakeup- pivot 3\n");
+	ehci_dbg(ehci, "debug resume wakeup- pivot 3\n");
 	return 0;
 }
 
