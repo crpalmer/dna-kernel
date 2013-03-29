@@ -474,7 +474,10 @@ static struct cpu_workqueue_struct *get_cwq(unsigned int cpu,
 {
 	if (!(wq->flags & WQ_UNBOUND)) {
 		if (likely(cpu < nr_cpu_ids))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 			return per_cpu_ptr(wq->cpu_wq.pcpu, cpu);
+#pragma GCC diagnostic pop
 	} else if (likely(cpu == WORK_CPU_UNBOUND))
 		return wq->cpu_wq.single;
 	return NULL;
@@ -2752,8 +2755,11 @@ void freeze_workqueues_begin(void)
 		gcwq->flags |= GCWQ_FREEZING;
 
 		list_for_each_entry(wq, &workqueues, list) {
-			struct cpu_workqueue_struct *cwq = get_cwq(cpu, wq);
-
+			struct cpu_workqueue_struct *cwq;
+			if (cpu < CONFIG_NR_CPUS)
+                                cwq = get_cwq(cpu, wq);
+                        else
+                                continue;
 			if (cwq && wq->flags & WQ_FREEZABLE)
 				cwq->max_active = 0;
 		}
@@ -2776,7 +2782,11 @@ bool freeze_workqueues_busy(void)
 	for_each_gcwq_cpu(cpu) {
 		struct workqueue_struct *wq;
 		list_for_each_entry(wq, &workqueues, list) {
-			struct cpu_workqueue_struct *cwq = get_cwq(cpu, wq);
+			struct cpu_workqueue_struct *cwq;
+			if (cpu < CONFIG_NR_CPUS)
+                                cwq = get_cwq(cpu, wq);
+                        else
+                                continue;
 
 			if (!cwq || !(wq->flags & WQ_FREEZABLE))
 				continue;

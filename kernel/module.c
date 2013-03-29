@@ -1114,7 +1114,7 @@ static const struct kernel_symbol *resolve_symbol(struct module *mod,
 						  const char *name,
 						  char ownername[])
 {
-	struct module *owner;
+	struct module *owner = NULL;
 	const struct kernel_symbol *sym;
 	const unsigned long *crc;
 	int err;

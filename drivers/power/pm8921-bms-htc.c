@@ -1503,7 +1503,8 @@ EXPORT_SYMBOL(pm8921_bms_get_vsense_avg);
 
 int pm8921_bms_get_battery_current(int *result_ua)
 {
-	int vsense;
+	int vsense = 0;
+	int rc;
 
 	if (!the_chip) {
 		pr_err("called before initialization\n");
@@ -1516,9 +1517,13 @@ int pm8921_bms_get_battery_current(int *result_ua)
 
 	mutex_lock(&the_chip->bms_output_lock);
 	pm_bms_lock_output_data(the_chip);
-	read_vsense_avg(the_chip, &vsense);
+	rc = read_vsense_avg(the_chip, &vsense);
 	pm_bms_unlock_output_data(the_chip);
 	mutex_unlock(&the_chip->bms_output_lock);
+
+	if (rc)
+		return rc;
+
 	pr_debug("vsense=%duV\n", vsense);
 	
 	*result_ua = vsense * 1000 / (int)the_chip->r_sense;
@@ -2843,8 +2848,8 @@ static int dump_cc_uah(void)
 int prev_cc_uah = 0;
 static int pm8921_bms_suspend(struct device *dev)
 {
-	u64 val;
 #if 0 
+	u64 val;
 	int rc;
 	struct pm8xxx_adc_chan_result result;
 	struct pm8921_bms_chip *chip = dev_get_drvdata(dev);
@@ -2880,19 +2885,20 @@ static int pm8921_bms_suspend(struct device *dev)
 				chip->cc_reading_at_100);
 	chip->soc_rbatt_suspend = ((remaining_charge_uah - cc_uah) * 100)
 						/ fcc_uah;
-#endif
 
 	dump_cc_uah();
 	get_reg((void *)BMS_TOLERANCES, &val);
 	pr_info("%s: BMS_TOLERANCES=0x%02llx\n", __func__, val);
+
+#endif
 	return 0;
 }
 
 #define DELTA_RBATT_PERCENT	10
 static int pm8921_bms_resume(struct device *dev)
 {
-	u64 val;
 #if 0 
+	u64 val;
 	struct pm8921_rbatt_params raw;
 	struct pm8921_bms_chip *chip = dev_get_drvdata(dev);
 	int rbatt;
@@ -2922,11 +2928,11 @@ static int pm8921_bms_resume(struct device *dev)
 		delta_rbatt = -delta_rbatt;
 	if (delta_rbatt * 100 <= DELTA_RBATT_PERCENT * expected_rbatt)
 		last_rbatt = rbatt;
-#endif
 
 	dump_cc_uah();
 	get_reg((void *)BMS_TOLERANCES, &val);
 	pr_info("%s: BMS_TOLERANCES=0x%02llx\n", __func__, val);
+#endif
 	return 0;
 }
 
