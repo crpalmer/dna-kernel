@@ -46,8 +46,6 @@
 
 static int smp_distribute_keys(struct l2cap_conn *conn, __u8 force);
 
-#define AUTH_REQ_MASK   0x07
-
 static inline void swap128(u8 src[16], u8 dst[16])
 {
 	int i;
@@ -215,6 +213,7 @@ static __u8 authreq_to_seclevel(__u8 authreq)
 static __u8 seclevel_to_authreq(__u8 level)
 {
 	switch (level) {
+	case BT_SECURITY_VERY_HIGH:
 	case BT_SECURITY_HIGH:
 		return SMP_AUTH_MITM | SMP_AUTH_BONDING;
 
@@ -244,7 +243,7 @@ static void build_pairing_cmd(struct l2cap_conn *conn,
 		req->max_key_size = SMP_MAX_ENC_KEY_SIZE;
 		req->init_key_dist = all_keys;
 		req->resp_key_dist = dist_keys;
-		req->auth_req = (authreq & AUTH_REQ_MASK);
+		req->auth_req = authreq;
 		BT_DBG("SMP_CMD_PAIRING_REQ %d %d %d %d %2.2x %2.2x",
 				req->io_capability, req->oob_flag,
 				req->auth_req, req->max_key_size,
@@ -263,7 +262,7 @@ static void build_pairing_cmd(struct l2cap_conn *conn,
 	rsp->max_key_size = SMP_MAX_ENC_KEY_SIZE;
 	rsp->init_key_dist = req->init_key_dist & all_keys;
 	rsp->resp_key_dist = req->resp_key_dist & dist_keys;
-	rsp->auth_req = (authreq & AUTH_REQ_MASK);
+	rsp->auth_req = authreq;
 	BT_DBG("SMP_CMD_PAIRING_RSP %d %d %d %d %2.2x %2.2x",
 			req->io_capability, req->oob_flag, req->auth_req,
 			req->max_key_size, req->init_key_dist,
@@ -448,6 +447,8 @@ int le_user_confirm_reply(struct hci_conn *hcon, u16 mgmt_op, void *cp)
 		smp_send_cmd(conn, SMP_CMD_PAIRING_FAIL, sizeof(reason),
 								&reason);
 		del_timer(&hcon->smp_timer);
+		if (hcon->disconn_cfm_cb)
+			hcon->disconn_cfm_cb(hcon, SMP_UNSPECIFIED);
 		clear_bit(HCI_CONN_ENCRYPT_PEND, &hcon->pend);
 		mgmt_auth_failed(hcon->hdev->id, conn->dst, reason);
 		hci_conn_put(hcon);
@@ -713,10 +714,6 @@ static u8 smp_cmd_security_req(struct l2cap_conn *conn, struct sk_buff *skb)
 invalid_key:
 	hcon->sec_req = FALSE;
 
-	/* Switch to Pairing Connection Parameters */
-	hci_le_conn_update(hcon, SMP_MIN_CONN_INTERVAL, SMP_MAX_CONN_INTERVAL,
-			SMP_MAX_CONN_LATENCY, SMP_SUPERVISION_TIMEOUT);
-
 	skb_pull(skb, sizeof(*rp));
 
 	memset(&cp, 0, sizeof(cp));
@@ -737,9 +734,9 @@ invalid_key:
 	return 0;
 }
 
-int smp_conn_security(struct hci_conn *hcon, __u8 sec_level)
+int smp_conn_security(struct l2cap_conn *conn, __u8 sec_level)
 {
-	struct l2cap_conn *conn = hcon->l2cap_data;
+	struct hci_conn *hcon = conn->hcon;
 	__u8 authreq;
 
 	BT_DBG("conn %p hcon %p %d req: %d",
@@ -762,8 +759,7 @@ int smp_conn_security(struct hci_conn *hcon, __u8 sec_level)
 
 	hcon->smp_conn = conn;
 	hcon->pending_sec_level = sec_level;
-
-	if ((hcon->link_mode & HCI_LM_MASTER) && !hcon->sec_req) {
+	if (hcon->link_mode & HCI_LM_MASTER) {
 		struct link_key *key;
 
 		key = hci_find_link_key_type(hcon->hdev, conn->dst,
@@ -777,11 +773,6 @@ int smp_conn_security(struct hci_conn *hcon, __u8 sec_level)
 
 	if (hcon->link_mode & HCI_LM_MASTER) {
 		struct smp_cmd_pairing cp;
-
-		/* Switch to Pairing Connection Parameters */
-		hci_le_conn_update(hcon, SMP_MIN_CONN_INTERVAL,
-				SMP_MAX_CONN_INTERVAL, SMP_MAX_CONN_LATENCY,
-				SMP_SUPERVISION_TIMEOUT);
 
 		build_pairing_cmd(conn, &cp, NULL, authreq);
 		hcon->preq[0] = SMP_CMD_PAIRING_REQ;
@@ -1059,7 +1050,7 @@ int smp_link_encrypt_cmplt(struct l2cap_conn *conn, u8 status, u8 encrypt)
 
 	/* Fall back to Pairing request if failed a Link Security request */
 	else if (hcon->sec_req  && (status || !encrypt))
-		smp_conn_security(hcon, hcon->pending_sec_level);
+		smp_conn_security(conn, hcon->pending_sec_level);
 
 	hci_conn_put(hcon);
 
