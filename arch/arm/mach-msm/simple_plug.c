@@ -124,13 +124,23 @@ static void
 set_max_frequency(int cpu)
 {
 	struct cpufreq_policy policy;
-	int ret;
 
-	if ((ret = cpufreq_get_policy(&policy, n_online)) == 0) {
-		if ((ret = cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_L)) < 0)
-			pr_info(PR_NAME "failed to target freq=%d for cpu%d.\n", policy.max, n_online);
-	} else
-		pr_info(PR_NAME "failed to get policy for cpu%d, ret=%d.\n", n_online, ret);
+	if (cpufreq_get_policy(&policy, cpu) < 0) {
+		pr_info(PR_NAME "failed to get policy for cpu%d\n", cpu);
+		return;
+	}
+
+	if (policy.cur == policy.max) {
+		pr_debug(PR_NAME "cpu%d already at max %d\n", cpu, policy.max);
+		return;
+	}
+
+	if (cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_L) < 0) {
+		pr_info(PR_NAME "failed to target freq=%d for cpu%d.\n", policy.max, cpu);
+		return;
+	}
+
+	pr_debug(PR_NAME "set frequency %d for cpu%d\n", policy.max, cpu);
 }
 
 static bool cpu_state_is_not_valid(int cpu)
@@ -241,6 +251,8 @@ static void __cpuinit simple_plug_late_resume(struct early_suspend *handler)
 	nr_avg = almost_2 * HISTORY_SIZE;
 
 	
+	set_max_frequency(0);
+
 	/* Ask it to run very soon to allow that ramp-up to happen
 	 * and let's ask it to immediately verify_cores
 	 */
