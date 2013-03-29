@@ -537,7 +537,10 @@ static struct cpu_workqueue_struct *get_cwq(unsigned int cpu,
 {
 	if (!(wq->flags & WQ_UNBOUND)) {
 		if (likely(cpu < nr_cpu_ids))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 			return per_cpu_ptr(wq->cpu_wq.pcpu, cpu);
+#pragma GCC diagnostic pop
 	} else if (likely(cpu == WORK_CPU_UNBOUND))
 		return wq->cpu_wq.single;
 	return NULL;
