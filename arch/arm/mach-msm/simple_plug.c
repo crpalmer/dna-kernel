@@ -87,9 +87,14 @@ static unsigned __cpuinit desired_number_of_cores(void)
 {
 	int target_cores, up_cores, down_cores;
 	int avg;
+#ifdef CONFIG_SCHED_BFS
+	int cur_running = nr_running();
+#else
+	int cur_running = avg_nr_running();
+#endif
 
 	nr_avg -= nr_run_history[nr_last_i];
-	nr_avg += nr_run_history[nr_last_i] = avg_nr_running();
+	nr_avg += nr_run_history[nr_last_i] = cur_running;
 	nr_last_i = (nr_last_i + 1) % HISTORY_SIZE;
 
 	/* Compute number of cores of average active work.
