@@ -13,7 +13,11 @@
 static int loadavg_proc_show(struct seq_file *m, void *v)
 {
 	unsigned long avnrun[3];
+#ifdef CONFIG_SCHED_BFS
+	unsigned long time_avnrun = nr_running();
+#else
 	unsigned long time_avnrun = avg_nr_running();
+#endif
 
 	get_avenrun(avnrun, FIXED_1/200, 0);
 
