@@ -1057,6 +1057,30 @@ static const char *hwcap_str[] = {
 	NULL
 };
 
+#include <linux/cpufreq.h>
+void mach_msm_cpufreq_get_limits(int cpu, unsigned *low, unsigned *high);
+
+static void policy_show(struct seq_file *m, int cpu)
+{
+        struct cpufreq_policy policy;
+	unsigned limit_l, limit_h;
+
+	mach_msm_cpufreq_get_limits(cpu, &limit_l, &limit_h);
+
+	seq_printf(m, "State\t\t: %s\n", cpu_online(cpu) ? "online" : "offline");
+	seq_printf(m, "CPU frequency\t: %u\n", cpufreq_quick_get(cpu));
+	seq_printf(m, "Throttle limits\t: %u / %u\n", limit_l, limit_h);
+
+        if (cpufreq_get_policy(&policy, cpu) < 0) {
+                pr_info("cpuinfo: failed to get policy for cpu%d\n", cpu);
+                return;
+        }
+
+	if (policy.governor) seq_printf(m, "Governor\t: %.*s\n", CPUFREQ_NAME_LEN, policy.governor->name);
+	seq_printf(m, "Policy speed\t: %u\n", policy.cur);
+	seq_printf(m, "Policy min/max\t: %u / %u\n", policy.min, policy.max);
+}
+
 static int c_show(struct seq_file *m, void *v)
 {
 	int i;
@@ -1072,14 +1096,17 @@ static int c_show(struct seq_file *m, void *v)
 		 * "processor".  Give glibc what it expects.
 		 */
 		seq_printf(m, "processor\t: %d\n", i);
-		seq_printf(m, "BogoMIPS\t: %lu.%02lu\n\n",
+		seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",
 			   per_cpu(cpu_data, i).loops_per_jiffy / (500000UL/HZ),
 			   (per_cpu(cpu_data, i).loops_per_jiffy / (5000UL/HZ)) % 100);
+		policy_show(m, i);
+		seq_printf(m, "\n");
 	}
 #else /* CONFIG_SMP */
 	seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",
 		   loops_per_jiffy / (500000/HZ),
 		   (loops_per_jiffy / (5000/HZ)) % 100);
+	policy_show(m, 0);
 #endif
 
 	/* dump out the processor features */

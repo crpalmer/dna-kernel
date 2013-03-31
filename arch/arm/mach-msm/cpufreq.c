@@ -67,6 +67,18 @@ static DEFINE_PER_CPU(struct cpu_freq, cpu_freq_info);
 
 static int override_cpu;
 
+void mach_msm_cpufreq_get_limits(int cpu, unsigned *low, unsigned *high)
+{
+	struct cpu_freq *limit = &per_cpu(cpu_freq_info, cpu);
+
+	if (limit->limits_init) {
+		*low = limit->allowed_min;
+		*high = limit->allowed_max;
+	} else {
+		*low = *high = 0;
+	}
+}
+
 static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 {
 	int ret = 0;
