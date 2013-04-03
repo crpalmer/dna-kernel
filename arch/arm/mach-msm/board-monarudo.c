@@ -4719,13 +4719,6 @@ static void __init monarudo_common_init(void)
 	monarudo_cable_detect_register();
 	monarudo_init_pmic();
 
-	rpmrs_level =
-		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT];
-	msm_hsic_pdata.swfi_latency = rpmrs_level.latency_us;
-	rpmrs_level =
-		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE];
-	msm_hsic_pdata.standalone_latency = rpmrs_level.latency_us;
-
 	apq8064_device_otg.dev.platform_data = &msm_otg_pdata;
 	monarudo_init_buses();
 #ifdef CONFIG_HTC_BATT_8960
@@ -4746,6 +4739,13 @@ static void __init monarudo_common_init(void)
 		platform_device_register(&vibrator_pwm_device_XC);
 	else
         platform_device_register(&vibrator_pwm_device_XD);
+
+	rpmrs_level =
+		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT];
+	msm_hsic_pdata.swfi_latency = rpmrs_level.latency_us;
+	rpmrs_level =
+		msm_rpmrs_levels[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE];
+	msm_hsic_pdata.standalone_latency = rpmrs_level.latency_us;
 
 	apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
 	device_initialize(&apq8064_device_hsic_host.dev);
