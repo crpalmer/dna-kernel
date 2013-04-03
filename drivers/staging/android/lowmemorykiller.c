@@ -123,6 +123,20 @@ void tune_lmk_zone_param(struct zonelist *zonelist, int classzone_idx,
 	struct zoneref *zoneref;
 	int zone_idx;
 
+#ifndef CRPALMER_WE_DONT_HAVE_CMA_FOR_DNA
+	/*
+	 *  **** HACK ALERT ****
+	 *
+	 * The code never uses NR_FREE_CMA_PAGES, below, when we tell it
+	 * to use_cma_pages.  Since the DNA doesn't have this, let's just
+	 * force it to ignore them and then define NR_FREE_CMA_PAGES to
+	 * be any old value to make the code compile.
+	 */
+
+	use_cma_pages = 1;
+#define NR_FREE_CMA_PAGES	0
+#endif
+
 	for_each_zone_zonelist(zone, zoneref, zonelist, MAX_NR_ZONES) {
 		zone_idx = zonelist_zone_idx(zoneref);
 		if (zone_idx == ZONE_MOVABLE) {
@@ -159,6 +173,10 @@ void tune_lmk_zone_param(struct zonelist *zonelist, int classzone_idx,
 			}
 		}
 	}
+
+#ifndef CRPALMER_WE_DONT_HAVE_CMA_FOR_DNA
+#undef NR_FREE_CMA_PAGES
+#endif
 }
 
 void tune_lmk_param(int *other_free, int *other_file, struct shrink_control *sc)
@@ -175,7 +193,21 @@ void tune_lmk_param(int *other_free, int *other_file, struct shrink_control *sc)
 	high_zoneidx = gfp_zone(gfp_mask);
 	first_zones_zonelist(zonelist, high_zoneidx, NULL, &preferred_zone);
 	classzone_idx = zone_idx(preferred_zone);
+#ifndef CRPALMER_WE_DONT_HAVE_CMA_FOR_DNA
+	/*
+	 *  **** HACK ALERT ****
+	 *
+	 * The code never uses NR_FREE_CMA_PAGES, below, when we tell it
+	 * to use_cma_pages.  Since the DNA doesn't have this, let's just
+	 * force it to ignore them and then define NR_FREE_CMA_PAGES to
+	 * be any old value to make the code compile.
+	 */
+
+	use_cma_pages = 1;
+#define NR_FREE_CMA_PAGES	0
+#else
 	use_cma_pages = can_use_cma_pages(gfp_mask);
+#endif
 
 	balance_gap = min(low_wmark_pages(preferred_zone),
 			  (preferred_zone->present_pages +
@@ -223,6 +255,10 @@ void tune_lmk_param(int *other_free, int *other_file, struct shrink_control *sc)
 		lowmem_print(4, "lowmem_shrink tunning for others ofree %d, "
 			     "%d\n", *other_free, *other_file);
 	}
+
+#ifndef CRPALMER_WE_DONT_HAVE_CMA_FOR_DNA
+#undef NR_FREE_CMA_PAGES
+#endif
 }
 
 static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
