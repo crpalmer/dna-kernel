@@ -2137,6 +2137,8 @@ void mdp4_hw_init(void)
 }
 #endif
 
+static struct msm_panel_common_pdata *mdp_pdata;
+
 static int mdp_on(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2178,13 +2180,16 @@ static int mdp_on(struct platform_device *pdev)
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
 	mdp_histogram_ctrl_all(TRUE);
+
+	if (mdp_pdata->mdp_gamma)
+		mdp_pdata->mdp_gamma();
+
 	pr_debug("%s:-\n", __func__);
 
 	return ret;
 }
 
 static int mdp_resource_initialized;
-static struct msm_panel_common_pdata *mdp_pdata;
 
 uint32 mdp_hw_revision;
 
