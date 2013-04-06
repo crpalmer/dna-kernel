@@ -2417,6 +2417,8 @@ void mdp4_hw_init(void)
 
 static int mdp_bus_scale_restore_request(void);
 
+static struct msm_panel_common_pdata *mdp_pdata;
+
 static int mdp_on(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2483,13 +2485,15 @@ static int mdp_on(struct platform_device *pdev)
 	if (ret == 0)
 		ret = panel_next_late_init(pdev);
 
+	if (mdp_pdata->mdp_gamma)
+		mdp_pdata->mdp_gamma();
+
 	pr_debug("%s:-\n", __func__);
 
 	return ret;
 }
 
 static int mdp_resource_initialized;
-static struct msm_panel_common_pdata *mdp_pdata;
 
 uint32 mdp_hw_revision;
 
