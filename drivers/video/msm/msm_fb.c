@@ -3196,6 +3196,54 @@ static int msmfb_overlay_set(struct fb_info *info, void __user *p)
 	return 0;
 }
 
+static int msmfb_overlay_set_verizon_htc(struct fb_info *info, void __user *p)
+{
+	struct mdp_overlay_verizon_htc req_vh;
+	struct mdp_overlay req;
+	int ret;
+
+	if (copy_from_user(&req_vh, p, sizeof(req_vh)))
+		return -EFAULT;
+
+	req.src = req_vh.src;
+	req.src_rect = req_vh.src_rect;
+	req.dst_rect = req_vh.dst_rect;
+	req.z_order = req_vh.z_order;
+	req.is_fg = req_vh.is_fg;
+	req.alpha = req_vh.alpha;
+	req.transp_mask = req_vh.transp_mask;
+	req.flags = req_vh.flags;
+	req.id = req_vh.id;
+	memcpy(req.user_data, req_vh.user_data, sizeof(req.user_data));
+	req.overlay_pp_cfg.config_ops = 0;
+
+	ret = mdp4_overlay_set(info, &req);
+	if (ret) {
+		printk(KERN_ERR "%s: ioctl failed, rc=%d\n",
+			__func__, ret);
+		return ret;
+	}
+
+	req_vh.src = req.src;
+	req_vh.src_rect = req.src_rect;
+	req_vh.dst_rect = req.dst_rect;
+	req_vh.z_order = req.z_order;
+	req_vh.is_fg = req.is_fg;
+	req_vh.alpha = req.alpha;
+	req_vh.transp_mask = req.transp_mask;
+	req_vh.flags = req.flags;
+	req_vh.id = req.id;
+	memcpy(req_vh.user_data, req.user_data, sizeof(req_vh.user_data));
+
+	if (copy_to_user(p, &req_vh, sizeof(req_vh))) {
+		printk(KERN_ERR "%s: copy2user failed \n",
+			__func__);
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
 static int msmfb_overlay_unset(struct fb_info *info, unsigned long *argp)
 {
 	int ret, ndx;
@@ -3829,6 +3877,9 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		break;
 	case MSMFB_OVERLAY_SET:
 		ret = msmfb_overlay_set(info, argp);
+		break;
+	case MSMFB_OVERLAY_SET_VERIZON_HTC:
+		ret = msmfb_overlay_set_verizon_htc(info, argp);
 		break;
 	case MSMFB_OVERLAY_UNSET:
 		ret = msmfb_overlay_unset(info, argp);

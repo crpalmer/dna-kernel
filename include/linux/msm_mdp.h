@@ -31,6 +31,8 @@
 #define MSMFB_SET_CCS_MATRIX  _IOW(MSMFB_IOCTL_MAGIC, 134, struct mdp_ccs)
 #define MSMFB_OVERLAY_SET       _IOWR(MSMFB_IOCTL_MAGIC, 135, \
 						struct mdp_overlay)
+#define MSMFB_OVERLAY_SET_VERIZON_HTC       _IOWR(MSMFB_IOCTL_MAGIC, 135, \
+						struct mdp_overlay_verizon_htc)
 #define MSMFB_OVERLAY_UNSET     _IOW(MSMFB_IOCTL_MAGIC, 136, unsigned int)
 
 #define MSMFB_OVERLAY_PLAY      _IOW(MSMFB_IOCTL_MAGIC, 137, \
@@ -329,6 +331,31 @@ struct mdp_overlay {
 	uint32_t id;
 	uint32_t user_data[8];
 	struct mdp_overlay_pp_params overlay_pp_cfg;
+};
+
+struct dpp_ctrl {
+	/*
+	 *'sharp_strength' has inputs = -128 <-> 127
+	 *  Increasingly positive values correlate with increasingly sharper
+	 *  picture. Increasingly negative values correlate with increasingly
+	 *  smoothed picture.
+	 */
+	int8_t sharp_strength;
+	int8_t hsic_params[NUM_HSIC_PARAM];
+};
+
+struct mdp_overlay_verizon_htc {
+	struct msmfb_img src;
+	struct mdp_rect src_rect;
+	struct mdp_rect dst_rect;
+	uint32_t z_order;	/* stage number */
+	uint32_t is_fg;		/* control alpha & transp */
+	uint32_t alpha;
+	uint32_t transp_mask;
+	uint32_t flags;
+	uint32_t id;
+	uint32_t user_data[8];
+	struct dpp_ctrl dpp;
 };
 
 struct msmfb_overlay_3d {
