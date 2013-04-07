@@ -34,6 +34,7 @@
 #define NUM_CORES			4
 
 static struct delayed_work simple_plug_work;
+static struct work_struct set_max_frequency_work[NUM_CORES];
 
 static unsigned int simple_plug_active = 1;
 static unsigned int min_cores = 1;
@@ -121,8 +122,9 @@ static unsigned __cpuinit desired_number_of_cores(void)
 }
 
 static void
-set_max_frequency(int cpu)
+set_max_frequency(struct work_struct *work)
 {
+	int cpu = work - &set_max_frequency_work[0];
 	struct cpufreq_policy policy;
 
 	if (cpufreq_get_policy(&policy, cpu) < 0) {
@@ -173,7 +175,7 @@ static void __cpuinit cpus_up_down(int desired_n_online)
 			pr_debug(PR_NAME "starting cpu%d, want %d online\n", cpu, desired_n_online);
 			STATS(times_core_up[cpu]++);
 			cpu_up(cpu);
-			set_max_frequency(cpu);
+			schedule_work_on(cpu, &set_max_frequency_work[cpu]);
 		} else if (cpu >= desired_n_online && cpu < n_online) {
 			pr_debug(PR_NAME "unplugging cpu%d, want %d online\n", cpu, desired_n_online);
 			STATS(times_core_down[cpu]++);
@@ -272,6 +274,8 @@ static struct early_suspend simple_plug_early_suspend_struct_driver = {
 
 static int __init simple_plug_init(void)
 {
+	int cpu;
+
 	pr_info(PR_NAME "version %d.%d by crpalmer\n",
 		 SIMPLE_PLUG_MAJOR_VERSION,
 		 SIMPLE_PLUG_MINOR_VERSION);
@@ -288,6 +292,11 @@ static int __init simple_plug_init(void)
 	 */
 	
 	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
+
+	for (cpu = 0; cpu < NUM_CORES; cpu++) {
+		INIT_WORK(&set_max_frequency_work[cpu], set_max_frequency);
+	}
+
 	schedule_delayed_work_on(0, &simple_plug_work, msecs_to_jiffies(STARTUP_DELAY_MS));
 
 	return 0;
