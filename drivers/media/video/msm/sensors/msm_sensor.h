@@ -36,13 +36,13 @@
 #define MSM_SENSOR_MCLK_24HZ 24000000
 
 enum msm_sensor_reg_update {
-	
+	/* Sensor egisters that need to be updated during initialization */
 	MSM_SENSOR_REG_INIT,
-	
+	/* Sensor egisters that needs periodic I2C writes */
 	MSM_SENSOR_UPDATE_PERIODIC,
-	
+	/* All the sensor Registers will be updated */
 	MSM_SENSOR_UPDATE_ALL,
-	
+	/* Not valid update */
 	MSM_SENSOR_UPDATE_INVALID
 };
 
@@ -69,8 +69,8 @@ struct msm_sensor_exp_gain_info_t {
 	uint16_t coarse_int_time_addr;
 	uint16_t global_gain_addr;
 	uint16_t vert_offset;
-	uint16_t min_vert; 
-	uint32_t sensor_max_linecount; 
+	uint16_t min_vert; /* HTC Angie 20111019 - Fix FPS */
+	uint32_t sensor_max_linecount; /* HTC ben 20120229 */
 };
 
 struct msm_sensor_reg_t {
@@ -123,9 +123,9 @@ struct msm_sensor_fn_t {
 	int32_t (*sensor_write_snapshot_exp_gain) (struct msm_sensor_ctrl_t *,
 			uint16_t, uint32_t);
 	int32_t (*sensor_write_exp_gain_ex) (struct msm_sensor_ctrl_t *,
-			int, uint16_t, uint16_t, uint32_t); 
+			int, uint16_t, uint16_t, uint32_t); /* HTC Angie 20111019 - Fix FPS */
 	int32_t (*sensor_write_snapshot_exp_gain_ex) (struct msm_sensor_ctrl_t *,
-			int, uint16_t, uint16_t, uint32_t); 
+			int, uint16_t, uint16_t, uint32_t); /* HTC Angie 20111019 - Fix FPS */
 	int32_t (*sensor_setting) (struct msm_sensor_ctrl_t *,
 			int update_type, int rt);
 	int32_t (*sensor_set_sensor_mode)
@@ -138,18 +138,20 @@ struct msm_sensor_fn_t {
 	int (*sensor_power_down)
 		(struct msm_sensor_ctrl_t *);
 	int (*sensor_power_up) (struct msm_sensor_ctrl_t *);
-	
+	/* HTC_START*/
 	int (*sensor_i2c_read_fuseid)(struct sensor_cfg_data *cdata, struct msm_sensor_ctrl_t *s_ctrl);
-	
+	/* HTC_END*/
+/* HTC_START steven multiple VCM 20120604 */
        int (*sensor_i2c_read_vcm_driver_ic)(struct msm_sensor_ctrl_t *s_ctrl);
+/* HTC_END steven multiple VCM 20120604 */
 	int (*sensor_adjust_frame_lines)
 		(struct msm_sensor_ctrl_t *s_ctrl, uint16_t res);
 
-	int32_t (*sensor_set_dig_gain) (struct msm_sensor_ctrl_t *, uint16_t); 
-	
-	void (*sensor_ov2722_write_exp_line) (struct msm_sensor_ctrl_t *, uint16_t); 
+	int32_t (*sensor_set_dig_gain) (struct msm_sensor_ctrl_t *, uint16_t); /* HTC_START pg digi gain 20120710 */
+	// for ov2722, the reg addrss of exp line are 3500[3:0]+3501[7:0]+3502[7:4], more than one word, need specical function
+	void (*sensor_ov2722_write_exp_line) (struct msm_sensor_ctrl_t *, uint16_t); /* HTC_START pg digi gain 20120710 */
 
-	int (*sensor_write_output_settings_specific)(struct msm_sensor_ctrl_t *s_ctrl, uint16_t res); 
+	int (*sensor_write_output_settings_specific)(struct msm_sensor_ctrl_t *s_ctrl, uint16_t res); /* HTC Angie 20120812 */
 };
 
 struct msm_sensor_ctrl_t {
@@ -191,8 +193,8 @@ struct msm_sensor_ctrl_t {
 	struct regulator **reg_ptr;
 	struct clk *cam_clk;
 	long clk_rate;
-	int mirror_flip;	
-	struct mutex *sensor_first_mutex;  
+	int mirror_flip;	/* HTC used */
+	struct mutex *sensor_first_mutex;  //CC120826
 };
 
 void msm_sensor_start_stream(struct msm_sensor_ctrl_t *s_ctrl);
@@ -206,12 +208,14 @@ int32_t msm_sensor_write_exp_gain1(struct msm_sensor_ctrl_t *s_ctrl,
 		uint16_t gain, uint32_t line);
 int32_t msm_sensor_write_exp_gain2(struct msm_sensor_ctrl_t *s_ctrl,
 		uint16_t gain, uint32_t line);
+/* HTC_START Angie 20111019 - Fix FPS */
 int32_t msm_sensor_write_exp_gain1_ex(struct msm_sensor_ctrl_t *s_ctrl,
 		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line);
 int32_t msm_sensor_write_exp_gain2_ex(struct msm_sensor_ctrl_t *s_ctrl,
 		int mode, uint16_t gain, uint32_t line);
+/* HTC_END */
 int32_t msm_sensor_write_exp_gain_ov (struct msm_sensor_ctrl_t *s_ctrl,
-		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line); 
+		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line); /* HTC Steven 20120704 OV exposure */
 int32_t msm_sensor_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl,
 	int mode, int res);
 int32_t msm_sensor_mode_init(struct msm_sensor_ctrl_t *s_ctrl,
@@ -223,9 +227,9 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 
 int32_t msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl);
 int32_t msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl);
-#if 1	
-int32_t msm_sensor_set_power_up(struct msm_sensor_ctrl_t *s_ctrl);
-int32_t msm_sensor_set_power_down(struct msm_sensor_ctrl_t *s_ctrl);
+#if 1	/* HTC_START  sync the previous project */
+int32_t msm_sensor_set_power_up(struct msm_sensor_ctrl_t *s_ctrl);//(const struct msm_camera_sensor_info *data);
+int32_t msm_sensor_set_power_down(struct msm_sensor_ctrl_t *s_ctrl);//(const struct msm_camera_sensor_info *data);
 
 int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl);
 int msm_sensor_i2c_probe(struct i2c_client *client,
@@ -241,7 +245,7 @@ int msm_sensor_v4l2_probe(struct msm_sensor_ctrl_t *s_ctrl,
 	const struct msm_camera_sensor_info *info,
 	struct v4l2_subdev *sdev, struct msm_sensor_ctrl *s);
 
-#endif	
+#endif	/* HTC_END */
 
 int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl);
 int msm_sensor_i2c_probe(struct i2c_client *client,

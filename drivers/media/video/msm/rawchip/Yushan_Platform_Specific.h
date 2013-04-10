@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  */
 
+/* Defined for only proto */
 #define ST_SPECIFIC							1
 #ifndef _YUSHAN_PLATFORM_SPECIFIC_H
 #define _YUSHAN_PLATFORM_SPECIFIC_H
@@ -22,6 +23,7 @@
 #define RAWCHIP_INT_TYPE_DOP_EOF_EXECCMD (0x01<<4)
 
 
+/* Interrupt functions */
 bool_t Yushan_WaitForInterruptEvent (uint8_t bInterruptId ,uint32_t udwTimeOut);
 bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut);
 uint8_t Yushan_parse_interrupt(int intr_pad);

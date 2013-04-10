@@ -47,4 +47,4 @@ static inline int hdmi_msm_audio_info_setup(bool enabled,
 	return 0;
 }
 #endif
-#endif 
+#endif /* __MSM_HDMI_AUDIO_H*/

@@ -18,6 +18,7 @@
 
 #include <linux/kernel.h>
 #include "Yushan_HTC_Functions.h"
+/* #define AFSU_DEBUG */
 
 uint8_t pdpcode_u_1_7[] =
 {

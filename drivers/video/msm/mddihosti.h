@@ -18,6 +18,8 @@
 #include "mddihost.h"
 #include <linux/clk.h>
 
+/* Register offsets in MDDI, applies to both msm_pmdh_base and
+ * (u32)msm_emdh_base. */
 #define MDDI_CMD   		0x0000
 #define MDDI_VERSION   		0x0004
 #define MDDI_PRI_PTR		0x0008
@@ -55,6 +57,7 @@
 extern int32 mddi_client_type;
 extern u32 mddi_msg_level;
 
+/* No longer need to write to clear these registers */
 #define xxxx_mddi_host_reg_outm(reg, mask, val)  \
 do { \
 	if (host_idx == MDDI_HOST_PRIM) \
@@ -108,12 +111,19 @@ do { \
 	readl((u32)msm_emdh_base + MDDI_##reg) & (mask) : \
 	readl((u32)msm_pmdh_base + MDDI_##reg) & (mask)) \
 
+/* Using non-cacheable pmem, so do nothing */
 #define mddi_invalidate_cache_lines(addr_start, num_bytes)
+/*
+ * Using non-cacheable pmem, so do nothing with cache
+ * but, ensure write goes out to memory
+ */
 #define mddi_flush_cache_lines(addr_start, num_bytes)  \
     (void) addr_start; \
     (void) num_bytes;  \
     memory_barrier()
 
+/* Since this translates to Remote Procedure Calls to check on clock status
+* just use a local variable to keep track of io_clock */
 #define MDDI_HOST_IS_IO_CLOCK_ON mddi_host_io_clock_on
 #define MDDI_HOST_ENABLE_IO_CLOCK
 #define MDDI_HOST_DISABLE_IO_CLOCK
@@ -130,6 +140,8 @@ do { \
 #define MDP_LINE_COUNT      \
 (readl(msm_mdp_base + MDP_SYNC_STATUS) & MDP_LINE_COUNT_BMSK)
 
+/* MDP sends 256 pixel packets, so lower value hibernates more without
+* significantly increasing latency of waiting for next subframe */
 #define MDDI_HOST_BYTES_PER_SUBFRAME  0x3C00
 
 #if defined(CONFIG_FB_MSM_MDP31) || defined(CONFIG_FB_MSM_MDP40)
@@ -168,36 +180,59 @@ do { \
 #define GCC_PACKED __attribute__((packed))
 typedef struct GCC_PACKED {
 	uint16 packet_length;
+	/* total # of bytes in the packet not including
+		the packet_length field. */
 
 	uint16 packet_type;
+	/* A Packet Type of 70 identifies the packet as
+		a Client status Packet. */
 
 	uint16 bClient_ID;
+	/* This field is reserved for future use and shall
+		be set to zero. */
 
 } mddi_rev_packet_type;
 
 typedef struct GCC_PACKED {
 	uint16 packet_length;
+	/* total # of bytes in the packet not including
+		the packet_length field. */
 
 	uint16 packet_type;
+	/* A Packet Type of 70 identifies the packet as
+		a Client status Packet. */
 
 	uint16 bClient_ID;
+	/* This field is reserved for future use and shall
+		be set to zero. */
 
 	uint16 reverse_link_request;
+	/* 16 bit unsigned integer with number of bytes client
+		needs in the * reverse encapsulation message
+		to transmit data. */
 
 	uint8 crc_error_count;
 	uint8 capability_change;
 	uint16 graphics_busy_flags;
 
 	uint16 parameter_CRC;
+	/* 16-bit CRC of all the bytes in the packet
+		including Packet Length. */
 
 } mddi_client_status_type;
 
 typedef struct GCC_PACKED {
 	uint16 packet_length;
+	/* total # of bytes in the packet not including
+		the packet_length field. */
 
 	uint16 packet_type;
+	/* A Packet Type of 66 identifies the packet as
+		a Client Capability Packet. */
 
 	uint16 bClient_ID;
+	/* This field is reserved for future use and
+		shall be set to zero. */
 
 	uint16 Protocol_Version;
 	uint16 Minimum_Protocol_Version;
@@ -330,9 +365,13 @@ typedef union GCC_PACKED {
 	mddi_video_stream_packet_type video_pkt;
 	mddi_register_access_packet_type register_pkt;
 #ifdef ENABLE_MDDI_MULTI_READ_WRITE
-	uint32 alignment_pad[252];	
+	/* add 1008 byte pad to ensure 1024 byte llist struct, that can be
+	 * manipulated easily with cache */
+	uint32 alignment_pad[252];	/* 1008 bytes */
 #else
-	uint32 alignment_pad[12];	
+	/* add 48 byte pad to ensure 64 byte llist struct, that can be
+	 * manipulated easily with cache */
+	uint32 alignment_pad[12];	/* 48 bytes */
 #endif
 } mddi_packet_header_type;
 
@@ -364,6 +403,13 @@ typedef struct {
 #define UNASSIGNED_INDEX MDDI_MAX_NUM_LLIST_ITEMS
 #define MDDI_FIRST_DYNAMIC_LLIST_IDX 0
 
+/* Static llist items can be used for applications that frequently send
+ * the same set of packets using the linked list interface. */
+/* Here we configure for 6 static linked list items:
+ *  The 1st is used for a the adaptive backlight setting.
+ *  and the remaining 5 are used for sending window adjustments for
+ *  MDDI clients that need windowing info sent separate from video
+ *  packets. */
 #define MDDI_NUM_STATIC_ABL_ITEMS 1
 #define MDDI_NUM_STATIC_WINDOW_ITEMS 5
 #define MDDI_NUM_STATIC_LLIST_ITEMS (MDDI_NUM_STATIC_ABL_ITEMS + \
@@ -376,6 +422,7 @@ typedef struct {
 #define MDDI_FIRST_STATIC_WINDOW_IDX  (MDDI_FIRST_STATIC_LLIST_IDX + \
 				MDDI_NUM_STATIC_ABL_ITEMS)
 
+/* GPIO registers */
 #define VSYNC_WAKEUP_REG          0x80
 #define GPIO_REG                  0x81
 #define GPIO_OUTPUT_REG           0x82
@@ -383,6 +430,7 @@ typedef struct {
 #define GPIO_INTERRUPT_ENABLE_REG 0x84
 #define GPIO_POLARITY_REG         0x85
 
+/* Interrupt Bits */
 #define MDDI_INT_PRI_PTR_READ       0x0001
 #define MDDI_INT_SEC_PTR_READ       0x0002
 #define MDDI_INT_REV_DATA_AVAIL     0x0004
@@ -413,6 +461,7 @@ typedef struct {
 #define MDDI_INT_LINK_STATE_CHANGES ( \
 	MDDI_INT_LINK_ACTIVE | MDDI_INT_IN_HIBERNATION)
 
+/* Status Bits */
 #define MDDI_STAT_LINK_ACTIVE        0x0001
 #define MDDI_STAT_NEW_REV_PTR        0x0002
 #define MDDI_STAT_NEW_PRI_PTR        0x0004
@@ -426,6 +475,7 @@ typedef struct {
 #define MDDI_STAT_RTD_MEAS_FAIL      0x0800
 #define MDDI_STAT_CLIENT_WAKEUP_REQ  0x1000
 
+/* Command Bits */
 #define MDDI_CMD_POWERDOWN           0x0100
 #define MDDI_CMD_POWERUP             0x0200
 #define MDDI_CMD_HIBERNATE           0x0300
@@ -484,4 +534,4 @@ uint32 mddi_get_client_id(void);
 void mddi_mhctl_remove(mddi_host_type host_idx);
 void mddi_host_timer_service(unsigned long data);
 void mddi_host_client_cnt_reset(void);
-#endif 
+#endif /* MDDIHOSTI_H */

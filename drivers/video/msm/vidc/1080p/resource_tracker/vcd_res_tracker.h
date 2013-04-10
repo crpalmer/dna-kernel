@@ -60,6 +60,7 @@ struct res_trk_context {
 	u32 sec_clk_heap;
 };
 
+/*HTC_START*/
 extern u32 vidc_msg_debug;
 
 #define VCDRES_MSG_LOW(xx_fmt...)			\
@@ -70,6 +71,7 @@ extern u32 vidc_msg_debug;
 	if (vidc_msg_debug) {				\
 		printk(KERN_INFO "\n  * [VID] " xx_fmt);\
 	}
+/*HTC_END*/
 
 #define VCDRES_MSG_HIGH(xx_fmt...)	printk(KERN_WARNING "\n [VID] " xx_fmt)
 #define VCDRES_MSG_ERROR(xx_fmt...)	printk(KERN_ERR "\n [VID] err: " xx_fmt)

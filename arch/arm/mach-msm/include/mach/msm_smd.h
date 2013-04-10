@@ -23,7 +23,7 @@
 
 typedef struct smd_channel smd_channel_t;
 
-#define SMD_MAX_CH_NAME_LEN 20 
+#define SMD_MAX_CH_NAME_LEN 20 /* includes null char at end */
 
 #define SMD_EVENT_DATA 1
 #define SMD_EVENT_OPEN 2
@@ -31,6 +31,14 @@ typedef struct smd_channel smd_channel_t;
 #define SMD_EVENT_STATUS 4
 #define SMD_EVENT_REOPEN_READY 5
 
+/*
+ * SMD Processor ID's.
+ *
+ * For all processors that have both SMSM and SMD clients,
+ * the SMSM Processor ID and the SMD Processor ID will
+ * be the same.  In cases where a processor only supports
+ * SMD, the entry will only exist in this enum.
+ */
 enum {
 	SMD_APPS = SMSM_APPS,
 	SMD_MODEM = SMSM_MODEM,
@@ -67,21 +75,44 @@ enum {
 
 };
 
+/*
+ * SMD IRQ Configuration
+ *
+ * Used to initialize IRQ configurations from platform data
+ *
+ * @irq_name: irq_name to query platform data
+ * @irq_id: initialized to -1 in platform data, stores actual irq id on
+ *		successful registration
+ * @out_base: if not null then settings used for outgoing interrupt
+ *		initialied from platform data
+ */
 
 struct smd_irq_config {
-	
+	/* incoming interrupt config */
 	const char *irq_name;
 	unsigned long flags;
 	int irq_id;
 	const char *device_name;
 	const void *dev_id;
 
-	
+	/* outgoing interrupt config */
 	uint32_t out_bit_pos;
 	void __iomem *out_base;
 	uint32_t out_offset;
 };
 
+/*
+ * SMD subsystem configurations
+ *
+ * SMD subsystems configurations for platform data. This contains the
+ * M2A and A2M interrupt configurations for both SMD and SMSM per
+ * subsystem.
+ *
+ * @subsys_name: name of subsystem passed to PIL
+ * @irq_config_id: unique id for each subsystem
+ * @edge: maps to actual remote subsystem edge
+ *
+ */
 struct smd_subsystem_config {
 	unsigned irq_config_id;
 	const char *subsys_name;
@@ -92,10 +123,23 @@ struct smd_subsystem_config {
 
 };
 
+/*
+ * Subsystem Restart Configuration
+ *
+ * @disable_smsm_reset_handshake
+ */
 struct smd_subsystem_restart_config {
 	int disable_smsm_reset_handshake;
 };
 
+/*
+ * Shared Memory Regions
+ *
+ * the array of these regions is expected to be in ascending order by phys_addr
+ *
+ * @phys_addr: physical base address of the region
+ * @size: size of the region in bytes
+ */
 struct smd_smem_regions {
 	void *phys_addr;
 	unsigned size;

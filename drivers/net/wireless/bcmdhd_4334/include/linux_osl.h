@@ -155,6 +155,7 @@ extern void osl_dma_unmap(osl_t *osh, uint pa, uint size, int direction);
 	#define SELECT_BUS_READ(osh, mmap_op, bus_op) (((osl_pubinfo_t*)(osh))->mmbus) ? \
 		mmap_op : bus_op
 
+/* HTC_CSP_START */
 #ifndef errprintf
 #define	errprintf(fmt, args...)	printk(KERN_WARNING "[WLAN][ERR] "fmt, ## args)
 #endif
@@ -168,6 +169,7 @@ extern void osl_dma_unmap(osl_t *osh, uint pa, uint size, int direction);
 #endif
 
 #define HTC_KERNEL_FEEDBACK(x) errprintf x
+/* HTC_CSP_END */
 #define OSL_ERROR(bcmerror)	osl_error(bcmerror)
 extern int osl_error(int bcmerror);
 

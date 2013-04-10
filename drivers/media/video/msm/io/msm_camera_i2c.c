@@ -19,7 +19,7 @@ static int i2c_transfer_retry(struct i2c_adapter *adap,
 			int len)
 {
 	int i2c_retry = 0;
-	int ns; 
+	int ns; /* number sent */
 
 	while (i2c_retry++ < MAX_I2C_RETRIES) {
 		ns = i2c_transfer(adap, msgs, len);
@@ -87,6 +87,8 @@ int32_t msm_camera_i2c_txdata(struct msm_camera_i2c_client *dev_client,
 	return 0;
 }
 
+// HTC_START
+// Ray add for I2C write byte used in read fuse id function
 int32_t msm_camera_i2c_write_b(struct msm_camera_i2c_client *client,
 	uint16_t addr, uint16_t data )
 {
@@ -94,6 +96,13 @@ int32_t msm_camera_i2c_write_b(struct msm_camera_i2c_client *client,
 	uint8_t len = 0;
 	enum msm_camera_i2c_data_type data_type = MSM_CAMERA_I2C_BYTE_DATA;
 	unsigned char buf[client->addr_type+data_type];
+	/*
+	if ((client->addr_type != MSM_CAMERA_I2C_BYTE_ADDR
+		&& client->addr_type != MSM_CAMERA_I2C_WORD_ADDR)
+		|| (data_type != MSM_CAMERA_I2C_BYTE_DATA
+		&& data_type != MSM_CAMERA_I2C_WORD_DATA))
+		return rc;
+	*/
 	client->addr_type = MSM_CAMERA_I2C_WORD_ADDR;
 	S_I2C_DBG("%s reg addr = 0x%x data type: %d\n",
 			  __func__, addr, data_type);
@@ -126,6 +135,7 @@ int32_t msm_camera_i2c_write_b(struct msm_camera_i2c_client *client,
 		S_I2C_DBG("%s fail\n", __func__);
 	return rc;
 }
+// HTC_END
 
 int32_t msm_camera_i2c_write(struct msm_camera_i2c_client *client,
 	uint16_t addr, uint16_t data,
@@ -358,14 +368,14 @@ int32_t msm_camera_i2c_poll2(struct msm_camera_i2c_client *client,
 	
 	for (i=0;i<20 && !done ;++i)
 	{
-		rc = msm_camera_i2c_read (client, addr, &readValue, 2); 
+		rc = msm_camera_i2c_read (client, addr, &readValue, 2); // word(2) for now
 		if (rc < 0) {
 			printk("i2c read error\n");
 			
 			return rc;
 		}
 		
-		
+		//POLL_{ 0x0018, 0x4000, ==0, DELAY=10, TIMEOUT=100; pg while (0x18==0) ;
 
 		switch (reg_conf_tbl->cmd_type)
 		{
@@ -470,12 +480,21 @@ int32_t msm_camera_i2c_write_tbl(struct msm_camera_i2c_client *client,
 	return rc;
 }
 
+// HTC_START
+// Ray add for read byte used inread fuse id function
 int32_t msm_camera_i2c_read_b(struct msm_camera_i2c_client *client,
 	uint16_t addr, uint16_t *data)
 {
 	int32_t rc = -EFAULT;
 	enum msm_camera_i2c_data_type data_type = MSM_CAMERA_I2C_BYTE_DATA;
 	unsigned char buf[client->addr_type+data_type];
+	/*
+	if ((client->addr_type != MSM_CAMERA_I2C_BYTE_ADDR
+		&& client->addr_type != MSM_CAMERA_I2C_WORD_ADDR)
+		|| (data_type != MSM_CAMERA_I2C_BYTE_DATA
+		&& data_type != MSM_CAMERA_I2C_WORD_DATA))
+		return rc;
+	*/
 
 	client->addr_type = MSM_CAMERA_I2C_WORD_ADDR;
 	if (client->addr_type == MSM_CAMERA_I2C_BYTE_ADDR) {
@@ -497,6 +516,7 @@ int32_t msm_camera_i2c_read_b(struct msm_camera_i2c_client *client,
 	S_I2C_DBG("%s addr = 0x%x data: 0x%x", __func__, addr, *data);
 	return rc;
 }
+// HTC_END
 
 int32_t msm_camera_i2c_read(struct msm_camera_i2c_client *client,
 	uint16_t addr, uint16_t *data,
@@ -538,7 +558,7 @@ int32_t msm_camera_i2c_read_seq(struct msm_camera_i2c_client *client,
 	unsigned char buf[client->addr_type+num_byte];
 	int i;
 
-	memset(buf, 0, sizeof(buf));
+	memset(buf, 0, sizeof(buf));/*HTC_START*/
 	if ((client->addr_type != MSM_CAMERA_I2C_BYTE_ADDR
 		&& client->addr_type != MSM_CAMERA_I2C_WORD_ADDR)
 		|| num_byte == 0)

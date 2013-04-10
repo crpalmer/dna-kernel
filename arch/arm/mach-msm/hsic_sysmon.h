@@ -27,7 +27,7 @@ extern int hsic_sysmon_read(enum hsic_sysmon_device_id id, char *data,
 extern int hsic_sysmon_write(enum hsic_sysmon_device_id id, const char *data,
 			     size_t len, int timeout);
 
-#else 
+#else /* CONFIG_MSM_HSIC_SYSMON || CONFIG_MSM_HSIC_SYSMON_MODULE */
 
 static inline int hsic_sysmon_open(enum hsic_sysmon_device_id id)
 {
@@ -48,6 +48,6 @@ static inline int hsic_sysmon_write(enum hsic_sysmon_device_id id,
 	return -ENODEV;
 }
 
-#endif 
+#endif /* CONFIG_MSM_HSIC_SYSMON || CONFIG_MSM_HSIC_SYSMON_MODULE */
 
-#endif 
+#endif /* __HSIC_SYSMON_H__ */

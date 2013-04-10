@@ -117,4 +117,4 @@ static int __maybe_unused sdio_cmux_is_channel_reset(int id)
 	return -ENODEV;
 }
 #endif
-#endif 
+#endif /* __SDIO_CMUX__ */

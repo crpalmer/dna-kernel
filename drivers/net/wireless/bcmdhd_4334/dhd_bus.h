@@ -81,8 +81,9 @@ extern uint dhd_bus_hdrlen(struct dhd_bus *bus);
 	(_bus)->dhd->busstate = DHD_BUS_DOWN; \
 } while (0)
 
+/* Register a dummy SDIO client driver in order to be notified of new SDIO device */
 extern int dhd_bus_reg_sdio_notify(void* semaphore);
 extern void dhd_bus_unreg_sdio_notify(void);
 
 extern void dhd_txglom_enable(dhd_pub_t *dhdp, bool enable);
-#endif 
+#endif /* _dhd_bus_h_ */

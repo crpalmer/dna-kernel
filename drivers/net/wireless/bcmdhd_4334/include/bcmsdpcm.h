@@ -209,6 +209,10 @@ typedef volatile struct {
 	 SDIODFIFOREG(h, corerev) : \
 	 PCMDFIFOREG(h))
 
+/*
+ * Shared structure between dongle and the host.
+ * The structure contains pointers to trap or assert information.
+ */
 #define SDPCM_SHARED_VERSION       0x0001
 #define SDPCM_SHARED_VERSION_MASK  0x00FF
 #define SDPCM_SHARED_ASSERT_BUILT  0x0100
@@ -224,13 +228,14 @@ typedef struct {
 	uint32  assert_exp_addr;
 	uint32  assert_file_addr;
 	uint32  assert_line;
-	uint32	console_addr;		
+	uint32	console_addr;		/* Address of hndrte_cons_t */
 	uint32  msgtrace_addr;
 	uint32  brpt_addr;
 } sdpcm_shared_t;
 
 extern sdpcm_shared_t sdpcm_shared;
 
+/* Function can be used to notify host of FW halt */
 extern void sdpcmd_fwhalt(void);
 
-#endif	
+#endif	/* _bcmsdpcm_h_ */

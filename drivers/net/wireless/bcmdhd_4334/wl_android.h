@@ -45,4 +45,4 @@ int wifi_get_irq_number(unsigned long *irq_flags_ptr);
 int wifi_set_power(int on, unsigned long msec);
 int wifi_get_mac_addr(unsigned char *buf);
 void *wifi_get_country_code(char *ccode);
-#endif 
+#endif /* CONFIG_WIFI_CONTROL_FUNC */

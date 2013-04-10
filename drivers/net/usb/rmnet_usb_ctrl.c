@@ -20,27 +20,35 @@
 #include <linux/ratelimit.h>
 #include <linux/debugfs.h>
 #include "rmnet_usb_ctrl.h"
+/* ++SSD_RIL: USB PM DEBUG */
 #include <mach/board_htc.h>
+/* --SSD_RIL */
 
 #define DEVICE_NAME			"hsicctl"
 #define NUM_CTRL_CHANNELS		4
 #define DEFAULT_READ_URB_LENGTH		0x1000
 
+/*Output control lines.*/
 #define ACM_CTRL_DTR		BIT(0)
 #define ACM_CTRL_RTS		BIT(1)
 
 
+/*Input control lines.*/
 #define ACM_CTRL_DSR		BIT(0)
 #define ACM_CTRL_CTS		BIT(1)
 #define ACM_CTRL_RI		BIT(2)
 #define ACM_CTRL_CD		BIT(3)
 
+/* polling interval for Interrupt ep */
 #define HS_INTERVAL		7
 #define FS_LS_INTERVAL		3
 
+/* ++SSD_RIL: USB PM DEBUG */
 static bool usb_pm_debug_enabled = false;
+/* --SSD_RIL */
 
 
+/*echo modem_wait > /sys/class/hsicctl/hsicctlx/modem_wait*/
 static ssize_t modem_wait_store(struct device *d, struct device_attribute *attr,
 		const char *buf, size_t n)
 {
@@ -133,10 +141,10 @@ static void notification_available_cb(struct urb *urb)
 
 	switch (urb->status) {
 	case 0:
-		
+		/*success*/
 		break;
 
-	
+	/*do not resubmit*/
 	case -ESHUTDOWN:
 	case -ENOENT:
 	case -ECONNRESET:
@@ -144,10 +152,10 @@ static void notification_available_cb(struct urb *urb)
 		return;
 	case -EPIPE:
 		pr_err_ratelimited("%s: Stall on int endpoint\n", __func__);
-		
+		/* TBD : halt to be cleared in work */
 		return;
 
-	
+	/*resubmit*/
 	case -EOVERFLOW:
 		pr_err_ratelimited("%s: Babble error happened\n", __func__);
 	default:
@@ -175,12 +183,12 @@ static void notification_available_cb(struct urb *urb)
 			goto resubmit_int_urb;
 		}
 
-		
+		/* ++SSD_RIL */
 #ifdef HTC_PM_DBG
 		if (usb_pm_debug_enabled)
 			usb_mark_intf_last_busy(dev->intf, false);
 #endif
-		
+		/* --SSD_RIL */
 		usb_mark_last_busy(udev);
 
 		if (!dev->resp_available) {
@@ -195,12 +203,12 @@ static void notification_available_cb(struct urb *urb)
 	}
 
 resubmit_int_urb:
-	
+	/* ++SSD_RIL */
 #ifdef HTC_PM_DBG
 	if (usb_pm_debug_enabled)
 		usb_mark_intf_last_busy(dev->intf, false);
 #endif
-	
+	/* --SSD_RIL */
 	usb_mark_last_busy(udev);
 	status = usb_submit_urb(urb, GFP_ATOMIC);
 	if (status)
@@ -223,18 +231,18 @@ static void resp_avail_cb(struct urb *urb)
 
 	switch (urb->status) {
 	case 0:
-		
+		/*success*/
 		dev->get_encap_resp_cnt++;
 		break;
 
-	
+	/*do not resubmit*/
 	case -ESHUTDOWN:
 	case -ENOENT:
 	case -ECONNRESET:
 	case -EPROTO:
 		return;
 
-	
+	/*resubmit*/
 	case -EOVERFLOW:
 		pr_err_ratelimited("%s: Babble error happened\n", __func__);
 	default:
@@ -276,13 +284,13 @@ static void resp_avail_cb(struct urb *urb)
 	wake_up(&dev->read_wait_queue);
 
 resubmit_int_urb:
-	
-	
+	/*re-submit int urb to check response available*/
+	/* ++SSD_RIL */
 #ifdef HTC_PM_DBG
 	if (usb_pm_debug_enabled)
 		usb_mark_intf_last_busy(dev->intf, false);
 #endif
-	
+	/* --SSD_RIL */
 	usb_mark_last_busy(udev);
 	status = usb_submit_urb(dev->inturb, GFP_ATOMIC);
 	if (status)
@@ -317,6 +325,20 @@ int rmnet_usb_ctrl_stop_rx(struct rmnet_ctrl_dev *dev)
 	return 0;
 }
 
+/* ++SSD_RIL */
+/*
+int rmnet_usb_ctrl_start(struct rmnet_ctrl_dev *dev)
+{
+	int	status = 0;
+
+	mutex_lock(&dev->dev_lock);
+	if (dev->is_opened)
+		status = rmnet_usb_ctrl_start_rx(dev);
+	mutex_unlock(&dev->dev_lock);
+
+	return status;
+}*/
+/* --SSD_RIL */
 
 static int rmnet_usb_ctrl_alloc_rx(struct rmnet_ctrl_dev *dev)
 {
@@ -409,7 +431,7 @@ static int rmnet_usb_ctrl_write(struct rmnet_ctrl_dev *dev, char *buf,
 		return -ENOMEM;
 	}
 
-	
+	/* CDC Send Encapsulated Request packet */
 	out_ctlreq->bRequestType = (USB_DIR_OUT | USB_TYPE_CLASS |
 			     USB_RECIP_INTERFACE);
 	out_ctlreq->bRequest = USB_CDC_SEND_ENCAPSULATED_COMMAND;
@@ -427,6 +449,10 @@ static int rmnet_usb_ctrl_write(struct rmnet_ctrl_dev *dev, char *buf,
 		dev_err(dev->devicep, "%s: Unable to resume interface: %d\n",
 			__func__, result);
 
+		/*
+		* Revisit:  if (result == -EPERM)
+		*		rmnet_usb_suspend(dev->intf, PMSG_SUSPEND);
+		*/
 
 		usb_free_urb(sndurb);
 		kfree(out_ctlreq);
@@ -462,7 +488,7 @@ static int rmnet_ctl_open(struct inode *inode, struct file *file)
 	if (dev->is_opened)
 		goto already_opened;
 
-	
+	/*block open to get first response available from mdm*/
 	if (dev->mdm_wait_timeout && !dev->resp_available) {
 		retval = wait_event_interruptible_timeout(
 					dev->open_wait_queue,
@@ -668,10 +694,18 @@ static int rmnet_ctrl_tiocmset(struct rmnet_ctrl_dev *dev, unsigned int set,
 	if (set & TIOCM_DTR)
 		dev->cbits_tomdm |= ACM_CTRL_DTR;
 
+	/*
+	 * TBD if (set & TIOCM_RTS)
+	 *	dev->cbits_tomdm |= ACM_CTRL_RTS;
+	 */
 
 	if (clear & TIOCM_DTR)
 		dev->cbits_tomdm &= ~ACM_CTRL_DTR;
 
+	/*
+	 * (clear & TIOCM_RTS)
+	 *	dev->cbits_tomdm &= ~ACM_CTRL_RTS;
+	 */
 
 	mutex_unlock(&dev->dev_lock);
 
@@ -694,7 +728,15 @@ static int rmnet_ctrl_tiocmget(struct rmnet_ctrl_dev *dev)
 
 	mutex_lock(&dev->dev_lock);
 	ret =
+	/*
+	 * TBD(dev->cbits_tolocal & ACM_CTRL_DSR ? TIOCM_DSR : 0) |
+	 * (dev->cbits_tolocal & ACM_CTRL_CTS ? TIOCM_CTS : 0) |
+	 */
 	(dev->cbits_tolocal & ACM_CTRL_CD ? TIOCM_CD : 0) |
+	/*
+	 * TBD (dev->cbits_tolocal & ACM_CTRL_RI ? TIOCM_RI : 0) |
+	 *(dev->cbits_tomdm & ACM_CTRL_RTS ? TIOCM_RTS : 0) |
+	*/
 	(dev->cbits_tomdm & ACM_CTRL_DTR ? TIOCM_DTR : 0);
 	mutex_unlock(&dev->dev_lock);
 
@@ -757,10 +799,10 @@ int rmnet_usb_ctrl_probe(struct usb_interface *intf,
 	mutex_lock(&dev->dev_lock);
 	dev->intf = intf;
 
-	
+	/*TBD: for now just update CD status*/
 	dev->cbits_tolocal = ACM_CTRL_CD;
 
-	
+	/*send DTR high to modem*/
 	dev->cbits_tomdm = ACM_CTRL_DTR;
 	mutex_unlock(&dev->dev_lock);
 
@@ -788,7 +830,7 @@ int rmnet_usb_ctrl_probe(struct usb_interface *intf,
 		return -ENOMEM;
 	}
 
-	
+	/*use max pkt size from ep desc*/
 	ep = &dev->intf->cur_altsetting->endpoint[0].desc;
 	wMaxPacketSize = le16_to_cpu(ep->wMaxPacketSize);
 
@@ -816,12 +858,12 @@ int rmnet_usb_ctrl_probe(struct usb_interface *intf,
 			 dev->intbuf, wMaxPacketSize,
 			 notification_available_cb, dev, interval);
 
-	
+	/* ++SSD_RIL */
 #ifdef HTC_PM_DBG
 	if (usb_pm_debug_enabled)
 		usb_mark_intf_last_busy(dev->intf, false);
 #endif
-	
+	/* --SSD_RIL */
 	usb_mark_last_busy(udev);
 	ret = rmnet_usb_ctrl_start_rx(dev);
 	if (!ret)
@@ -836,7 +878,7 @@ void rmnet_usb_ctrl_disconnect(struct rmnet_ctrl_dev *dev)
 
 	mutex_lock(&dev->dev_lock);
 
-	
+	/*TBD: for now just update CD status*/
 	dev->cbits_tolocal = ~ACM_CTRL_CD;
 
 	dev->cbits_tomdm = ~ACM_CTRL_DTR;
@@ -964,10 +1006,10 @@ int rmnet_usb_ctrl_init(void)
 	int			n;
 	int			status;
 
-	
+	/* ++SSD_RIL: USB PM DEBUG */
 	if (get_radio_flag() & 0x0008)
 		usb_pm_debug_enabled  = true;
-	
+	/* --SSD_RIL */
 	for (n = 0; n < NUM_CTRL_CHANNELS; ++n) {
 
 		dev = kzalloc(sizeof(*dev), GFP_KERNEL);
@@ -975,7 +1017,7 @@ int rmnet_usb_ctrl_init(void)
 			status = -ENOMEM;
 			goto error0;
 		}
-		
+		/*for debug purpose*/
 		snprintf(dev->name, CTRL_DEV_MAX_LEN, "hsicctl%d", n);
 
 		mutex_init(&dev->dev_lock);
@@ -1032,7 +1074,7 @@ int rmnet_usb_ctrl_init(void)
 			kfree(ctrl_dev[n]);
 			goto error2;
 		}
-		
+		/*create /sys/class/hsicctl/hsicctlx/modem_wait*/
 		status = device_create_file(ctrl_dev[n]->devicep,
 					&dev_attr_modem_wait);
 		if (status) {

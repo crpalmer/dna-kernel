@@ -41,6 +41,7 @@
 #include "mdm_private.h"
 #include "sysmon.h"
 
+/* HTC added start */
 #include <mach/board_htc.h>
 #include <linux/proc_fs.h>
 
@@ -73,6 +74,7 @@
 	} while (0)
 
 #define HTC_MDM_ERROR_CONFIRM_TIME_MS	10
+/* HTC added end */
 
 #define MDM_MODEM_TIMEOUT	6000
 #define MDM_MODEM_DELTA	100
@@ -85,8 +87,10 @@ static struct workqueue_struct *mdm_sfr_queue;
 static void mdm_status_fn(struct work_struct *work);
 static void dump_mdm_related_gpio(void);
 static DECLARE_WORK(mdm_status_work, mdm_status_fn);
+/* ++SSD_RIL: workaroud for checking mdm2ap_status */
 static struct workqueue_struct *mdm_gpio_monitor_queue;
 static bool mdm_status_change_notified;
+/* --SSD_RIL */
 
 
 #define EXTERNAL_MODEM "external_modem"
@@ -103,6 +107,7 @@ static int first_boot = 1;
 #define SFR_MAX_RETRIES		10
 #define SFR_RETRY_INTERVAL	1000
 
+/* HTC added start */
 static int set_mdm_errmsg(void __user *msg);
 static int notify_mdm_nv_write_done(void);
 
@@ -128,6 +133,7 @@ static void mdm_loaded_info(void)
 
 	entry = create_proc_read_entry("mdm9k_status", 0, NULL, mdm_loaded_status_proc, NULL);
 }
+/* HTC added end */
 
 static void mdm_restart_reason_fn(struct work_struct *work)
 {
@@ -139,6 +145,10 @@ static void mdm_restart_reason_fn(struct work_struct *work)
 		ret = sysmon_get_reason(SYSMON_SS_EXT_MODEM,
 					sfr_buf, sizeof(sfr_buf));
 		if (ret) {
+			/*
+			 * The sysmon device may not have been probed as yet
+			 * after the restart.
+			 */
 			pr_err("%s: Error retrieving mdm restart reason, ret = %d, "
 					"%d/%d tries\n", __func__, ret,
 					ntries + 1,	SFR_MAX_RETRIES);
@@ -151,11 +161,12 @@ static void mdm_restart_reason_fn(struct work_struct *work)
 
 static DECLARE_WORK(sfr_reason_work, mdm_restart_reason_fn);
 
+/* ++SSD_RIL:workaroud for checking mdm2ap_status */
 static void mdm_status_check_fn(struct work_struct *work)
 {
 	int value = 0;
 
-	msleep(3000); 
+	msleep(3000); //sleep 3s and then check mdm2ap status;
 	pr_info("%s mdm_status_change notified? %c\n", __func__, mdm_status_change_notified ? 'Y': 'N');
 	if (!mdm_status_change_notified) {
 		dump_mdm_related_gpio();
@@ -166,6 +177,7 @@ static void mdm_status_check_fn(struct work_struct *work)
 }
 
 static DECLARE_WORK(mdm_status_check_work, mdm_status_check_fn);
+/* --SSD_RIL */
 
 
 long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
@@ -182,7 +194,7 @@ long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 	switch (cmd) {
 	case WAKE_CHARM:
 		pr_info("%s: Powering on mdm\n", __func__);
-		mdm_drv->mdm_ready = 0;	
+		mdm_drv->mdm_ready = 0;	/* HTC added for the MDM reloading for the /dev/ttyUSB0 node checking failed situation */
 		mdm_drv->ops->power_on_mdm_cb(mdm_drv);
 		break;
 	case CHECK_FOR_BOOT:
@@ -201,10 +213,10 @@ long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 			pr_info("%s: normal boot done\n", __func__);
 			mdm_drv->mdm_boot_status = 0;
 		}
-		
+		/* ++SSD_RIL: workaroud for checking mdm2ap_status */
                 mdm_status_change_notified = false;
                 queue_work_on(0, mdm_gpio_monitor_queue, &mdm_status_check_work);
-                
+                /* --SSD_RIL */
 		mdm_drv->mdm_ready = 1;
 
 		if (mdm_drv->ops->normal_boot_done_cb != NULL)
@@ -238,6 +250,7 @@ long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 		}
 		INIT_COMPLETION(mdm_needs_reload);
 		break;
+/* HTC added start */
 	case GET_MFG_MODE:
 		pr_info("%s: board_mfg_mode()=%d\n", __func__, board_mfg_mode());
 		put_user(board_mfg_mode(),
@@ -261,6 +274,7 @@ long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 			mdm_drv->ops->htc_power_down_mdm_cb(mdm_drv);
 		}
 		break;
+/* HTC added end */
 	default:
 		pr_err("%s: invalid ioctl cmd = %d\n", __func__, _IOC_NR(cmd));
 		ret = -EINVAL;
@@ -270,6 +284,7 @@ long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 	return ret;
 }
 
+/* HTC added start */
 static void dump_gpio(char *name, unsigned int gpio)
 {
         if (gpio == 0) {
@@ -284,12 +299,12 @@ static void dump_gpio(char *name, unsigned int gpio)
 static void dump_mdm_related_gpio(void)
 {
         dump_gpio("AP2MDM_STATUS", mdm_drv->ap2mdm_status_gpio);
-        
+        /* charm_dump_GPIO("AP2MDM_WAKEUP", mdm_drv->ap2mdm_wakeup_gpio); */
         dump_gpio("AP2MDM_ERRFATAL", mdm_drv->ap2mdm_errfatal_gpio);
         dump_gpio("AP2MDM_PMIC_RESET_N", mdm_drv->ap2mdm_pmic_reset_n_gpio);
 
         dump_gpio("MDM2AP_STATUS", mdm_drv->mdm2ap_status_gpio);
-        
+        /* charm_dump_GPIO("MDM2AP_WAKEUP", mdm_drv->mdm2ap_wakeup_gpio); */
         dump_gpio("MDM2AP_ERRFATAL", mdm_drv->mdm2ap_errfatal_gpio);
 
 	return;
@@ -326,11 +341,12 @@ static int notify_mdm_nv_write_done(void)
 	return 0;
 }
 
+/* HTC added end */
 
-extern void set_mdm2ap_errfatal_restart_flag(unsigned);		
+extern void set_mdm2ap_errfatal_restart_flag(unsigned);		/* Added by HTC */
 static void mdm_fatal_fn(struct work_struct *work)
 {
-	
+	/* HTC add start */
 	int i;
 	int value = gpio_get_value(mdm_drv->mdm2ap_errfatal_gpio);
 
@@ -351,7 +367,7 @@ static void mdm_fatal_fn(struct work_struct *work)
 
 	if (get_restart_level() == RESET_SOC)
 		set_mdm2ap_errfatal_restart_flag(1);
-	
+	/* HTC add end */
 
 	pr_info("%s: Reseting the mdm due to an errfatal\n", __func__);
 
@@ -368,7 +384,7 @@ static void mdm_status_fn(struct work_struct *work)
 	if (!mdm_drv->mdm_ready)
 		return;
 
-	
+	/* HTC add start */
 	if (value == 0) {
 		for (i = HTC_MDM_ERROR_CONFIRM_TIME_MS; i > 0; i--) {
 			msleep(1);
@@ -378,11 +394,11 @@ static void mdm_status_fn(struct work_struct *work)
 			}
 		}
 	}
-	
+	/* HTC add end */
 
-	
+	/* ++SSD_RIL: workaroud for checking mdm2ap_status */
 	mdm_status_change_notified = true;
-	
+	/* --SSD_RIL */
 	mdm_drv->ops->status_cb(mdm_drv, value);
 
 	pr_debug("%s: status:%d\n", __func__, value);
@@ -390,12 +406,12 @@ static void mdm_status_fn(struct work_struct *work)
 	if (value == 0) {
 		pr_info("%s: unexpected reset external modem\n", __func__);
 
-		
+		/* HTC add start */
 		dump_mdm_related_gpio();
 
 		if (get_restart_level() == RESET_SOC)
 			set_mdm2ap_errfatal_restart_flag(1);
-		
+		/* HTC add end */
 
 		subsystem_restart(EXTERNAL_MODEM);
 	} else if (value == 1) {
@@ -417,7 +433,7 @@ static irqreturn_t mdm_errfatal(int irq, void *dev_id)
 	if (mdm_drv->mdm_ready &&
 		(gpio_get_value(mdm_drv->mdm2ap_status_gpio) == 1)) {
 		pr_debug("%s: scheduling work now\n", __func__);
-		queue_work_on(0, mdm_queue, &mdm_fatal_work);	
+		queue_work_on(0, mdm_queue, &mdm_fatal_work);	/* HTC changed */
 	}
 	return IRQ_HANDLED;
 }
@@ -469,7 +485,7 @@ static irqreturn_t mdm_status_change(int irq, void *dev_id)
 {
 	pr_debug("%s: mdm sent status change interrupt\n", __func__);
 
-	queue_work_on(0, mdm_queue, &mdm_status_work);		
+	queue_work_on(0, mdm_queue, &mdm_status_work);		/* HTC changed */
 
 	return IRQ_HANDLED;
 }
@@ -479,6 +495,9 @@ static int mdm_subsys_shutdown(const struct subsys_data *crashed_subsys)
 	mdm_drv->mdm_ready = 0;
 	gpio_direction_output(mdm_drv->ap2mdm_errfatal_gpio, 1);
 	if (mdm_drv->pdata->ramdump_delay_ms > 0) {
+		/* Wait for the external modem to complete
+		 * its preparation for ramdumps.
+		 */
 		msleep(mdm_drv->pdata->ramdump_delay_ms);
 	}
 	mdm_drv->ops->power_down_mdm_cb(mdm_drv);
@@ -499,8 +518,8 @@ static int mdm_subsys_powerup(const struct subsys_data *crashed_subsys)
 		pr_info("%s: mdm modem restart timed out.\n", __func__);
 	} else {
 		pr_info("%s: mdm modem has been restarted\n", __func__);
-		
-		queue_work_on(0, mdm_sfr_queue, &sfr_reason_work);	
+		/* Log the reason for the restart */
+		queue_work_on(0, mdm_sfr_queue, &sfr_reason_work);	/* HTC changed */
 	}
 	INIT_COMPLETION(mdm_boot);
 	return mdm_drv->mdm_boot_status;
@@ -571,74 +590,74 @@ static void mdm_modem_initialize_data(struct platform_device  *pdev,
 {
 	struct resource *pres;
 
-	
+	/* MDM2AP_ERRFATAL */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"MDM2AP_ERRFATAL");
 	if (pres)
 		mdm_drv->mdm2ap_errfatal_gpio = pres->start;
 
-	
+	/* AP2MDM_ERRFATAL */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"AP2MDM_ERRFATAL");
 	if (pres)
 		mdm_drv->ap2mdm_errfatal_gpio = pres->start;
 
-	
+	/* MDM2AP_STATUS */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"MDM2AP_STATUS");
 	if (pres)
 		mdm_drv->mdm2ap_status_gpio = pres->start;
 
-	
+	/* AP2MDM_STATUS */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"AP2MDM_STATUS");
 	if (pres)
 		mdm_drv->ap2mdm_status_gpio = pres->start;
 
-	
+	/* MDM2AP_WAKEUP */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"MDM2AP_WAKEUP");
 	if (pres)
 		mdm_drv->mdm2ap_wakeup_gpio = pres->start;
 
-	
+	/* AP2MDM_WAKEUP */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"AP2MDM_WAKEUP");
 	if (pres)
 		mdm_drv->ap2mdm_wakeup_gpio = pres->start;
 
-	
+	/* AP2MDM_PMIC_RESET_N */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"AP2MDM_PMIC_RESET_N");
 	if (pres)
 		mdm_drv->ap2mdm_pmic_reset_n_gpio = pres->start;
 
-	
+	/* AP2MDM_KPDPWR_N */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"AP2MDM_KPDPWR_N");
 	if (pres)
 		mdm_drv->ap2mdm_kpdpwr_n_gpio = pres->start;
 
-	
+	/* MDM2AP_HSIC_READY */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"MDM2AP_HSIC_READY");
 	if (pres)
 		mdm_drv->mdm2ap_hsic_ready_gpio = pres->start;
 
-	
-	
+	/* HTC added start */
+	/* APQ2MDM_IPC1 */
 	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
 							"AP2MDM_IPC1");
 	if (pres)
 		mdm_drv->ap2mdm_ipc1_gpio = pres->start;
-	
+	/* HTC added end */
 	mdm_drv->boot_type                  = CHARM_NORMAL_BOOT;
 
 	mdm_drv->ops      = mdm_ops;
 	mdm_drv->pdata    = pdev->dev.platform_data;
 }
 
-extern void register_ap2mdm_pmic_reset_n_gpio(unsigned);	
+extern void register_ap2mdm_pmic_reset_n_gpio(unsigned);	/* Added by HTC */
 int mdm_common_create(struct platform_device  *pdev,
 					  struct mdm_ops *p_mdm_cb)
 {
@@ -654,31 +673,33 @@ int mdm_common_create(struct platform_device  *pdev,
 	if (mdm_drv->ops->debug_state_changed_cb)
 		mdm_drv->ops->debug_state_changed_cb(mdm_debug_on);
 
-	register_ap2mdm_pmic_reset_n_gpio(mdm_drv->ap2mdm_pmic_reset_n_gpio);	
+	register_ap2mdm_pmic_reset_n_gpio(mdm_drv->ap2mdm_pmic_reset_n_gpio);	/* Added by HTC */
 
 	gpio_request(mdm_drv->ap2mdm_status_gpio, "AP2MDM_STATUS");
 	gpio_request(mdm_drv->ap2mdm_errfatal_gpio, "AP2MDM_ERRFATAL");
-	
-	
-	
+	/* +SSD_RIL: The GPIO would not be used for HTC */
+	//gpio_request(mdm_drv->ap2mdm_kpdpwr_n_gpio, "AP2MDM_KPDPWR_N");
+	/* --SSD_RIL*/
 	gpio_request(mdm_drv->ap2mdm_pmic_reset_n_gpio, "AP2MDM_PMIC_RESET_N");
 	gpio_request(mdm_drv->mdm2ap_status_gpio, "MDM2AP_STATUS");
 	gpio_request(mdm_drv->mdm2ap_errfatal_gpio, "MDM2AP_ERRFATAL");
 	gpio_request(mdm_drv->mdm2ap_hsic_ready_gpio, "MDM2AP_HSIC_READY");
-	
+	/* HTC added start */
 	gpio_request(mdm_drv->ap2mdm_ipc1_gpio, "AP2MDM_IPC1");
-	
+	/* HTC added end */
 
 	if (mdm_drv->ap2mdm_wakeup_gpio > 0)
 		gpio_request(mdm_drv->ap2mdm_wakeup_gpio, "AP2MDM_WAKEUP");
 
 #if 0
+	/* Pull high it before MDM up will cause power leakage
+           Leakege might cause abnormal MDM status. */
 	gpio_direction_output(mdm_drv->ap2mdm_status_gpio, 1);
 #endif
 	gpio_direction_output(mdm_drv->ap2mdm_errfatal_gpio, 0);
-	
+	/* HTC added start */
 	gpio_direction_output(mdm_drv->ap2mdm_ipc1_gpio, 0);
-	
+	/* HTC added end */
 
 	if (mdm_drv->ap2mdm_wakeup_gpio > 0)
 		gpio_direction_output(mdm_drv->ap2mdm_wakeup_gpio, 0);
@@ -705,24 +726,24 @@ int mdm_common_create(struct platform_device  *pdev,
 		goto fatal_err;
 	}
 
-	
+	/* ++SSD_RIL: workaroud for checking mdm2ap_status */
 	mdm_gpio_monitor_queue = create_singlethread_workqueue("mdm_gpio_monitor_queue");
 	if (!mdm_gpio_monitor_queue) {
 		pr_err("%s: could not create workqueue for monitoring GPIO status \n",
 			__func__);
 		destroy_workqueue(mdm_gpio_monitor_queue);
 	}
-	
+	/* --SSD_RIL */
 
 	atomic_notifier_chain_register(&panic_notifier_list, &mdm_panic_blk);
 	mdm_debugfs_init();
 
-	mdm_loaded_info();	
+	mdm_loaded_info();	/* HTC added */
 
-	
+	/* Register subsystem handlers */
 	ssr_register_subsystem(&mdm_subsystem);
 
-	
+	/* ERR_FATAL irq. */
 	irq = MSM_GPIO_TO_INT(mdm_drv->mdm2ap_errfatal_gpio);
 	if (irq < 0) {
 		pr_err("%s: could not get MDM2AP_ERRFATAL IRQ resource. "
@@ -743,7 +764,7 @@ int mdm_common_create(struct platform_device  *pdev,
 
 errfatal_err:
 
-	
+	/* status irq */
 	irq = MSM_GPIO_TO_INT(mdm_drv->mdm2ap_status_gpio);
 	if (irq < 0) {
 		pr_err("%s: could not get MDM2AP_STATUS IRQ resource. "
@@ -765,6 +786,9 @@ errfatal_err:
 	mdm_drv->mdm_status_irq = irq;
 
 status_err:
+	/* Perform early powerup of the external modem in order to
+	 * allow tabla devices to be found.
+	 */
 	mdm_drv->ops->power_on_mdm_cb(mdm_drv);
 
 	pr_info("%s: Registering mdm modem\n", __func__);
@@ -778,9 +802,9 @@ fatal_err:
 	gpio_free(mdm_drv->mdm2ap_status_gpio);
 	gpio_free(mdm_drv->mdm2ap_errfatal_gpio);
 	gpio_free(mdm_drv->mdm2ap_hsic_ready_gpio);
-	
+	/* HTC added start */
 	gpio_free(mdm_drv->ap2mdm_ipc1_gpio);
-	
+	/* HTC added end */
 
 	if (mdm_drv->ap2mdm_wakeup_gpio > 0)
 		gpio_free(mdm_drv->ap2mdm_wakeup_gpio);
@@ -803,9 +827,9 @@ int mdm_common_modem_remove(struct platform_device *pdev)
 	gpio_free(mdm_drv->mdm2ap_status_gpio);
 	gpio_free(mdm_drv->mdm2ap_errfatal_gpio);
 	gpio_free(mdm_drv->mdm2ap_hsic_ready_gpio);
-	
+	/* HTC added start */
 	gpio_free(mdm_drv->ap2mdm_ipc1_gpio);
-	
+	/* HTC added end */
 
 	if (mdm_drv->ap2mdm_wakeup_gpio > 0)
 		gpio_free(mdm_drv->ap2mdm_wakeup_gpio);
@@ -822,9 +846,9 @@ void mdm_common_modem_shutdown(struct platform_device *pdev)
 		__func__);
 
 	mdm_disable_irqs();
-	
+	/*++ HTC added ++*/
 	gpio_set_value(mdm_drv->ap2mdm_status_gpio, 0);
-	
+	/*-- HTC added --*/
 
 	mdm_drv->ops->power_down_mdm_cb(mdm_drv);
 

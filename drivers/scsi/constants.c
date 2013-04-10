@@ -1,3 +1,11 @@
+/* 
+ * ASCII values for a number of symbolic constants, printing functions,
+ * etc.
+ * Additions for SCSI 2 and Linux 2.2.x by D. Gilbert (990422)
+ * Additions for SCSI 3+ (SPC-3 T10/1416-D Rev 07 3 May 2002)
+ *   by D. Gilbert and aeb (20020609)
+ * Update to SPC-4 T10/1713-D Rev 20, 22 May 2009, D. Gilbert 20090624
+ */
 
 #include <linux/blkdev.h>
 #include <linux/module.h>
@@ -12,6 +20,7 @@
 
 
 
+/* Commands with service actions that change the command name */
 #define MAINTENANCE_IN 0xa3
 #define MAINTENANCE_OUT 0xa4
 #define SERVICE_ACTION_IN_12 0xab
@@ -280,7 +289,7 @@ static void print_opcode_name(unsigned char * cdbp, int cdb_len)
 	}
 }
 
-#else 
+#else /* ifndef CONFIG_SCSI_CONSTANTS */
 
 static void print_opcode_name(unsigned char * cdbp, int cdb_len)
 {
@@ -325,7 +334,7 @@ void __scsi_print_command(unsigned char *cdb)
 
 	print_opcode_name(cdb, 0);
 	len = scsi_command_size(cdb);
-	
+	/* print out all bytes in cdb */
 	for (k = 0; k < len; ++k) 
 		printk(" %02x", cdb[k]);
 	printk("\n");
@@ -342,7 +351,7 @@ void scsi_print_command(struct scsi_cmnd *cmd)
 	scmd_printk(KERN_INFO, cmd, "CDB: ");
 	print_opcode_name(cmd->cmnd, cmd->cmd_len);
 
-	
+	/* print out all bytes in cdb */
 	printk(":");
 	for (k = 0; k < cmd->cmd_len; ++k)
 		printk(" %02x", cmd->cmnd[k]);
@@ -350,6 +359,15 @@ void scsi_print_command(struct scsi_cmnd *cmd)
 }
 EXPORT_SYMBOL(scsi_print_command);
 
+/**
+ *	scsi_print_status - print scsi status description
+ *	@scsi_status: scsi status value
+ *
+ *	If the status is recognized, the description is printed.
+ *	Otherwise "Unknown status" is output. No trailing space.
+ *	If CONFIG_SCSI_CONSTANTS is not set, then print status in hex
+ *	(e.g. "0x2" for Check Condition).
+ **/
 void
 scsi_print_status(unsigned char scsi_status) {
 #ifdef CONFIG_SCSI_CONSTANTS
@@ -363,8 +381,8 @@ scsi_print_status(unsigned char scsi_status) {
 	case 0x10: ccp = "Intermediate"; break;
 	case 0x14: ccp = "Intermediate-Condition Met"; break;
 	case 0x18: ccp = "Reservation Conflict"; break;
-	case 0x22: ccp = "Command Terminated"; break;	
-	case 0x28: ccp = "Task set Full"; break;	
+	case 0x22: ccp = "Command Terminated"; break;	/* obsolete */
+	case 0x28: ccp = "Task set Full"; break;	/* was: Queue Full */
 	case 0x30: ccp = "ACA Active"; break;
 	case 0x40: ccp = "Task Aborted"; break;
 	default:   ccp = "Unknown status";
@@ -816,6 +834,12 @@ static const struct error_info additional[] =
 	{0x3F12, "iSCSI IP address added"},
 	{0x3F13, "iSCSI IP address removed"},
 	{0x3F14, "iSCSI IP address changed"},
+/*
+ *	{0x40NN, "Ram failure"},
+ *	{0x40NN, "Diagnostic failure on component nn"},
+ *	{0x41NN, "Data path failure"},
+ *	{0x42NN, "Power-on or self-test failure"},
+ */
 	{0x4300, "Message error"},
 
 	{0x4400, "Internal target failure"},
@@ -849,6 +873,9 @@ static const struct error_info additional[] =
 	{0x4B06, "Initiator response timeout"},
 
 	{0x4C00, "Logical unit failed self-configuration"},
+/*
+ *	{0x4DNN, "Tagged overlapped commands (nn = queue tag)"},
+ */
 	{0x4E00, "Overlapped commands attempted"},
 
 	{0x5000, "Write append error"},
@@ -1063,6 +1090,9 @@ static const struct error_info additional[] =
 	{0x6F05, "Drive region must be permanent/region reset count error"},
 	{0x6F06, "Insufficient block count for binding nonce recording"},
 	{0x6F07, "Conflict in binding nonce recording"},
+/*
+ *	{0x70NN, "Decompression exception short algorithm id of nn"},
+ */
 	{0x7100, "Decompression exception long algorithm id"},
 
 	{0x7200, "Session fixation error"},
@@ -1163,6 +1193,10 @@ scsi_sense_key_string(unsigned char key) {
 }
 EXPORT_SYMBOL(scsi_sense_key_string);
 
+/*
+ * Get additional sense code string or NULL if not available.
+ * This string may contain a "%x" and should be printed with ascq as arg.
+ */
 const char *
 scsi_extd_sense_format(unsigned char asc, unsigned char ascq) {
 #ifdef CONFIG_SCSI_CONSTANTS
@@ -1230,6 +1264,9 @@ scsi_show_sense_hdr(struct scsi_sense_hdr *sshdr)
 }
 EXPORT_SYMBOL(scsi_show_sense_hdr);
 
+/*
+ * Print normalized SCSI sense header with a prefix.
+ */
 void
 scsi_print_sense_hdr(const char *name, struct scsi_sense_hdr *sshdr)
 {
@@ -1240,6 +1277,9 @@ scsi_print_sense_hdr(const char *name, struct scsi_sense_hdr *sshdr)
 }
 EXPORT_SYMBOL(scsi_print_sense_hdr);
 
+/*
+ * Print normalized SCSI sense header with device information and a prefix.
+ */
 void
 scsi_cmd_print_sense_hdr(struct scsi_cmnd *scmd, const char *desc,
 			  struct scsi_sense_hdr *sshdr)
@@ -1259,7 +1299,7 @@ scsi_decode_sense_buffer(const unsigned char *sense_buffer, int sense_len,
     
 	res = scsi_normalize_sense(sense_buffer, sense_len, sshdr);
 	if (0 == res) {
-		
+		/* this may be SCSI-1 sense data */
 		num = (sense_len < 32) ? sense_len : 32;
 		printk("Unrecognized sense data (in hex):");
 		for (k = 0; k < num; ++k) {
@@ -1282,7 +1322,7 @@ scsi_decode_sense_extras(const unsigned char *sense_buffer, int sense_len,
 
 	if (sshdr->response_code < 0x72)
 	{
-		
+		/* only decode extras for "fixed" format now */
 		char buff[80];
 		int blen, fixed_valid;
 		unsigned int info;
@@ -1297,19 +1337,19 @@ scsi_decode_sense_extras(const unsigned char *sense_buffer, int sense_len,
 			res += snprintf(buff + res, blen - res,
 					"Info fld=0x%x", info);
 		if (sense_buffer[2] & 0x80) {
-			
+			/* current command has read a filemark */
 			if (res > 0)
 				res += snprintf(buff + res, blen - res, ", ");
 			res += snprintf(buff + res, blen - res, "FMK");
 		}
 		if (sense_buffer[2] & 0x40) {
-			
+			/* end-of-medium condition exists */
 			if (res > 0)
 				res += snprintf(buff + res, blen - res, ", ");
 			res += snprintf(buff + res, blen - res, "EOM");
 		}
 		if (sense_buffer[2] & 0x20) {
-			
+			/* incorrect block length requested */
 			if (res > 0)
 				res += snprintf(buff + res, blen - res, ", ");
 			res += snprintf(buff + res, blen - res, "ILI");
@@ -1317,7 +1357,7 @@ scsi_decode_sense_extras(const unsigned char *sense_buffer, int sense_len,
 		if (res > 0)
 			printk("%s\n", buff);
 	} else if (sshdr->additional_length > 0) {
-		
+		/* descriptor format with sense descriptors */
 		num = 8 + sshdr->additional_length;
 		num = (sense_len < num) ? sense_len : num;
 		printk("Descriptor sense data with sense descriptors "
@@ -1335,6 +1375,7 @@ scsi_decode_sense_extras(const unsigned char *sense_buffer, int sense_len,
 
 }
 
+/* Normalize and print sense buffer with name prefix */
 void __scsi_print_sense(const char *name, const unsigned char *sense_buffer,
 			int sense_len)
 {
@@ -1349,6 +1390,7 @@ void __scsi_print_sense(const char *name, const unsigned char *sense_buffer,
 }
 EXPORT_SYMBOL(__scsi_print_sense);
 
+/* Normalize and print sense buffer in SCSI command */
 void scsi_print_sense(char *name, struct scsi_cmnd *cmd)
 {
 	struct scsi_sense_hdr sshdr;

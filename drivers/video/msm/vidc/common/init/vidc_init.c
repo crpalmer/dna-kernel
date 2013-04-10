@@ -36,10 +36,12 @@
 #include "vidc_init_internal.h"
 #include "vcd_res_tracker_api.h"
 
+/*HTC_START*/
 #define DBG(x...)				\
 	if (vidc_msg_debug) {			\
 		printk(KERN_DEBUG "[VID] " x);	\
 	}
+/*HTC_END*/
 
 #define VIDC_NAME "msm_vidc_reg"
 
@@ -528,6 +530,7 @@ u32 vidc_lookup_addr_table(struct video_client_ctx *client_ctx,
 		*pmem_fd = buf_addr_table[i].pmem_fd;
 		*file = buf_addr_table[i].file;
 		*buffer_index = i;
+/*HTC_START*/
 		if (search_with_user_vaddr) {
 			DBG("kernel_vaddr = 0x%08lx, phy_addr = 0x%08lx "
 			" pmem_fd = %d, struct *file	= %p "
@@ -550,6 +553,7 @@ u32 vidc_lookup_addr_table(struct video_client_ctx *client_ctx,
 			" Not Found.\n", __func__, client_ctx,
 			*kernel_vaddr);
 			}
+/*HTC_END*/
 		mutex_unlock(&client_ctx->enrty_queue_lock);
 		return false;
 	}
@@ -589,7 +593,7 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 		num_of_buffers = &client_ctx->num_of_output_buffers;
 		DBG("%s(): buffer = OUTPUT #Buf = %d\n",
 			__func__, *num_of_buffers);
-		length = length * 2; 
+		length = length * 2; /* workaround for iommu video h/w bug */
 	}
 
 	if (*num_of_buffers == max_num_buffers) {
@@ -725,6 +729,10 @@ bail_out_add:
 }
 EXPORT_SYMBOL(vidc_insert_addr_table);
 
+/*
+ * Similar to vidc_insert_addr_table except intended for in-kernel
+ * use where buffers have already been alloced and mapped properly
+ */
 u32 vidc_insert_addr_table_kernel(struct video_client_ctx *client_ctx,
 	enum buffer_dir buffer, unsigned long user_vaddr,
 	unsigned long kernel_vaddr, unsigned long phys_addr,

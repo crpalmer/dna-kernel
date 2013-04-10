@@ -32,16 +32,23 @@ struct wl_priv;
 extern u32 wl_dbg_level;
 
 typedef struct wifi_p2p_ie wifi_wfd_ie_t;
+/* Enumeration of the usages of the BSSCFGs used by the P2P Library.  Do not
+ * confuse this with a bsscfg index.  This value is an index into the
+ * saved_ie[] array of structures which in turn contains a bsscfg index field.
+ */
 typedef enum {
-	P2PAPI_BSSCFG_PRIMARY, 
-	P2PAPI_BSSCFG_DEVICE, 
-	P2PAPI_BSSCFG_CONNECTION, 
+	P2PAPI_BSSCFG_PRIMARY, /* maps to driver's primary bsscfg */
+	P2PAPI_BSSCFG_DEVICE, /* maps to driver's P2P device discovery bsscfg */
+	P2PAPI_BSSCFG_CONNECTION, /* maps to driver's P2P connection bsscfg */
 	P2PAPI_BSSCFG_MAX
 } p2p_bsscfg_type_t;
 
 #define IE_MAX_LEN 512
+/* vendor ies max buffer length for probe response or beacon */
 #define VNDR_IES_MAX_BUF_LEN	1400
+/* normal vendor ies buffer length */
 #define VNDR_IES_BUF_LEN 		512
+/* Structure to hold all saved P2P and WPS IEs for a BSSCFG */
 struct p2p_saved_ie {
 	u8  p2p_probe_req_ie[VNDR_IES_BUF_LEN];
 	u8  p2p_probe_res_ie[VNDR_IES_MAX_BUF_LEN];
@@ -63,7 +70,7 @@ struct p2p_bss {
 };
 
 struct p2p_info {
-	bool on;    
+	bool on;    /* p2p on/off switch */
 	bool scan;
 	bool vif_created;
 	s8 vir_ifname[IFNAMSIZ];
@@ -81,7 +88,7 @@ struct p2p_info {
 
 struct parsed_vndr_ie_info {
 	char *ie_ptr;
-	u32 ie_len;	
+	u32 ie_len;	/* total length including id & length field */
 	vndr_ie_t vndrie;
 };
 
@@ -90,6 +97,7 @@ struct parsed_vndr_ies {
 	struct parsed_vndr_ie_info ie_info[MAX_VNDR_IE_NUMBER];
 };
 
+/* dongle status */
 enum wl_cfgp2p_status {
 	WLP2P_STATUS_DISCOVERY_ON = 0,
 	WLP2P_STATUS_SEARCH_ENABLED,
@@ -123,6 +131,7 @@ enum wl_cfgp2p_status {
 #define p2p_scan(wl) ((wl)->p2p->scan)
 #define p2p_is_on(wl) ((wl)->p2p && (wl)->p2p->on)
 
+/* dword align allocation */
 #define WLC_IOCTL_MAXLEN 8192
 #define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -285,6 +294,7 @@ wl_cfgp2p_register_ndev(struct wl_priv *wl);
 extern s32
 wl_cfgp2p_unregister_ndev(struct wl_priv *wl);
 
+/* WiFi Direct */
 #define SOCIAL_CHAN_1 1
 #define SOCIAL_CHAN_2 6
 #define SOCIAL_CHAN_3 11
@@ -295,6 +305,9 @@ wl_cfgp2p_unregister_ndev(struct wl_priv *wl);
 #define WL_P2P_INTERFACE_PREFIX "p2p"
 #define WL_P2P_TEMP_CHAN 11
 
+/* If the provision discovery is for JOIN operations,
+ * then we need not do an internal scan to find GO.
+ */
 #define IS_PROV_DISC_WITHOUT_GROUP_ID(p2p_ie, len) \
 	(wl_cfgp2p_retreive_p2pattrib(p2p_ie, P2P_SEID_GROUP_ID) == NULL)
 
@@ -314,4 +327,4 @@ wl_cfgp2p_unregister_ndev(struct wl_priv *wl);
 #define IS_P2P_SOCIAL(ch) ((ch == SOCIAL_CHAN_1) || (ch == SOCIAL_CHAN_2) || (ch == SOCIAL_CHAN_3))
 #define IS_P2P_SSID(ssid, len) (!memcmp(ssid, WL_P2P_WILDCARD_SSID, WL_P2P_WILDCARD_SSID_LEN) && \
 					(len == WL_P2P_WILDCARD_SSID_LEN))
-#endif				
+#endif				/* _wl_cfgp2p_h_ */

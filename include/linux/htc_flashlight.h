@@ -59,7 +59,7 @@ struct flashlight_platform_data {
 	uint32_t torch_set1;
 	uint32_t torch_set2;
 	uint32_t flash_duration_ms;
-	uint8_t led_count; 
+	uint8_t led_count; /* 0: 1 LED, 1: 2 LED */
 	uint32_t chip_model;
 };
 
@@ -74,7 +74,7 @@ enum flashlight_chip{
 struct TPS61310_flashlight_platform_data {
 	void (*gpio_init) (void);
 	uint32_t flash_duration_ms;
-	uint8_t led_count; 
+	uint8_t led_count; /* 0: 1 LED, 1: 2 LED */
 	uint32_t tps61310_strb0;
 	uint32_t tps61310_strb1;
 	uint8_t mode_pin_suspend_state_low;

@@ -70,6 +70,7 @@ s32 wldev_ioctl(
 	return ret;
 }
 
+/*HTC_CSP_START*/
 s32 wldev_ioctl_no_memset(
 	struct net_device *dev, u32 cmd, void *arg, u32 len, u32 set)
 {
@@ -84,7 +85,12 @@ s32 wldev_ioctl_no_memset(
 
 	return ret;
 }
+/*HTC_CSP_END*/
 
+/* Format a iovar buffer, not bsscfg indexed. The bsscfg index will be
+ * taken care of in dhd_ioctl_entry. Internal use only, not exposed to
+ * wl_iw, wl_cfg80211 and wl_cfgp2p
+ */
 static s32 wldev_mkiovar(
 	s8 *iovar_name, s8 *param, s32 paramlen,
 	s8 *iovar_buf, u32 buflen)
@@ -163,6 +169,10 @@ s32 wldev_iovar_getint(
 	return err;
 }
 
+/** Format a bsscfg indexed iovar buffer. The bsscfg index will be
+ *  taken care of in dhd_ioctl_entry. Internal use only, not exposed to
+ *  wl_iw, wl_cfg80211 and wl_cfgp2p
+ */
 s32 wldev_mkiovar_bsscfg(
 	const s8 *iovar_name, s8 *param, s32 paramlen,
 	s8 *iovar_buf, s32 buflen, s32 bssidx)
@@ -178,8 +188,8 @@ s32 wldev_mkiovar_bsscfg(
 			(s8 *) iovar_buf, buflen);
 	}
 
-	prefixlen = (u32) strlen(prefix); 
-	namelen = (u32) strlen(iovar_name) + 1; 
+	prefixlen = (u32) strlen(prefix); /* lengh of bsscfg prefix */
+	namelen = (u32) strlen(iovar_name) + 1; /* lengh of iovar  name + null */
 	iolen = prefixlen + namelen + sizeof(u32) + paramlen;
 
 	if (buflen < 0 || iolen > (u32)buflen)
@@ -190,20 +200,20 @@ s32 wldev_mkiovar_bsscfg(
 
 	p = (s8 *)iovar_buf;
 
-	
+	/* copy prefix, no null */
 	memcpy(p, prefix, prefixlen);
 	p += prefixlen;
 
-	
+	/* copy iovar name including null */
 	memcpy(p, iovar_name, namelen);
 	p += namelen;
 
-	
+	/* bss config index as first param */
 	bssidx = htod32(bssidx);
 	memcpy(p, &bssidx, sizeof(u32));
 	p += sizeof(u32);
 
-	
+	/* parameter buffer follows */
 	if (paramlen)
 		memcpy(p, param, paramlen);
 
@@ -290,7 +300,7 @@ int wldev_get_link_speed(
 	if (unlikely(error))
 		return error;
 
-	
+	/* Convert internal 500Kbps to Kbps */
 	*plink_speed *= 500;
 	return error;
 }
@@ -358,13 +368,13 @@ int wldev_set_country(
 	wl_country_t cspec = {{0}, 0, {0}};
 	scb_val_t scbval;
 	char smbuf[WLC_IOCTL_SMLEN];
-	
+	/*HTC_CSP_START*/
 	uint32 chan_buf[WL_NUMCHANNELS];
 	wl_uint32_list_t *list;
 	channel_info_t ci;
 	int retry = 0;
 	int chan = 1;
-	
+	/*HTC_CSP_END*/
 
 	if (!country_code)
 		return error;
@@ -383,6 +393,7 @@ int wldev_set_country(
 				__FUNCTION__, error));
 			return error;
 		}
+/*HTC_CSP_START*/
 		error = wldev_ioctl(dev, WLC_SET_CHANNEL, &chan, sizeof(chan), 1);
 		if (error < 0) {
 			WLDEV_ERROR(("%s: set country failed due to channel 1 error %d\n",
@@ -405,6 +416,7 @@ get_channel_retry:
 		bcm_mdelay(1000);
 		goto get_channel_retry;
 	}
+/*HTC_CSP_END*/
 
 	cspec.rev = -1;
 	memcpy(cspec.country_abbrev, country_code, WLC_CNTRY_BUF_SZ);
@@ -413,7 +425,7 @@ get_channel_retry:
 	error = wldev_iovar_setbuf(dev, "country", &cspec, sizeof(cspec),
 		smbuf, sizeof(smbuf), NULL);
 	if (error < 0) {
-	
+	/*HTC_CSP_START*/
 		if (strcmp(cspec.country_abbrev, DEF_COUNTRY_CODE) != 0) {
 			strcpy(country_code, DEF_COUNTRY_CODE);
 			retry = 0;
@@ -425,7 +437,7 @@ get_channel_retry:
 			return error;
 		}
 	}
-	
+	/* check if there are available channels */
 	else {
 		if (strcmp(country_code, DEF_COUNTRY_CODE) != 0) {
 			list = (wl_uint32_list_t *)(void *)chan_buf;
@@ -434,7 +446,7 @@ get_channel_retry:
 				WLDEV_ERROR(("%s: get channel list fail! %d\n", __FUNCTION__, error));
 				return error;
 			}
-			
+			/* if NULL, set default country code instead and set country code again */
 			printf("%s: channel_count = %d\n", __FUNCTION__, list->count);
 			if (list->count == 0) {
 				strcpy(country_code, DEF_COUNTRY_CODE);
@@ -461,7 +473,7 @@ static int wldev_set_pktfilter_enable_by_id(struct net_device *dev, int pkt_id, 
 	char smbuf[WLC_IOCTL_SMLEN];
 	int res;
 
-	
+	/* enable or disable pkt filter, enable:1, disable:0 */
 	enable_parm.id = htod32(pkt_id);
 	enable_parm.enable = htod32(enable);
 	res = wldev_iovar_setbuf(dev, "pkt_filter_enable", &enable_parm, sizeof(enable_parm),
@@ -484,13 +496,17 @@ int wldev_set_pktfilter_enable(struct net_device *dev, int enable)
         printf("%s: pkt_filter id:102 %s\n", __FUNCTION__, (enable)?"enable":"disable");
 	wldev_set_pktfilter_enable_by_id(dev, 104, enable);
         printf("%s: pkt_filter id:104 %s\n", __FUNCTION__, (enable)?"enable":"disable");
+//HTC SSDP packet filter ++
     wldev_set_pktfilter_enable_by_id(dev, 105, enable);
         printf("%s: pkt_filter id:105 %s\n", __FUNCTION__, (enable)?"enable":"disable");
+//HTC SSDP packet filter --
+//HTC WIVU packet filter ++
 
 	if(!is_screen_off){
     	wldev_set_pktfilter_enable_by_id(dev, 106, enable);
         printf("%s: pkt_filter id:106 %s\n", __FUNCTION__, (enable)?"enable":"disable");
 	}
+//HTC WIVU packet filter --
         return 0;
 }
 #ifdef SOFTAP
@@ -502,7 +518,9 @@ static struct ap_profile ap_cfg;
 extern struct net_device *ap_net_dev;
 extern int init_ap_profile_from_string(char *param_str, struct ap_profile *ap_cfg);
 extern int set_apsta_cfg(struct net_device *dev, struct ap_profile *ap);
+//BRCM_APSTA_START
 extern int set_ap_channel(struct net_device *dev, struct ap_profile *ap);
+//BRCM_APSTA_END
 extern int wait_for_ap_ready(int sec);
 extern void wl_iw_restart_apsta(struct ap_profile *ap);
 extern int wl_iw_set_ap_security(struct net_device *dev, struct ap_profile *ap);
@@ -532,7 +550,7 @@ wldev_restart_ap(struct net_device *dev)
 	wl_iw_restart_apsta(&ap_cfg);
 }
 
-#endif  
+#endif  /* SOFTAP */
 
 int
 wldev_get_ap_status(struct net_device *dev)
@@ -563,9 +581,13 @@ wldev_get_ap_status(struct net_device *dev)
 
 	return (ap||apsta);
 }
+//Hugh 2012-04-05 ++++
 
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ++++]
 int scan_suppress_flag = 0;
+//HTC_WIFI_END [Hugh 2012-08-21 scan_suppress change ----]
 
+//HTC_WIFI_START [Hugh 2012-08-31 scan_suppress change ++++]
 int wldev_start_stop_scansuppress(struct net_device *dev)
 {
 	int res = 0;
@@ -591,6 +613,7 @@ int wldev_start_stop_scansuppress(struct net_device *dev)
 		return 0;
 
 }
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change -----]
 
 
 
@@ -598,6 +621,9 @@ int
 wldev_set_scansuppress(struct net_device *dev,int enable)
 {
 	int res = 0;
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ++++]
+//	int roam_off;
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ----]
 	int scan_unassoc_time ;
 
 	printf("%s: enter\n", __FUNCTION__);
@@ -610,7 +636,9 @@ wldev_set_scansuppress(struct net_device *dev,int enable)
 	printf("wldev_set_scansuppress enable[%d]\n", enable);
 
 	if(enable){
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ++++]
 #if 1
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ----]
 		scan_unassoc_time = 20;
 		
 		if((res =  wldev_ioctl(dev, WLC_SET_SCAN_UNASSOC_TIME, (char *)&scan_unassoc_time,sizeof(scan_unassoc_time), 1))) {
@@ -621,6 +649,7 @@ wldev_set_scansuppress(struct net_device *dev,int enable)
 			WLDEV_ERROR(("%s fail to get ap\n", __FUNCTION__));
 		}
 		scan_suppress_flag = 1;
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ++++]
 #else
 	
 	dhd_wl_ioctl_cmd(dhd, WLC_SET_SCAN_UNASSOC_TIME, (char *)&scan_unassoc_time,
@@ -635,9 +664,12 @@ wldev_set_scansuppress(struct net_device *dev,int enable)
 		scan_suppress_flag = 1;
 	}
 #endif
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ----]
 		printf("Successful enable scan suppress!!\n");
 	}else{
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ++++]
 #if 1
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ----]
 
 		scan_unassoc_time = 80;
 		
@@ -650,6 +682,7 @@ wldev_set_scansuppress(struct net_device *dev,int enable)
 		}
 		scan_suppress_flag = 0;
 		
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ++++]
 #else
 	roam_off = 0;
 	if((res = wldev_iovar_setint(dev, "roam_off", roam_off))){
@@ -660,14 +693,17 @@ wldev_set_scansuppress(struct net_device *dev,int enable)
 		scan_suppress_flag = 0;
 	}
 #endif
+//HTC_WIFI_START [Hugh 2012-08-21 scan_suppress change ----]
 		printf("Successful disable scan suppress!!\n");
 	}
 	
 	return 0;
 }
 
+//Hugh 2012-04-05 ++++
 extern int wl_softap_stop(struct net_device *dev);
 
+//Hugh 2012-08-30 CT2 modification ++++
 #ifdef APSTA_CONCURRENT
 s32 wldev_set_ssid(struct net_device *dev,int *channel)
 {
@@ -681,7 +717,7 @@ s32 wldev_set_ssid(struct net_device *dev,int *channel)
 	strncpy(ap_ssid.SSID, ap_cfg.ssid, ap_ssid.SSID_len);
 
 	bss_setbuf.cfg = 1;
-	bss_setbuf.val = 0;  
+	bss_setbuf.val = 0;  /* down the interface */
 	
 	if ((res = wldev_iovar_setbuf_bsscfg(dev, "bss", &bss_setbuf, sizeof(bss_setbuf), 
 			smbuf, sizeof(smbuf), 1, NULL)) < 0){
@@ -697,7 +733,7 @@ s32 wldev_set_ssid(struct net_device *dev,int *channel)
 
 
 	bss_setbuf.cfg = 1;
-	bss_setbuf.val = 1;  
+	bss_setbuf.val = 1;  /* up the interface */
 	bcm_mdelay(50);
 
 	if ((res = wldev_iovar_setbuf_bsscfg(dev, "bss", &bss_setbuf, sizeof(bss_setbuf), 
@@ -885,6 +921,7 @@ int wldev_set_ap_sta_registra_wsec(struct net_device *dev, char *command, int to
 	return bytes_written;
 }
 #endif 
+//Hugh 2012-08-30 CT2 modification ----
 
 
 void wldev_san_check_channel(struct net_device *ndev,int *errcode)
@@ -936,6 +973,8 @@ void wldev_san_check_channel(struct net_device *ndev,int *errcode)
 
     printf("Leave %s errcode[%d]",__FUNCTION__,*errcode);
 }
+//Hugh 2012-08-30 CT2 modification ---
 
 
-#endif 
+#endif /* APSTA_CONCURRENT */
+//BRCM APSTA END

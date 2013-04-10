@@ -21,6 +21,9 @@
 #include <scsi/scsi_tcq.h>
 #include <scsi/scsi.h>
 
+/*
+ * Some defs, in case these are not defined elsewhere.
+ */
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -34,6 +37,7 @@ struct scsi_device;
 struct scsi_target;
 struct scatterlist;
 
+/* obsolete typedef junk. */
 #include "scsi_typedefs.h"
 
-#endif 
+#endif /* _SCSI_H */

@@ -23,7 +23,7 @@
 
 struct rmnet_ctrl_dev {
 
-	
+	/*for debugging purpose*/
 	char			name[CTRL_DEV_MAX_LEN];
 
 	struct cdev		cdev;
@@ -48,17 +48,21 @@ struct rmnet_ctrl_dev {
 
 	bool			is_connected;
 
-	
+	/*input control lines (DSR, CTS, CD, RI)*/
 	unsigned int		cbits_tolocal;
 
-	
+	/*output control lines (DTR, RTS)*/
 	unsigned int		cbits_tomdm;
 
+	/*
+	 * track first resp available from mdm when it boots up
+	 * to avoid bigger  timeout value used by qmuxd
+	 */
 	bool			resp_available;
 
 	unsigned int		mdm_wait_timeout;
 
-	
+	/*counters*/
 	unsigned int		snd_encap_cmd_cnt;
 	unsigned int		get_encap_resp_cnt;
 	unsigned int		resp_avail_cnt;
@@ -69,7 +73,10 @@ struct rmnet_ctrl_dev {
 
 extern struct rmnet_ctrl_dev *ctrl_dev[];
 
+/* ++SSD_RIL */
+/*extern int rmnet_usb_ctrl_start(struct rmnet_ctrl_dev *);*/
 extern int rmnet_usb_ctrl_start_rx(struct rmnet_ctrl_dev *);
+/* --SSD_RIL */
 extern int rmnet_usb_ctrl_stop_rx(struct rmnet_ctrl_dev *);
 extern int rmnet_usb_ctrl_init(void);
 extern void rmnet_usb_ctrl_exit(void);
@@ -78,4 +85,4 @@ extern int rmnet_usb_ctrl_probe(struct usb_interface *intf,
 		struct rmnet_ctrl_dev *dev);
 extern void rmnet_usb_ctrl_disconnect(struct rmnet_ctrl_dev *);
 
-#endif 
+#endif /* __RMNET_USB_H*/

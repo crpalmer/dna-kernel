@@ -37,7 +37,9 @@ struct ion_iommu_priv_data {
 	unsigned long size;
 };
 
+//HTC_START
 atomic_t v = ATOMIC_INIT(0);
+//HTC_END
 
 static int ion_iommu_heap_allocate(struct ion_heap *heap,
 				      struct ion_buffer *buffer,
@@ -95,9 +97,9 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 			pr_err("%s: vmap() failed\n", __func__);
 
 		buffer->priv_virt = data;
-		
+		//HTC_START
 		atomic_add(data->size, &v);
-		
+		//HTC_END
 		return 0;
 
 	} else {
@@ -188,6 +190,10 @@ int ion_iommu_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 	curr_addr = vma->vm_start;
 	for (i = 0; i < data->nrpages && curr_addr < vma->vm_end; i++) {
 		if (vm_insert_page(vma, curr_addr, data->pages[i])) {
+			/*
+			 * This will fail the mmap which will
+			 * clean up the vma space properly.
+			 */
 			return -EINVAL;
 		}
 		curr_addr += PAGE_SIZE;

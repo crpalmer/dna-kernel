@@ -42,7 +42,17 @@ static inline int msm_subsystem_check_id(int subsys_id)
 }
 
 struct msm_mapped_buffer {
+	/*
+	 * VA mapped in the kernel address space. This field shall be NULL if
+	 * MSM_SUBSYSTEM_MAP_KADDR was not passed to the map buffer function.
+	 */
 	void *vaddr;
+	/*
+	 * iovas mapped in the iommu address space. The ith entry of this array
+	 * corresponds to the iova mapped in the ith subsystem in the array
+	 * pased in to msm_subsystem_map_buffer. This field shall be NULL if
+	 * MSM_SUBSYSTEM_MAP_IOVA was not passed to the map buffer function,
+	 */
 	unsigned long *iova;
 };
 
@@ -58,4 +68,4 @@ extern int msm_subsystem_unmap_buffer(struct msm_mapped_buffer *buf);
 extern phys_addr_t msm_subsystem_check_iova_mapping(int subsys_id,
 						unsigned long iova);
 
-#endif 
+#endif /* __ARCH_MACH_MSM_SUBSYSTEM_MAP_H */

@@ -17,10 +17,16 @@
 #ifndef __DxODOP_regMap_h__
 #define __DxODOP_regMap_h__
 
+/* ********************************************************************************** */
+/* Command registers addresses: */
+/* ********************************************************************************** */
 #define DxODOP_boot                                                             0x6810
 #define DxODOP_execCmd                                                          0x6808
 #define DxODOP_newFrameCmd                                                      0x680c
 
+/* ********************************************************************************** */
+/* User parameters registers addresses: */
+/* ********************************************************************************** */
 #define DxODOP_ucode_id_7_0                                                     0x0200
 #define DxODOP_ucode_id_15_8                                                    0x0201
 #define DxODOP_hw_id_7_0                                                        0x0202
@@ -175,8 +181,12 @@
 #define DxODOP_frame_number_15_8                                                0x02a3
 
 #define DxODOP_af_strategy_7_0                              0x02a4
+/* ********************************************************************************** */
+/* User constant definition: */
+/* ********************************************************************************** */
 #define DxODOP_mode_idle                                                        0x00
-#if 1 
+// default to use lib v1.1
+#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
 #define DxODOP_mode_still_preview                           0x01
 #define DxODOP_mode_video                                   0x02
 #define DxODOP_mode_edof_disabled                           0x04
@@ -192,7 +202,11 @@
 #define DxODOP_focus_strategy_SN                                                0x04
 #define DxODOP_focus_strategy_UF                                                0x08
 
-#if 1 
+/* ********************************************************************************** */
+/* User parameters default values: */
+/* ********************************************************************************** */
+// default to use lib v1.1
+#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
 #define DxODOP_dfltVal_ucode_id_7_0                         0x00
 #define DxODOP_dfltVal_ucode_id_15_8                        0x02
 #define DxODOP_dfltVal_hw_id_7_0                            0xed
@@ -355,10 +369,14 @@
 #define DxODOP_dfltVal_ROI_4_stats_confidence_31_24                             0x00
 #define DxODOP_dfltVal_frame_number_7_0                                         0xff
 #define DxODOP_dfltVal_frame_number_15_8                                        0xff
-#if 1 
+// default to use lib v1.1
+#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
 #define DxODOP_dfltVal_af_strategy_7_0                      0x11
 #endif
 
+/* ********************************************************************************** */
+/* Error constant definition: */
+/* ********************************************************************************** */
 #define DxODOP_error_code_ok                                                    0x00
 #define DxODOP_error_code_bad_hw_id                                             0x01
 #define DxODOP_error_code_bad_calib_data                                        0x02
@@ -392,4 +410,4 @@
 #define DxODOP_error_code_ROI_x_order                                           0x2e
 #define DxODOP_error_code_ROI_y_order                                           0x2f
 
-#endif 
+#endif /* __DxODOP_regMap_h__ */

@@ -24,6 +24,16 @@ struct pil_desc {
 	unsigned long proxy_timeout;
 };
 
+/**
+ * struct pil_reset_ops - PIL operations
+ * @init_image: prepare an image for authentication
+ * @verify_blob: authenticate a program segment, called once for each loadable
+ *		 program segment (optional)
+ * @proxy_vote: make proxy votes before auth_and_reset (optional)
+ * @auth_and_reset: boot the processor
+ * @proxy_unvote: remove any proxy votes (optional)
+ * @shutdown: shutdown the processor
+ */
 struct pil_reset_ops {
 	int (*init_image)(struct pil_desc *pil, const u8 *metadata,
 			  size_t size);

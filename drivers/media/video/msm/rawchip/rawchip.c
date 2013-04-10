@@ -46,18 +46,18 @@ static irqreturn_t yushan_irq_handler(int irq, void *dev_id){
 
 	disable_irq_nosync(rawchipCtrl->pdata->rawchip_intr0);
 
-	
+	//smp_mb();
 	spin_lock_irqsave(&yushan_int.yushan_spin_lock,flags);
-	
-	
-	
-	
+	//CDBG("[CAM] %s detect INT0, interrupt:%d \n",__func__, interrupt);
+	//if (atomic_read(&start_counting))
+	//atomic_set(&yushan_int.frame_count, 1);
+	//smp_mb();
 	atomic_set(&interrupt, 1);
 	CDBG("[CAM] %s after detect INT0, interrupt:%d \n",__func__, atomic_read(&interrupt));
-	
-	
-	
-	
+	//interrupt = 1;
+	//Yushan_ISR();
+	//CDBG("[CAM] %s atomic_set\n",__func__);
+	//Yushan_ClearInterruptEvent(1);
 	wake_up(&yushan_int.yushan_wait);
 	spin_unlock_irqrestore(&yushan_int.yushan_spin_lock,flags);
 
@@ -153,7 +153,7 @@ int rawchip_set_size(struct rawchip_sensor_data data)
 			mdelay(1);
 			gpio_direction_output(pdata->rawchip_reset, 1);
 			gpio_free(pdata->rawchip_reset);
-			
+			/*Reset_Yushan();*/
 		}
 		rawchip_init_data.use_rawchip = data.use_rawchip;
 		Yushan_sensor_open_init(rawchip_init_data);
@@ -206,6 +206,18 @@ static int rawchip_get_dxoprc_frameSetting(struct rawchip_ctrl *raw_dev, void __
 	frameSetting.xOddInc	= sImageChar_context.uwXOddInc;
 	frameSetting.yOddInc	= sImageChar_context.uwXOddInc;
 	frameSetting.binning	= sImageChar_context.bBinning;
+/*
+	pr_err("prcDxO orientation :	%d\n",frameSetting.orientation);
+	pr_err("prcDxO xStart : 		%d\n",frameSetting.xStart);
+	pr_err("prcDxO yStart : 		%d\n",frameSetting.yStart);
+	pr_err("prcDxO xEnd : 		%d\n",frameSetting.xEnd);
+	pr_err("prcDxO yEnd : 		%d\n",frameSetting.yEnd);
+	pr_err("prcDxO xEvenInc : 	%d\n",frameSetting.xEvenInc);
+	pr_err("prcDxO yEvenInc : 	%d\n",frameSetting.yEvenInc);
+	pr_err("prcDxO xOddInc : 		%d\n",frameSetting.xOddInc);
+	pr_err("prcDxO yOddInc : 		%d\n",frameSetting.yOddInc);
+	pr_err("prcDxO binning : 		%d\n",frameSetting.binning);
+*/
 	if (copy_from_user(&se, arg,
 			sizeof(struct rawchip_stats_event_ctrl))) {
 		pr_err("%s, ERR_COPY_FROM_USER\n", __func__);
@@ -550,7 +562,7 @@ int rawchip_power_up(const struct msm_camera_rawchip_info *pdata)
 		pr_err("enable MCLK failed\n");
 		goto enable_mclk_failed;
 	}
-	mdelay(1); 
+	mdelay(1); /*Mu Lee for sequence with raw chip 20120116*/
 
 	rc = gpio_request(pdata->rawchip_reset, "rawchip");
 	if (rc < 0) {
@@ -559,7 +571,7 @@ int rawchip_power_up(const struct msm_camera_rawchip_info *pdata)
 	}
 	gpio_direction_output(pdata->rawchip_reset, 1);
 	gpio_free(pdata->rawchip_reset);
-	mdelay(1); 
+	mdelay(1); /*Mu Lee for sequence with raw chip 20120116*/
 
 	yushan_spi_write(0x0008, 0x7f);
 	mdelay(1);
@@ -683,7 +695,7 @@ open_read_id_retry:
 	atomic_set(&interrupt, 0);
 	atomic_set(&interrupt2, 0);
 
-	
+	/*create irq*/
 	rc = request_irq(pdata->rawchip_intr0, yushan_irq_handler,
 		IRQF_TRIGGER_HIGH, "yushan_irq", 0);
 	if (rc < 0) {

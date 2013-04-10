@@ -66,6 +66,7 @@ spinlock_t tz_lock;
 #define PARAM_INDEX_READ_ALGORITHM 209
 
 #ifdef CONFIG_MSM_SCM
+/* Trap into the TrustZone, and call funcs there. */
 static int __secure_tz_entry(u32 cmd, u32 val, u32 id)
 {
 	int ret;
@@ -80,7 +81,7 @@ static int __secure_tz_entry(u32 cmd, u32 val, u32 id)
 {
 	return 0;
 }
-#endif 
+#endif /* CONFIG_MSM_SCM */
 
 static ssize_t tz_governor_show(struct kgsl_device *device,
 				struct kgsl_pwrscale *pwrscale,
@@ -451,6 +452,8 @@ static void tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	struct kgsl_power_stats stats;
 	int val, idle, total_time;
 
+	/* In "performance" mode the clock speed always stays
+	   the same */
 
 	if (priv->governor == TZ_GOVERNOR_PERFORMANCE)
 		return;
@@ -459,6 +462,8 @@ static void tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	if (stats.total_time == 0)
 		return;
 
+	/* If the GPU has stayed in turbo mode for a while, *
+	 * stop writing out values. */
 	if (pwr->active_pwrlevel == 0) {
 		if (priv->no_switch_cnt > SWITCH_OFF) {
 			priv->skip_cnt++;
@@ -476,7 +481,7 @@ static void tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	idle = stats.total_time - stats.busy_time;
 	idle = (idle > 0) ? idle : 0;
 
-	
+	//using highest 4 bits as current power level in 2nd parameter of trustzone api. Lowest 28 bits as total time.
 	total_time = stats.total_time & 0x0FFFFFFF;
 	total_time |= (pwr->active_pwrlevel) << 28;
 
@@ -507,7 +512,7 @@ static int tz_init(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	struct tz_priv *priv;
 	int ret;
 
-	
+	/* Trustzone is only valid for some SOCs */
 	if (!(cpu_is_msm8x60() || cpu_is_msm8960() || cpu_is_apq8064() ||
 		cpu_is_msm8930() || cpu_is_msm8930aa() || cpu_is_msm8627()))
 		return -EINVAL;

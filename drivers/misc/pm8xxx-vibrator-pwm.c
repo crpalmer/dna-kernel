@@ -252,7 +252,7 @@ static int pm8xxx_vib_suspend(struct device *dev)
 	VIB_PWM_INFO("%s \n",__func__);
 	hrtimer_cancel(&vib->vib_timer);
 	cancel_work_sync(&vib->work);
-	
+	/* turn-off vibrator */
 	pm8xxx_vib_set_off(vib);
 	if (vib->vdd_gpio)
 		gpio_direction_output(vib->vdd_gpio, DISABLE_VDD);

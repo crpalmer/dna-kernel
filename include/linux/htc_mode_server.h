@@ -134,4 +134,4 @@ struct key_event {
 } __attribute__ ((__packed__));
 
 
-#endif 
+#endif /* _HTC_MODE_SERVER_H_ */

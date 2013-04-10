@@ -35,7 +35,11 @@
 #define SYN_I2C_RETRY_TIMES 10
 #define SHIFT_BITS 10
 #define SYN_WIRELESS_DEBUG
+/* #define SYN_CABLE_CONTROL */
 #define SYN_CALIBRATION_CONTROL
+/* #define SYN_FILTER_CONTROL */
+/* #define SYN_FLASH_PROGRAMMING_LOG */
+/* #define SYN_DISABLE_CONFIG_UPDATE */
 
 struct synaptics_ts_data {
 	uint16_t addr;
@@ -146,6 +150,7 @@ static void syn_page_select(struct i2c_client *client, uint8_t page)
 	if (page ^ ts->page_select) {
 		i2c_smbus_write_byte_data(client, 0xFF, page);
 		ts->page_select = page;
+/*		printk(KERN_INFO "TOUCH: Page Select: %s: %d\n", __func__, ts->page_select); */
 	}
 
 }
@@ -385,6 +390,7 @@ static uint32_t syn_crc(uint16_t *data, uint16_t len)
 		sum2 += sum1;
 		sum1 = (sum1 & 0xFFFF) + (sum1 >> 16);
 		sum2 = (sum2 & 0xFFFF) + (sum2 >> 16);
+/*		printk("Data: %x, Sum1: %x, Sum2: %x\n", *data, sum1, sum2); */
 	}
 	return sum1 | (sum2 << 16);
 }
@@ -426,7 +432,7 @@ static int wait_flash_interrupt(struct synaptics_ts_data *ts, int attr)
 		get_address_base(ts, 0x34, DATA_BASE) + 18, &data, 1);
 	if (ret < 0)
 		return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "r:3", __func__);
-	
+	/* check = 0x80 */
 	if (data != 0x80) {
 		printk(KERN_INFO "[TP] wait_flash_interrupt: block config fail!\n");
 		return SYN_PROCESS_ERR;
@@ -439,12 +445,12 @@ static int enable_flash_programming(struct synaptics_ts_data *ts, int attr)
 	int ret;
 	uint8_t data[2];
 
-	
+	/* timing need to fine tune, no interrupt low */
 	ret = i2c_syn_read(ts->client,
 		get_address_base(ts, 0x34, QUERY_BASE), data, 2);
 	if (ret < 0)
 		return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "r:1", __func__);
-	
+	/* printk("%s: data: %x, %x\n", __func__, data[0], data[1]); */
 
 	ret = i2c_syn_write(ts->client,
 		get_address_base(ts, 0x34, DATA_BASE) + 2, data, 2);
@@ -521,7 +527,7 @@ static int program_config(struct synaptics_ts_data *ts, uint8_t *config, int att
 
 	ret = i2c_syn_read(ts->client,
 		get_address_base(ts, 0x34, QUERY_BASE), data, 2);
-	
+	/* printk("%s: data: %x, %x\n", __func__, data[0], data[1]); */
 	if (ret < 0)
 		return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "r:1", __func__);
 
@@ -530,7 +536,7 @@ static int program_config(struct synaptics_ts_data *ts, uint8_t *config, int att
 	if (ret < 0)
 		return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "w:2", __func__);
 
-	
+	/* printk("ATT: %d\n", gpio_get_value(attr)); */
 	ret = i2c_syn_write_byte_data(ts->client,
 		get_address_base(ts, 0x34, DATA_BASE) + 18, 0x07);
 	if (ret < 0)
@@ -1486,7 +1492,7 @@ static int synaptics_init_panel(struct synaptics_ts_data *ts)
 {
 	int ret = 0;
 
-	
+	/* Configured */
 	ret = i2c_syn_write_byte_data(ts->client,
 			get_address_base(ts, 0x01, CONTROL_BASE), 0x80);
 	if (ret < 0)
@@ -2336,6 +2342,18 @@ static int syn_get_information(struct synaptics_ts_data *ts)
 {
 	uint8_t data[4] = {0}, i, num_channel, *buf;
 	int ret = 0;
+/*	ret = i2c_syn_read(ts->client, get_address_base(ts, 0x01, QUERY_BASE) + 2, data, 2);
+	if (ret < 0)
+		return ret;
+	syn_panel_version = data[0] << 8 | data[1];
+	printk(KERN_INFO "%s: panel_version: %x\n", __func__, syn_panel_version);
+
+	ret = i2c_syn_read(ts->client, get_address_base(ts, 0x34, CONTROL_BASE), data, 4);
+	if (ret < 0)
+		return ret;
+	ts->config_version = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
+	printk(KERN_INFO "%s: config version: %x\n", __func__, ts->config_version);
+*/
 	ret = i2c_syn_read(ts->client, get_address_base(ts, 0x11, QUERY_BASE) + 1, data, 1);
 	if (ret < 0)
 		return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "r:1", __func__);
@@ -2775,7 +2793,7 @@ static int synaptics_ts_probe(
 #ifdef SYN_CABLE_CONTROL
 	if (ts->cable_support) {
 		usb_register_notifier(&cable_status_handler);
-		
+		/* reserve for new version */
 		ret = i2c_syn_read(ts->client,
 			get_address_base(ts, 0x11, CONTROL_BASE), &ts->cable_config, 1);
 		if (ret < 0) {
@@ -2985,12 +3003,12 @@ static int synaptics_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 		} else {
 			if (ts->psensor_status > 0 && getPowerKeyState() == 0) {
 				ret = i2c_syn_write_byte_data(client,
-					get_address_base(ts, 0x01, CONTROL_BASE), 0x02); 
+				get_address_base(ts, 0x01, CONTROL_BASE), 0x02); /* sleep without calibration*/
 				if (ret < 0)
 					i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "sleep: 0x02", __func__);
 			} else {
 				ret = i2c_syn_write_byte_data(client,
-					get_address_base(ts, 0x01, CONTROL_BASE), 0x01); 
+				get_address_base(ts, 0x01, CONTROL_BASE), 0x01); /* sleep */
 				if (ret < 0)
 					i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "sleep: 0x01", __func__);
 			}
@@ -3017,7 +3035,7 @@ static int synaptics_ts_resume(struct i2c_client *client)
 #endif
 	} else {
 		ret = i2c_syn_write_byte_data(client,
-			get_address_base(ts, 0x01, CONTROL_BASE), 0x00); 
+			get_address_base(ts, 0x01, CONTROL_BASE), 0x00); /* wake */
 		if (ret < 0)
 			i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "wake up", __func__);
 	}

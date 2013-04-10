@@ -26,6 +26,7 @@ extern u32 vidc_msg_register;
     if (vidc_msg_register) {        \
         printk(KERN_DEBUG x);       \
     }
+/*HTC_END*/
 
 #define __inpdw(port) __raw_readl(port)
 #define __outpdw(port, val) __raw_writel(val, port)

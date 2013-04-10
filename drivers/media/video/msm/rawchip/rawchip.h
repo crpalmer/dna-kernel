@@ -80,7 +80,7 @@ struct rawchip_sensor_data {
 	uint16_t y_even_inc;
 	uint16_t y_odd_inc;
 	uint8_t binning_rawchip;
-	uint8_t use_rawchip;
+	uint8_t use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 };
 
 struct rawchip_id_info_t {

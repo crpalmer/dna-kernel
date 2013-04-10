@@ -4,7 +4,7 @@
 #define ov2722_obj ov2722_##obj
 
 DEFINE_MUTEX(ov2722_mut);
-DEFINE_MUTEX(ov2722_sensor_init_mut); 
+DEFINE_MUTEX(ov2722_sensor_init_mut); //CC120902,
 static struct msm_sensor_ctrl_t ov2722_s_ctrl;
 
 static struct msm_camera_i2c_reg_conf ov2722_start_settings[] = {
@@ -13,6 +13,8 @@ static struct msm_camera_i2c_reg_conf ov2722_start_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf ov2722_stop_settings[] = {
+//	{0x0100 ,0x00},
+//{0x301a,0xf1},
 };
 
 static struct msm_camera_i2c_reg_conf ov2722_groupon_settings[] = {
@@ -105,7 +107,8 @@ static struct msm_camera_i2c_reg_conf ov2722_recommend_settings[] = {
 {0x5000, 0xff},
 {0x3a18, 0x00},
 {0x3a19, 0x80},
-{0x3503, 0x07}, 
+//{0x3503, 0x00},
+{0x3503, 0x07}, // 0->7 
 
 {0x4521, 0x00},
 {0x5183, 0xb0},
@@ -134,11 +137,11 @@ static struct msm_camera_i2c_reg_conf ov2722_recommend_settings[] = {
 {0x3800, 0x00},
 {0x3801, 0x08},
 {0x3802, 0x00},
-{0x3803, 0x02}, 
+{0x3803, 0x02}, // 00
 {0x3804, 0x07},
 {0x3805, 0x9b},
 {0x3806, 0x04},
-{0x3807, 0x45}, 
+{0x3807, 0x45}, // 46
 {0x3808, 0x07},
 {0x3809, 0x88},
 {0x380a, 0x04},
@@ -224,7 +227,7 @@ static struct msm_sensor_output_info_t ov2722_dimensions[] = {
 	.y_output = 1088,
 	.line_length_pclk = 2140,
 	.frame_length_lines = 1120+0x10,
-	.vt_pixel_clk = 72000000, 
+	.vt_pixel_clk = 72000000, // 109714286
 	.op_pixel_clk = 72000000,
 		            
 	.binning_factor = 1,
@@ -250,7 +253,7 @@ static struct msm_sensor_exp_gain_info_t ov2722_exp_gain_info = {
 	.coarse_int_time_addr = 0x3500,
 	.global_gain_addr = 0x3508,
 	.vert_offset = 4,
-	.min_vert = 4,  
+	.min_vert = 4, /* min coarse integration time */ /* HTC Angie 20111019 - Fix FPS */
 };
 
 
@@ -261,7 +264,7 @@ static struct v4l2_subdev_info ov2722_subdev_info[] = {
 	.fmt    = 1,
 	.order    = 0,
 	},
-	
+	/* more can be supported, to be added later */
 };
 
 static struct msm_camera_i2c_conf_array ov2722_init_conf[] = {
@@ -396,10 +399,10 @@ int32_t ov2722_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	ov2722_sensor_open_init(sdata);
 	pr_info("%s end\n", __func__);
 
-	return 0;  
+	return 0;  /*msm_sensor_power_up(sdata)*/
 }
 
-int32_t ov2722_power_down(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t ov2722_power_down(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *sdata)
 {
 	int rc;
 	struct msm_camera_sensor_info *sdata = NULL;
@@ -425,7 +428,7 @@ int32_t ov2722_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("%s failed to disable power\n", __func__);
 		return rc;
 	}
-	return 0;  
+	return 0;  /*msm_sensor_power_down(sdata);*/
 }
 
 void ov2722_write_exp_line(struct msm_sensor_ctrl_t *s_ctrl, uint16_t line)
@@ -433,7 +436,7 @@ void ov2722_write_exp_line(struct msm_sensor_ctrl_t *s_ctrl, uint16_t line)
 	if (line>1112) {
 		msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x350c, line-1112, MSM_CAMERA_I2C_WORD_DATA);
 	}
-	
+	// 3500[3:0]+3501[7:0]+3502[7:4]
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3500, line>>12, MSM_CAMERA_I2C_BYTE_DATA);
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3501, (line>>4)&0xff, MSM_CAMERA_I2C_BYTE_DATA);
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3502, (line<<4)&0xff, MSM_CAMERA_I2C_BYTE_DATA);
@@ -459,7 +462,7 @@ static const struct i2c_device_id ov2722_i2c_id[] = {
 
 static struct i2c_driver ov2722_i2c_driver = {
 	.id_table = ov2722_i2c_id,
-	.probe  = ov2722_i2c_probe,
+	.probe  = ov2722_i2c_probe,//msm_sensor_i2c_probe,
 	.driver = {
 		.name = SENSOR_NAME,
 	},
@@ -496,7 +499,7 @@ static int ov2722_read_fuseid(struct sensor_cfg_data *cdata,
 		pr_err("%s: msm_camera_i2c_write failed\n", __func__);
 		return rc;
 	}
-	
+	// clear
 	for (i = 0x3d00; i <= 0x3d1f; i++) {
 		rc = msm_camera_i2c_write(s_ctrl->sensor_i2c_client, i, 0, MSM_CAMERA_I2C_BYTE_DATA);
 		if (rc < 0) {
@@ -531,6 +534,7 @@ static int ov2722_read_fuseid(struct sensor_cfg_data *cdata,
 	return rc;
 
 }
+/* HTC_END*/
 
 static int __init msm_sensor_init_module(void)
 {
@@ -560,12 +564,12 @@ static struct msm_sensor_fn_t ov2722_func_tbl = {
 	.sensor_set_fps = msm_sensor_set_fps,
 	.sensor_write_exp_gain_ex = msm_sensor_write_exp_gain1_ex,
 	.sensor_write_snapshot_exp_gain_ex = msm_sensor_write_exp_gain1_ex,
-	
-	.sensor_setting = msm_sensor_setting_parallel_ov, 
+	//.sensor_setting = msm_sensor_setting_parallel, //CC120902
+	.sensor_setting = msm_sensor_setting_parallel_ov, //CC120902
 	.sensor_set_sensor_mode = msm_sensor_set_sensor_mode,
 	.sensor_mode_init = msm_sensor_mode_init,
 	.sensor_get_output_info = msm_sensor_get_output_info,
-	.sensor_config = msm_sensor_config,
+	.sensor_config = msm_sensor_config,//ov2722_sensor_config,
 	.sensor_power_up = ov2722_power_up,
 	.sensor_power_down = ov2722_power_down,
 	.sensor_ov2722_write_exp_line=ov2722_write_exp_line,
@@ -605,7 +609,7 @@ static struct msm_sensor_ctrl_t ov2722_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(ov2722_subdev_info),
 	.sensor_v4l2_subdev_ops = &ov2722_subdev_ops,
 	.func_tbl = &ov2722_func_tbl,
-	.sensor_first_mutex = &ov2722_sensor_init_mut,  
+	.sensor_first_mutex = &ov2722_sensor_init_mut,  //CC120902,
 };
 
 module_init(msm_sensor_init_module);

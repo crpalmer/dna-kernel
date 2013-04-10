@@ -18,6 +18,7 @@
 #include <linux/init.h>
 
 int __init meminfo_init(unsigned int, unsigned int);
+/* Redundant check to prevent this from being included outside of 7x30 */
 #if defined(CONFIG_ARCH_MSM7X30)
 unsigned int get_num_populated_chipselects(void);
 #endif

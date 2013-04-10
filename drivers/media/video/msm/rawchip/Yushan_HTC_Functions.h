@@ -136,7 +136,7 @@ struct rawchip_sensor_init_data {
 	uint16_t y_even_inc;
 	uint16_t y_odd_inc;
 	uint8_t binning_rawchip;
-	uint8_t use_rawchip;
+	uint8_t use_rawchip;/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 };
 
 typedef enum {
@@ -152,8 +152,8 @@ typedef struct {
 } rawchip_aec_params_t;
 
 typedef struct {
-  uint8_t rg_ratio; 
-  uint8_t bg_ratio; 
+  uint8_t rg_ratio; /* Q6 format */
+  uint8_t bg_ratio; /* Q6 format */
 } rawchip_awb_params_t;
 
 typedef struct {

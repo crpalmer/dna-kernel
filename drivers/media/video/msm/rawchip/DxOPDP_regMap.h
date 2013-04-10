@@ -17,10 +17,16 @@
 #ifndef __DxOPDP_regMap_h__
 #define __DxOPDP_regMap_h__
 
+/* ********************************************************************************** */
+/* Command registers addresses: */
+/* ********************************************************************************** */
 #define DxOPDP_boot                                                             0x1a10
 #define DxOPDP_execCmd                                                          0x1a08
 #define DxOPDP_newFrameCmd                                                      0x1a0c
 
+/* ********************************************************************************** */
+/* User parameters registers addresses: */
+/* ********************************************************************************** */
 #define DxOPDP_ucode_id_7_0                                                     0x0200
 #define DxOPDP_ucode_id_15_8                                                    0x0201
 #define DxOPDP_hw_id_7_0                                                        0x0202
@@ -67,13 +73,20 @@
 #define DxOPDP_frame_number_7_0                                                 0x0231
 #define DxOPDP_frame_number_15_8                                                0x0232
 
+/* ********************************************************************************** */
+/* User constant definition: */
+/* ********************************************************************************** */
 #define DxOPDP_execCmd_SettingCmd                                               0x01
 #define DxOPDP_mode_features_enabled                                            0x01
 #define DxOPDP_mode_black_point_disabled                                        0x08
 #define DxOPDP_mode_dead_pixels_disabled                                        0x10
 #define DxOPDP_mode_phase_repair_disabled                                       0x20
 
-#if 1 
+/* ********************************************************************************** */
+/* User parameters default values: */
+/* ********************************************************************************** */
+// default to use lib v1.1
+#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
 #define DxOPDP_dfltVal_ucode_id_7_0                                             0x07
 #define DxOPDP_dfltVal_ucode_id_15_8                                            0x01
 #define DxOPDP_dfltVal_hw_id_7_0                                                0x5b
@@ -130,6 +143,9 @@
 #define DxOPDP_dfltVal_frame_number_7_0                                         0xff
 #define DxOPDP_dfltVal_frame_number_15_8                                        0xff
 
+/* ********************************************************************************** */
+/* Error constant definition: */
+/* ********************************************************************************** */
 #define DxOPDP_error_code_ok                                                    0x00
 #define DxOPDP_error_code_bad_hw_id                                             0x01
 #define DxOPDP_error_code_bad_calib_data                                        0x02
@@ -146,4 +162,4 @@
 #define DxOPDP_error_code_invalid_orientation                                   0x1d
 #define DxOPDP_error_code_invalid_analogue_gain_code_greenR                     0x1f
 
-#endif 
+#endif /* __DxOPDP_regMap_h__ */

@@ -65,7 +65,7 @@
 #define DHD_REORDER_ON()	(dhd_msg_level & DHD_REORDER_VAL)
 #define DHD_NOCHECKDIED_ON()	(dhd_msg_level & DHD_NOCHECKDIED_VAL)
 
-#else 
+#else /* defined(BCMDBG) || defined(DHD_DEBUG) */
 
 #define DHD_DEFAULT(args)   do {if (net_ratelimit()) printf args;} while (0)
 #define DHD_ERROR(args)    	do {if (net_ratelimit()) printf args;} while (0)
@@ -109,6 +109,7 @@
 #define DHD_NONE(args)
 extern int dhd_msg_level;
 
+/* Defines msg bits */
 #include <dhdioctl.h>
 
-#endif 
+#endif /* _dhd_dbg_ */

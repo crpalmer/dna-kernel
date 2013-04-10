@@ -29,6 +29,7 @@ DEFINE_MUTEX(pm_mutex);
 
 #ifdef CONFIG_PM_SLEEP
 
+/* Routines for PM-transition notifications */
 
 static BLOCKING_NOTIFIER_HEAD(pm_chain_head);
 
@@ -58,6 +59,7 @@ int pm_notifier_call_chain(unsigned long val)
 	return notifier_to_errno(ret);
 }
 
+/* If set, devices may be suspended and resumed asynchronously. */
 int pm_async_enabled = 1;
 
 static ssize_t pm_async_show(struct kobject *kobj, struct kobj_attribute *attr,
@@ -104,9 +106,12 @@ touch_event_store(struct kobject *kobj,
 	hrtimer_cancel(&tc_ev_timer);
 	tc_ev_processed = 0;
 
+	/* set a timer to notify the userspace to stop processing
+	 * touch event
+	 */
 	hrtimer_start(&tc_ev_timer, touch_evt_timer_val, HRTIMER_MODE_REL);
 
-	
+	/* wakeup the userspace poll */
 	sysfs_notify(kobj, NULL, "touch_event");
 
 	return n;
@@ -140,7 +145,7 @@ power_attr(touch_event_timer);
 
 static void touch_event_fn(struct work_struct *work)
 {
-	
+	/* wakeup the userspace poll */
 	tc_ev_processed = 1;
 	sysfs_notify(power_kobj, NULL, "touch_event");
 
@@ -182,7 +187,7 @@ static ssize_t pm_test_show(struct kobject *kobj, struct kobj_attribute *attr,
 		}
 
 	if (s != buf)
-		
+		/* convert the last space to a newline */
 		*(s-1) = '\n';
 
 	return (s - buf);
@@ -216,7 +221,7 @@ static ssize_t pm_test_store(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 power_attr(pm_test);
-#endif 
+#endif /* CONFIG_PM_DEBUG */
 
 #ifdef CONFIG_DEBUG_FS
 static char *suspend_step_name(enum suspend_stat_step step)
@@ -315,12 +320,22 @@ static int __init pm_debugfs_init(void)
 }
 
 late_initcall(pm_debugfs_init);
-#endif 
+#endif /* CONFIG_DEBUG_FS */
 
-#endif 
+#endif /* CONFIG_PM_SLEEP */
 
 struct kobject *power_kobj;
 
+/**
+ *	state - control system power state.
+ *
+ *	show() returns what states are supported, which is hard-coded to
+ *	'standby' (Power-On Suspend), 'mem' (Suspend-to-RAM), and
+ *	'disk' (Suspend-to-Disk).
+ *
+ *	store() accepts one of those strings, translates it into the
+ *	proper enumerated value, and initiates a suspend transition.
+ */
 static ssize_t state_show(struct kobject *kobj, struct kobj_attribute *attr,
 			  char *buf)
 {
@@ -337,7 +352,7 @@ static ssize_t state_show(struct kobject *kobj, struct kobj_attribute *attr,
 	s += sprintf(s, "%s\n", "disk");
 #else
 	if (s != buf)
-		
+		/* convert the last space to a newline */
 		*(s-1) = '\n';
 #endif
 	return (s - buf);
@@ -361,7 +376,7 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
 	p = memchr(buf, '\n', n);
 	len = p ? p - buf : n;
 
-	
+	/* First, check if we are requested to hibernate */
 	if (len == 4 && !strncmp(buf, "disk", len)) {
 		error = hibernate();
 		goto Exit;
@@ -441,7 +456,7 @@ static ssize_t wakeup_count_store(struct kobject *kobj,
 }
 
 power_attr(wakeup_count);
-#endif 
+#endif /* CONFIG_PM_SLEEP */
 
 #ifdef CONFIG_PM_TRACE
 int pm_trace_enabled;
@@ -483,7 +498,7 @@ pm_trace_dev_match_store(struct kobject *kobj, struct kobj_attribute *attr,
 
 power_attr(pm_trace_dev_match);
 
-#endif 
+#endif /* CONFIG_PM_TRACE */
 
 #ifdef CONFIG_USER_WAKELOCK
 power_attr(wake_lock);
@@ -497,7 +512,7 @@ static ssize_t
 perflock_show(struct kobject *kobj, struct kobj_attribute *attr,
 		char *buf)
 {
-	
+	/* bit[0] = lowest, bit[1] = low, bit[2] = medium, bit[3] = high, bit[4]=highest */
 	int i, perf_enable = 0;
 	for (i = 0; i < PERF_LOCK_INVALID; i++)
 		if(is_perf_lock_active(&user_perf_lock[i]) != 0)
@@ -537,7 +552,7 @@ perflock_store(struct kobject *kobj, struct kobj_attribute *attr,
 		perf_level_wrapper(6, 7, PERF_LOCK_HIGH);
 		perf_level_wrapper(8, 9, PERF_LOCK_HIGHEST);
 		default:
-			
+			/* no matching level found */
 			break;
 		}
 		return n;
@@ -602,7 +617,7 @@ static ssize_t
 cpufreq_ceiling_show(struct kobject *kobj, struct kobj_attribute *attr,
 		char *buf)
 {
-	
+	/* bit[0] = low, bit[1] = medium, bit[2] = high */
 	int i, ceiling_enable = 0;
 	for (i = 0; i < PERF_LOCK_INVALID; i++)
 		if(is_perf_lock_active(&user_ceiling_lock[i]) != 0)
@@ -641,7 +656,7 @@ cpufreq_ceiling_store(struct kobject *kobj, struct kobj_attribute *attr,
 		ceiling_level_wrapper(6, 7, PERF_LOCK_HIGH);
 		ceiling_level_wrapper(8, 9, PERF_LOCK_HIGHEST);
 		default:
-			
+			/* no matching level found */
 			break;
 		}
 		return n;
@@ -654,6 +669,7 @@ power_attr(cpufreq_ceiling);
 static int cpunum_max;
 static int cpunum_min;
 
+/* Show the locked greatest cpu min number. Show 0 if no lock */
 static ssize_t
 cpunum_floor_show(struct kobject *kobj, struct kobj_attribute *attr,
 		char *buf)
@@ -672,6 +688,7 @@ cpunum_floor_show(struct kobject *kobj, struct kobj_attribute *attr,
 	return sprintf(buf, "%d\n", i);
 }
 
+/* Store by bit. bit 0 = single core, bit 1 = dual core. */
 static ssize_t
 cpunum_floor_store(struct kobject *kobj, struct kobj_attribute *attr,
 		const char *buf, size_t n)
@@ -772,15 +789,17 @@ static struct attribute_group attr_group = {
 
 #ifdef CONFIG_PM_RUNTIME
 struct workqueue_struct *pm_wq;
+/* ++SSD_RIL: workqueue for realtime PM tasks*/
 struct workqueue_struct *pm_rt_wq;
+/* --SSD_RIL */
 EXPORT_SYMBOL_GPL(pm_wq);
 
 static int __init pm_start_workqueue(void)
 {
 	pm_wq = alloc_workqueue("pm", WQ_FREEZABLE, 0);
-	
+	/* ++SSD_RIL */
 	pm_rt_wq = alloc_workqueue("pm_rt", WQ_FREEZABLE | WQ_HIGHPRI , 0);
-	
+	/* --SSD_RIL */
 
 	return pm_wq ? 0 : -ENOMEM;
 }

@@ -922,6 +922,7 @@ struct vcd_buffer_entry *vcd_find_buffer_pool_entry
 	u32 i;
 	u32 found = false;
 
+/* HTC_START */
 	if (!pool) {
 		pr_info("[VID] %s: pool is NULL\n", __func__);
 		show_mem(SHOW_MEM_FILTER_NODES);
@@ -932,6 +933,7 @@ struct vcd_buffer_entry *vcd_find_buffer_pool_entry
 		show_mem(SHOW_MEM_FILTER_NODES);
 		return NULL;
 	}
+/* HTC_END */
 
 	for (i = 0; i <= pool->count && !found; i++) {
 		if (pool->entries[i].virtual == addr)
@@ -1893,9 +1895,16 @@ u32 vcd_setup_with_ddl_capabilities(struct vcd_dev_ctxt *dev_ctxt)
 		Prop_hdr.prop_id = DDL_I_CAPABILITY;
 		Prop_hdr.sz = sizeof(capability);
 
+		/*
+		** Since this is underlying core's property we don't need a
+		** ddl client handle.
+		*/
 		rc = ddl_get_property(NULL, &Prop_hdr, &capability);
 
 		if (!VCD_FAILED(rc)) {
+			/*
+			** Allocate the transaction table.
+			*/
 			dev_ctxt->trans_tbl_size =
 				(VCD_MAX_CLIENT_TRANSACTIONS *
 				capability.max_num_client) +
@@ -1986,12 +1995,12 @@ u32 vcd_handle_input_done(
 	transc = (struct vcd_transc *)frame->vcd_frm.ip_frm_tag;
 	orig_frame = vcd_find_buffer_pool_entry(&cctxt->in_buf_pool,
 					 transc->ip_buf_entry->virtual);
-	
+	/* HTC_START (klockwork issue)*/
 	if (!orig_frame) {
 		VCD_MSG_ERROR("Bad buffer addr: %p", transc->ip_buf_entry->virtual);
 		return VCD_ERR_FAIL;
 	}
-	
+	/* HTC_END */
 	if ((transc->ip_buf_entry->frame.virtual !=
 		 frame->vcd_frm.virtual)
 		|| !transc->ip_buf_entry->in_use) {
@@ -2457,6 +2466,15 @@ u32 vcd_handle_first_fill_output_buffer_for_enc(
 	rc = ddl_get_property(cctxt->ddl_handle, &prop_hdr, &codec);
 	if (!VCD_FAILED(rc)) {
 		if (codec.codec != VCD_CODEC_H263) {
+			/*
+			 * The seq. header is stored in a seperate internal
+			 * buffer and is memcopied into the output buffer
+			 * that we provide.  In secure sessions, we aren't
+			 * allowed to touch these buffers.  In these cases
+			 * seq. headers are returned to client as part of
+			 * I-frames. So for secure session, just return
+			 * empty buffer.
+			 */
 			if (!cctxt->secure) {
 				prop_hdr.prop_id = VCD_I_SEQ_HEADER;
 				prop_hdr.sz = sizeof(struct vcd_sequence_hdr);
@@ -2476,6 +2494,10 @@ u32 vcd_handle_first_fill_output_buffer_for_enc(
 							"ddl_get_property: VCD_I_SEQ_HEADER",
 							rc);
 			} else {
+				/*
+				 * First check that the proper props are enabled
+				 * so  client can get the proper info eventually
+				 */
 				prop_hdr.prop_id = VCD_I_ENABLE_SPS_PPS_FOR_IDR;
 				prop_hdr.sz = sizeof(idr_enable);
 				rc = ddl_get_property(cctxt->ddl_handle,
@@ -2487,7 +2509,7 @@ u32 vcd_handle_first_fill_output_buffer_for_enc(
 							"needs to be enabled");
 						rc = VCD_ERR_BAD_STATE;
 					} else {
-						
+						/* Send zero len frame */
 						frm_entry->data_len = 0;
 						frm_entry->time_stamp = 0;
 						frm_entry->flags = 0;
@@ -2825,6 +2847,10 @@ u32 vcd_handle_input_frame(
 	}
 
 	if (orig_frame->in_use) {
+		/*
+		 * This path only allowed for enc., dec. not allowed
+		 * to queue same buffer multiple times
+		 */
 		if (cctxt->decoding) {
 			VCD_MSG_ERROR("An inuse input frame is being "
 					"re-queued to scheduler");
@@ -2838,6 +2864,10 @@ u32 vcd_handle_input_frame(
 		}
 
 		INIT_LIST_HEAD(&buf_entry->sched_list);
+		/*
+		 * Pre-emptively poisoning this, as these dupe entries
+		 * shouldn't get added to any list
+		 */
 		INIT_LIST_HEAD(&buf_entry->list);
 		buf_entry->list.next = LIST_POISON1;
 		buf_entry->list.prev = LIST_POISON2;
@@ -2848,7 +2878,7 @@ u32 vcd_handle_input_frame(
 		buf_entry->physical = orig_frame->physical;
 		buf_entry->sz = orig_frame->sz;
 		buf_entry->allocated = orig_frame->allocated;
-		buf_entry->in_use = 1; 
+		buf_entry->in_use = 1; /* meaningless for the dupe buffers */
 		buf_entry->frame = orig_frame->frame;
 	} else
 		buf_entry = orig_frame;
@@ -3039,9 +3069,9 @@ u32 vcd_req_perf_level(
 	 struct vcd_property_perf_level *perf_level)
 {
 	u32 rc;
-	
+	/* HTC_START (klockwork issue)*/
 	s32 res_trk_perf_level;
-	
+	/* HTC_END */
 	if (!perf_level) {
 		VCD_MSG_ERROR("Invalid parameters\n");
 		return -EINVAL;

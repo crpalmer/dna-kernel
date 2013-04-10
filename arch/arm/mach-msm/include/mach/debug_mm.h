@@ -26,4 +26,4 @@
 
 #define MM_ERR(fmt, args...) pr_err("[%s:%s] " fmt,\
 	       __MM_FILE__, __func__, ##args)
-#endif 
+#endif /* __ARCH_ARM_MACH_MSM_DEBUG_MM_H_ */

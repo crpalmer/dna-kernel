@@ -29,11 +29,11 @@ struct z180_ringbuffer {
 };
 
 struct z180_device {
-	struct kgsl_device dev;    
+	struct kgsl_device dev;    /* Must be first field in this struct */
 	int current_timestamp;
 	int timestamp;
 	struct z180_ringbuffer ringbuffer;
 	spinlock_t cmdwin_lock;
 };
 
-#endif 
+#endif /* __Z180_H */

@@ -23,4 +23,4 @@ bool usfcdev_register(
 	bool (*match_cb)(uint16_t, struct input_dev *dev));
 void usfcdev_unregister(uint16_t event_type_ind);
 bool usfcdev_set_filter(uint16_t event_type_ind, bool filter);
-#endif 
+#endif /* __USFCDEV_H__ */

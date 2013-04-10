@@ -169,11 +169,11 @@ static struct workqueue_struct *ki_queue;
 #endif
 
 enum {
-	DEBOUNCE_UNSTABLE     = BIT(0),	
+	DEBOUNCE_UNSTABLE     = BIT(0),	/* Got irq, while debouncing */
 	DEBOUNCE_PRESSED      = BIT(1),
 	DEBOUNCE_NOTPRESSED   = BIT(2),
-	DEBOUNCE_WAIT_IRQ     = BIT(3),	
-	DEBOUNCE_POLL         = BIT(4),	
+	DEBOUNCE_WAIT_IRQ     = BIT(3),	/* Stable irq state */
+	DEBOUNCE_POLL         = BIT(4),	/* Stable polling state */
 
 	DEBOUNCE_UNKNOWN =
 		DEBOUNCE_PRESSED | DEBOUNCE_NOTPRESSED,
@@ -213,7 +213,7 @@ static ssize_t kernel_write(struct file *file, const char *buf,
 
 	old_fs = get_fs();
 	set_fs(get_ds());
-	
+	/* The cast to a user pointer is valid due to the set_fs() */
 	res = vfs_write(file, (const char __user *)buf, count, &pos);
 	set_fs(old_fs);
 
@@ -308,7 +308,7 @@ static void power_key_check_reset_work_func(struct work_struct *dummy)
 	int pocket_mode = 0;
 	KEY_LOGI("[PWR] %s\n", __func__);
 	if ((aa->clear_hw_reset)) {
-		
+		/* Check P/L sensor status */
 		pocket_mode = power_key_check_in_pocket();
 		if (pocket_mode) {
 			printk(KERN_INFO "[KEY] power_key_check_in_pocket = %d\n", pocket_mode);
@@ -423,7 +423,7 @@ static enum hrtimer_restart gpio_event_input_timer_func(struct hrtimer *timer)
 			key_state->debounce = DEBOUNCE_NOTPRESSED;
 			continue;
 		}
-		
+		/* key is stable */
 		ds->debounce_count--;
 		if (ds->use_irq)
 			key_state->debounce |= DEBOUNCE_WAIT_IRQ;

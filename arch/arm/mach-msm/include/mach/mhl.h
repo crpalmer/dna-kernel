@@ -42,9 +42,15 @@ typedef struct {
 	int (*mhl_power_vote)(bool enable);
 } T_MHL_PLATFORM_DATA;
 
+//********************************************************************
+//  Define & Macro
+//********************************************************************
 #define M_MHL_SEND_DEBUG(x...) pr_info(x)
+//********************************************************************
+//  Prototype & Extern variable, function
+//********************************************************************
 #ifdef CONFIG_FB_MSM_HDMI_MHL
 extern void sii9234_change_usb_owner(bool bMHL);
 #endif
-#endif
+#endif/*_MHL_H_*/
 

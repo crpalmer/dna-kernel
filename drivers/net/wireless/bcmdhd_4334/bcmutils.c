@@ -32,7 +32,7 @@
 #include <osl.h>
 #include <bcmutils.h>
 
-#else 
+#else /* !BCMDRIVER */
 
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +43,7 @@
 #endif
 
 
-#endif 
+#endif /* !BCMDRIVER */
 
 #include <bcmendian.h>
 #include <bcmdevs.h>
@@ -59,15 +59,16 @@ void *_bcmutils_dummy_fn = NULL;
 
 
 
+/* copy a pkt buffer chain into a buffer */
 uint
 pktcopy(osl_t *osh, void *p, uint offset, int len, uchar *buf)
 {
 	uint n, ret = 0;
 
 	if (len < 0)
-		len = 4096;	
+		len = 4096;	/* "infinite" */
 
-	
+	/* skip 'offset' bytes */
 	for (; p && offset; p = PKTNEXT(osh, p)) {
 		if (offset < (uint)PKTLEN(osh, p))
 			break;
@@ -77,7 +78,7 @@ pktcopy(osl_t *osh, void *p, uint offset, int len, uchar *buf)
 	if (!p)
 		return 0;
 
-	
+	/* copy the data */
 	for (; p && len; p = PKTNEXT(osh, p)) {
 		n = MIN((uint)PKTLEN(osh, p) - offset, (uint)len);
 		bcopy(PKTDATA(osh, p) + offset, buf, n);
@@ -90,12 +91,13 @@ pktcopy(osl_t *osh, void *p, uint offset, int len, uchar *buf)
 	return ret;
 }
 
+/* copy a buffer into a pkt buffer chain */
 uint
 pktfrombuf(osl_t *osh, void *p, uint offset, int len, uchar *buf)
 {
 	uint n, ret = 0;
 
-	
+	/* skip 'offset' bytes */
 	for (; p && offset; p = PKTNEXT(osh, p)) {
 		if (offset < (uint)PKTLEN(osh, p))
 			break;
@@ -105,7 +107,7 @@ pktfrombuf(osl_t *osh, void *p, uint offset, int len, uchar *buf)
 	if (!p)
 		return 0;
 
-	
+	/* copy the data */
 	for (; p && len; p = PKTNEXT(osh, p)) {
 		n = MIN((uint)PKTLEN(osh, p) - offset, (uint)len);
 		bcopy(buf, PKTDATA(osh, p) + offset, n);
@@ -120,6 +122,7 @@ pktfrombuf(osl_t *osh, void *p, uint offset, int len, uchar *buf)
 
 
 
+/* return total length of buffer chain */
 uint BCMFASTPATH
 pkttotlen(osl_t *osh, void *p)
 {
@@ -135,6 +138,7 @@ pkttotlen(osl_t *osh, void *p)
 	return (total);
 }
 
+/* return the last buffer of chained pkt */
 void *
 pktlast(osl_t *osh, void *p)
 {
@@ -144,6 +148,7 @@ pktlast(osl_t *osh, void *p)
 	return (p);
 }
 
+/* count segments of a chained packet */
 uint BCMFASTPATH
 pktsegcnt(osl_t *osh, void *p)
 {
@@ -156,6 +161,7 @@ pktsegcnt(osl_t *osh, void *p)
 }
 
 
+/* count segments of a chained packet */
 uint BCMFASTPATH
 pktsegcnt_war(osl_t *osh, void *p)
 {
@@ -167,18 +173,18 @@ pktsegcnt_war(osl_t *osh, void *p)
 		cnt++;
 		len = PKTLEN(osh, p);
 		if (len > 128) {
-			pktdata = (uint8 *)PKTDATA(osh, p);	
-			
+			pktdata = (uint8 *)PKTDATA(osh, p);	/* starting address of data */
+			/* Check for page boundary straddle (2048B) */
 			if (((uintptr)pktdata & ~0x7ff) != ((uintptr)(pktdata+len) & ~0x7ff))
 				cnt++;
 
-			align64 = (uint)((uintptr)pktdata & 0x3f);	
+			align64 = (uint)((uintptr)pktdata & 0x3f);	/* aligned to 64B */
 			align64 = (64 - align64) & 0x3f;
-			len -= align64;		
-			
+			len -= align64;		/* bytes from aligned 64B to end */
+			/* if aligned to 128B, check for MOD 128 between 1 to 4B */
 			remain = len % 128;
 			if (remain > 0 && remain <= 4)
-				cnt++;		
+				cnt++;		/* add extra seg */
 		}
 	}
 
@@ -205,13 +211,17 @@ pktoffset(osl_t *osh, void *p,  uint offset)
 	return (uint8*) (pdata+pkt_off);
 }
 
+/*
+ * osl multiple-precedence packet queue
+ * hi_prec is always >= the number of the highest non-empty precedence
+ */
 void * BCMFASTPATH
 pktq_penq(struct pktq *pq, int prec, void *p)
 {
 	struct pktq_prec *q;
 
 	ASSERT(prec >= 0 && prec < pq->num_prec);
-	ASSERT(PKTLINK(p) == NULL);         
+	ASSERT(PKTLINK(p) == NULL);         /* queueing chains not allowed */
 
 	ASSERT(!pktq_full(pq));
 	ASSERT(!pktq_pfull(pq, prec));
@@ -240,7 +250,7 @@ pktq_penq_head(struct pktq *pq, int prec, void *p)
 	struct pktq_prec *q;
 
 	ASSERT(prec >= 0 && prec < pq->num_prec);
-	ASSERT(PKTLINK(p) == NULL);         
+	ASSERT(PKTLINK(p) == NULL);         /* queueing chains not allowed */
 
 	ASSERT(!pktq_full(pq));
 	ASSERT(!pktq_pfull(pq, prec));
@@ -421,7 +431,7 @@ pktq_init(struct pktq *pq, int num_prec, int max_len)
 
 	ASSERT(num_prec > 0 && num_prec <= PKTQ_MAX_PREC);
 
-	
+	/* pq is variable size; only zero out what's requested */
 	bzero(pq, OFFSETOF(struct pktq, q) + (sizeof(struct pktq_prec) * num_prec));
 
 	pq->num_prec = (uint16)num_prec;
@@ -554,6 +564,9 @@ pktq_flush(osl_t *osh, struct pktq *pq, bool dir, ifpkt_cb_t fn, int arg)
 {
 	int prec;
 
+	/* Optimize flush, if pktq len = 0, just return.
+	 * pktq len of 0 means pktq's prec q's are all empty.
+	 */
 	if (pq->len == 0) {
 		return;
 	}
@@ -564,6 +577,7 @@ pktq_flush(osl_t *osh, struct pktq *pq, bool dir, ifpkt_cb_t fn, int arg)
 		ASSERT(pq->len == 0);
 }
 
+/* Return sum of lengths of a specific set of precedences */
 int
 pktq_mlen(struct pktq *pq, uint prec_bmp)
 {
@@ -578,6 +592,7 @@ pktq_mlen(struct pktq *pq, uint prec_bmp)
 	return len;
 }
 
+/* Priority peek from a specific set of precedences */
 void * BCMFASTPATH
 pktq_mpeek(struct pktq *pq, uint prec_bmp, int *prec_out)
 {
@@ -606,6 +621,7 @@ pktq_mpeek(struct pktq *pq, uint prec_bmp, int *prec_out)
 
 	return p;
 }
+/* Priority dequeue from a specific set of precedences */
 void * BCMFASTPATH
 pktq_mdeq(struct pktq *pq, uint prec_bmp, int *prec_out)
 {
@@ -648,43 +664,43 @@ pktq_mdeq(struct pktq *pq, uint prec_bmp, int *prec_out)
 	return p;
 }
 
-#endif 
+#endif /* BCMDRIVER */
 
 const unsigned char bcm_ctype[] = {
 
-	_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,			
+	_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,			/* 0-7 */
 	_BCM_C, _BCM_C|_BCM_S, _BCM_C|_BCM_S, _BCM_C|_BCM_S, _BCM_C|_BCM_S, _BCM_C|_BCM_S, _BCM_C,
-	_BCM_C,	
-	_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,			
-	_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,			
-	_BCM_S|_BCM_SP,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,		
-	_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,			
-	_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,			
-	_BCM_D,_BCM_D,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,			
+	_BCM_C,	/* 8-15 */
+	_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,			/* 16-23 */
+	_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,_BCM_C,			/* 24-31 */
+	_BCM_S|_BCM_SP,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,		/* 32-39 */
+	_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,			/* 40-47 */
+	_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,_BCM_D,			/* 48-55 */
+	_BCM_D,_BCM_D,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,			/* 56-63 */
 	_BCM_P, _BCM_U|_BCM_X, _BCM_U|_BCM_X, _BCM_U|_BCM_X, _BCM_U|_BCM_X, _BCM_U|_BCM_X,
-	_BCM_U|_BCM_X, _BCM_U, 
-	_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,			
-	_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,			
-	_BCM_U,_BCM_U,_BCM_U,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,			
+	_BCM_U|_BCM_X, _BCM_U, /* 64-71 */
+	_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,			/* 72-79 */
+	_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,_BCM_U,			/* 80-87 */
+	_BCM_U,_BCM_U,_BCM_U,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_P,			/* 88-95 */
 	_BCM_P, _BCM_L|_BCM_X, _BCM_L|_BCM_X, _BCM_L|_BCM_X, _BCM_L|_BCM_X, _BCM_L|_BCM_X,
-	_BCM_L|_BCM_X, _BCM_L, 
-	_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L, 
-	_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L, 
-	_BCM_L,_BCM_L,_BCM_L,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_C, 
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		
+	_BCM_L|_BCM_X, _BCM_L, /* 96-103 */
+	_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L, /* 104-111 */
+	_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L,_BCM_L, /* 112-119 */
+	_BCM_L,_BCM_L,_BCM_L,_BCM_P,_BCM_P,_BCM_P,_BCM_P,_BCM_C, /* 120-127 */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 128-143 */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,		/* 144-159 */
 	_BCM_S|_BCM_SP, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P,
-	_BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P,	
+	_BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P,	/* 160-175 */
 	_BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P,
-	_BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P,	
+	_BCM_P, _BCM_P, _BCM_P, _BCM_P, _BCM_P,	/* 176-191 */
 	_BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U,
-	_BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U,	
+	_BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U,	/* 192-207 */
 	_BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_P, _BCM_U, _BCM_U, _BCM_U,
-	_BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_L,	
+	_BCM_U, _BCM_U, _BCM_U, _BCM_U, _BCM_L,	/* 208-223 */
 	_BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L,
-	_BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L,	
+	_BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L,	/* 224-239 */
 	_BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_P, _BCM_L, _BCM_L, _BCM_L,
-	_BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L 
+	_BCM_L, _BCM_L, _BCM_L, _BCM_L, _BCM_L /* 240-255 */
 };
 
 ulong
@@ -725,7 +741,7 @@ bcm_strtoul(const char *cp, char **endp, uint base)
 	while (bcm_isxdigit(*cp) &&
 	       (value = bcm_isdigit(*cp) ? *cp-'0' : bcm_toupper(*cp)-'A'+10) < base) {
 		result = result*base + value;
-		
+		/* Detected overflow */
 		if (result < last_result && !minus)
 			return (ulong)-1;
 		last_result = result;
@@ -747,6 +763,7 @@ bcm_atoi(const char *s)
 	return (int)bcm_strtoul(s, NULL, 10);
 }
 
+/* return pointer to location of substring 'needle' in 'haystack' */
 char *
 bcmstrstr(const char *haystack, const char *needle)
 {
@@ -794,6 +811,25 @@ bcmstrncat(char *dest, const char *src, uint size)
 }
 
 
+/****************************************************************************
+* Function:   bcmstrtok
+*
+* Purpose:
+*  Tokenizes a string. This function is conceptually similiar to ANSI C strtok(),
+*  but allows strToken() to be used by different strings or callers at the same
+*  time. Each call modifies '*string' by substituting a NULL character for the
+*  first delimiter that is encountered, and updates 'string' to point to the char
+*  after the delimiter. Leading delimiters are skipped.
+*
+* Parameters:
+*  string      (mod) Ptr to string ptr, updated by token.
+*  delimiters  (in)  Set of delimiter characters.
+*  tokdelim    (out) Character that delimits the returned token. (May
+*                    be set to NULL if token delimiter is not required).
+*
+* Returns:  Pointer to the next token found. NULL when no more tokens are found.
+*****************************************************************************
+*/
 char *
 bcmstrtok(char **string, const char *delimiters, char *tokdelim)
 {
@@ -803,16 +839,16 @@ bcmstrtok(char **string, const char *delimiters, char *tokdelim)
 	char *nextoken;
 
 	if (tokdelim != NULL) {
-		
+		/* Prime the token delimiter */
 		*tokdelim = '\0';
 	}
 
-	
+	/* Clear control map */
 	for (count = 0; count < 8; count++) {
 		map[count] = 0;
 	}
 
-	
+	/* Set bits in delimiter table */
 	do {
 		map[*delimiters >> 5] |= (1 << (*delimiters & 31));
 	}
@@ -820,12 +856,19 @@ bcmstrtok(char **string, const char *delimiters, char *tokdelim)
 
 	str = (unsigned char*)*string;
 
+	/* Find beginning of token (skip over leading delimiters). Note that
+	 * there is no token iff this loop sets str to point to the terminal
+	 * null (*str == '\0')
+	 */
 	while (((map[*str >> 5] & (1 << (*str & 31))) && *str) || (*str == ' ')) {
 		str++;
 	}
 
 	nextoken = (char*)str;
 
+	/* Find the end of the token. If it is not the end of the string,
+	 * put a null there.
+	 */
 	for (; *str; str++) {
 		if (map[*str >> 5] & (1 << (*str & 31))) {
 			if (tokdelim != NULL) {
@@ -839,7 +882,7 @@ bcmstrtok(char **string, const char *delimiters, char *tokdelim)
 
 	*string = (char*)str;
 
-	
+	/* Determine if a token has been found. */
 	if (nextoken == (char *) str) {
 		return NULL;
 	}
@@ -853,6 +896,18 @@ bcmstrtok(char **string, const char *delimiters, char *tokdelim)
 	((C >= 'A' && C <= 'Z') ? (char)((int)C - (int)'A' + (int)'a') : C)
 
 
+/****************************************************************************
+* Function:   bcmstricmp
+*
+* Purpose:    Compare to strings case insensitively.
+*
+* Parameters: s1 (in) First string to compare.
+*             s2 (in) Second string to compare.
+*
+* Returns:    Return 0 if the two strings are equal, -1 if t1 < t2 and 1 if
+*             t1 > t2, when ignoring case sensitivity.
+*****************************************************************************
+*/
 int
 bcmstricmp(const char *s1, const char *s2)
 {
@@ -873,6 +928,20 @@ bcmstricmp(const char *s1, const char *s2)
 }
 
 
+/****************************************************************************
+* Function:   bcmstrnicmp
+*
+* Purpose:    Compare to strings case insensitively, upto a max of 'cnt'
+*             characters.
+*
+* Parameters: s1  (in) First string to compare.
+*             s2  (in) Second string to compare.
+*             cnt (in) Max characters to compare.
+*
+* Returns:    Return 0 if the two strings are equal, -1 if t1 < t2 and 1 if
+*             t1 > t2, when ignoring case sensitivity.
+*****************************************************************************
+*/
 int
 bcmstrnicmp(const char* s1, const char* s2, int cnt)
 {
@@ -894,6 +963,7 @@ bcmstrnicmp(const char* s1, const char* s2, int cnt)
 	return 0;
 }
 
+/* parse a xx:xx:xx:xx:xx:xx format ethernet address */
 int
 bcm_ether_atoe(const char *p, struct ether_addr *ea)
 {
@@ -912,6 +982,10 @@ bcm_ether_atoe(const char *p, struct ether_addr *ea)
 
 
 #if defined(CONFIG_USBRNDIS_RETAIL) || defined(NDIS_MINIPORT_DRIVER)
+/* registry routine buffer preparation utility functions:
+ * parameter order is like strncpy, but returns count
+ * of bytes copied. Minimum bytes copied is null char(1)/wchar(2)
+ */
 ulong
 wchar2ascii(char *abuf, ushort *wbuf, ushort wbuflen, ulong abuflen)
 {
@@ -921,7 +995,7 @@ wchar2ascii(char *abuf, ushort *wbuf, ushort wbuflen, ulong abuflen)
 	if (abuflen == 0)
 		return 0;
 
-	
+	/* wbuflen is in bytes */
 	wbuflen /= sizeof(ushort);
 
 	for (i = 0; i < wbuflen; ++i) {
@@ -934,7 +1008,7 @@ wchar2ascii(char *abuf, ushort *wbuf, ushort wbuflen, ulong abuflen)
 
 	return copyct;
 }
-#endif 
+#endif /* CONFIG_USBRNDIS_RETAIL || NDIS_MINIPORT_DRIVER */
 
 char *
 bcm_ether_ntoa(const struct ether_addr *ea, char *buf)
@@ -984,6 +1058,7 @@ bcm_mdelay(uint ms)
 
 
 #if defined(DHD_DEBUG)
+/* pretty hex print a pkt buffer chain */
 void
 prpkt(const char *msg, osl_t *osh, void *p0)
 {
@@ -997,6 +1072,10 @@ prpkt(const char *msg, osl_t *osh, void *p0)
 }
 #endif	
 
+/* Takes an Ethernet frame and sets out-of-bound PKTPRIO.
+ * Also updates the inplace vlan tag if requested.
+ * For debugging, it returns an indication of what it did.
+ */
 uint BCMFASTPATH
 pktsetprio(void *pkt, bool update_vtag)
 {
@@ -1026,7 +1105,7 @@ pktsetprio(void *pkt, bool update_vtag)
 			dscp_prio = (int)(tos_tc >> IPV4_TOS_PREC_SHIFT);
 		}
 
-		
+		/* DSCP priority gets precedence over 802.1P (vlan tag) */
 		if (dscp_prio != 0) {
 			priority = dscp_prio;
 			rc |= PKTPRIO_VDSCP;
@@ -1034,6 +1113,13 @@ pktsetprio(void *pkt, bool update_vtag)
 			priority = vlan_prio;
 			rc |= PKTPRIO_VLAN;
 		}
+		/*
+		 * If the DSCP priority is not the same as the VLAN priority,
+		 * then overwrite the priority field in the vlan tag, with the
+		 * DSCP priority value. This is required for Linux APs because
+		 * the VLAN driver on Linux, overwrites the skb->priority field
+		 * with the priority value in the vlan tag
+		 */
 		if (update_vtag && (priority != vlan_prio)) {
 			vlan_tag &= ~(VLAN_PRI_MASK << VLAN_PRI_SHIFT);
 			vlan_tag |= (uint16)priority << VLAN_PRI_SHIFT;
@@ -1056,10 +1142,11 @@ pktsetprio(void *pkt, bool update_vtag)
 static char bcm_undeferrstr[32];
 static const char *bcmerrorstrtable[] = BCMERRSTRINGTABLE;
 
+/* Convert the error codes into related error strings  */
 const char *
 bcmerrorstr(int bcmerror)
 {
-	
+	/* check if someone added a bcmerror code but forgot to add errorstring */
 	ASSERT(ABS(BCME_LAST) == (ARRAYSIZE(bcmerrorstrtable) - 1));
 
 	if (bcmerror > 0 || bcmerror < BCME_LAST) {
@@ -1074,13 +1161,14 @@ bcmerrorstr(int bcmerror)
 
 
 
+/* iovar table lookup */
 const bcm_iovar_t*
 bcm_iovar_lookup(const bcm_iovar_t *table, const char *name)
 {
 	const bcm_iovar_t *vi;
 	const char *lookup_name;
 
-	
+	/* skip any ':' delimited option prefixes */
 	lookup_name = strrchr(name, ':');
 	if (lookup_name != NULL)
 		lookup_name++;
@@ -1093,9 +1181,9 @@ bcm_iovar_lookup(const bcm_iovar_t *table, const char *name)
 		if (!strcmp(vi->name, lookup_name))
 			return vi;
 	}
-	
+	/* ran to end of table */
 
-	return NULL; 
+	return NULL; /* var name not found */
 }
 
 int
@@ -1103,7 +1191,7 @@ bcm_iovar_lencheck(const bcm_iovar_t *vi, void *arg, int len, bool set)
 {
 	int bcmerror = 0;
 
-	
+	/* length check on io buf */
 	switch (vi->type) {
 	case IOVT_BOOL:
 	case IOVT_INT8:
@@ -1112,14 +1200,14 @@ bcm_iovar_lencheck(const bcm_iovar_t *vi, void *arg, int len, bool set)
 	case IOVT_UINT8:
 	case IOVT_UINT16:
 	case IOVT_UINT32:
-		
+		/* all integers are int32 sized args at the ioctl interface */
 		if (len < (int)sizeof(int)) {
 			bcmerror = BCME_BUFTOOSHORT;
 		}
 		break;
 
 	case IOVT_BUFFER:
-		
+		/* buffer must meet minimum length requirement */
 		if (len < vi->minlen) {
 			bcmerror = BCME_BUFTOOSHORT;
 		}
@@ -1127,16 +1215,16 @@ bcm_iovar_lencheck(const bcm_iovar_t *vi, void *arg, int len, bool set)
 
 	case IOVT_VOID:
 		if (!set) {
-			
+			/* Cannot return nil... */
 			bcmerror = BCME_UNSUPPORTED;
 		} else if (len) {
-			
+			/* Set is an action w/o parameters */
 			bcmerror = BCME_BUFTOOLONG;
 		}
 		break;
 
 	default:
-		
+		/* unknown type for length check in iovar info */
 		ASSERT(0);
 		bcmerror = BCME_UNSUPPORTED;
 	}
@@ -1237,9 +1325,9 @@ static const uint16 crc16_table[256] = {
 
 uint16
 hndcrc16(
-    uint8 *pdata,  
-    uint nbytes, 
-    uint16 crc     
+    uint8 *pdata,  /* pointer to array of data to process */
+    uint nbytes, /* number of input data bytes to process */
+    uint16 crc     /* either CRC16_INIT_VALUE or previous return value */
 )
 {
 	while (nbytes-- > 0)
@@ -1314,6 +1402,10 @@ static const uint32 crc32_table[256] = {
     0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 };
 
+/*
+ * crc input is CRC32_INIT_VALUE for a fresh start, or previous return value if
+ * accumulating over multiple pieces.
+ */
 uint32
 hndcrc32(uint8 *pdata, uint nbytes, uint32 crc)
 {
@@ -1326,9 +1418,9 @@ hndcrc32(uint8 *pdata, uint nbytes, uint32 crc)
 }
 
 #ifdef notdef
-#define CLEN 	1499 	
+#define CLEN 	1499 	/*  CRC Length */
 #define CBUFSIZ 	(CLEN+4)
-#define CNBUFS		5 
+#define CNBUFS		5 /* # of bufs */
 
 void
 testcrc32(void)
@@ -1342,7 +1434,7 @@ testcrc32(void)
 
 	ASSERT((buf = MALLOC(CBUFSIZ*CNBUFS)) != NULL);
 
-	
+	/* step through all possible alignments */
 	for (l = 0; l <= 4; l++) {
 		for (j = 0; j < CNBUFS; j++) {
 			len[j] = CLEN;
@@ -1359,29 +1451,42 @@ testcrc32(void)
 	MFREE(buf, CBUFSIZ*CNBUFS);
 	return;
 }
-#endif 
+#endif /* notdef */
 
+/*
+ * Advance from the current 1-byte tag/1-byte length/variable-length value
+ * triple, to the next, returning a pointer to the next.
+ * If the current or next TLV is invalid (does not fit in given buffer length),
+ * NULL is returned.
+ * *buflen is not modified if the TLV elt parameter is invalid, or is decremented
+ * by the TLV parameter's length if it is valid.
+ */
 bcm_tlv_t *
 bcm_next_tlv(bcm_tlv_t *elt, int *buflen)
 {
 	int len;
 
-	
+	/* validate current elt */
 	if (!bcm_valid_tlv(elt, *buflen))
 		return NULL;
 
-	
+	/* advance to next elt */
 	len = elt->len;
 	elt = (bcm_tlv_t*)(elt->data + len);
 	*buflen -= (TLV_HDR_LEN + len);
 
-	
+	/* validate next elt */
 	if (!bcm_valid_tlv(elt, *buflen))
 		return NULL;
 
 	return elt;
 }
 
+/*
+ * Traverse a string of 1-byte tag/1-byte length/variable-length value
+ * triples, returning a pointer to the substring whose first element
+ * matches tag
+ */
 bcm_tlv_t *
 bcm_parse_tlvs(void *buf, int buflen, uint key)
 {
@@ -1391,11 +1496,11 @@ bcm_parse_tlvs(void *buf, int buflen, uint key)
 	elt = (bcm_tlv_t*)buf;
 	totlen = buflen;
 
-	
+	/* find tagged parameter */
 	while (totlen >= TLV_HDR_LEN) {
 		int len = elt->len;
 
-		
+		/* validate remaining totlen */
 		if ((elt->id == key) &&
 		    (totlen >= (len + TLV_HDR_LEN)))
 			return (elt);
@@ -1407,6 +1512,12 @@ bcm_parse_tlvs(void *buf, int buflen, uint key)
 	return NULL;
 }
 
+/*
+ * Traverse a string of 1-byte tag/1-byte length/variable-length value
+ * triples, returning a pointer to the substring whose first element
+ * matches tag.  Stop parsing when we see an element whose ID is greater
+ * than the target key.
+ */
 bcm_tlv_t *
 bcm_parse_ordered_tlvs(void *buf, int buflen, uint key)
 {
@@ -1416,16 +1527,16 @@ bcm_parse_ordered_tlvs(void *buf, int buflen, uint key)
 	elt = (bcm_tlv_t*)buf;
 	totlen = buflen;
 
-	
+	/* find tagged parameter */
 	while (totlen >= TLV_HDR_LEN) {
 		uint id = elt->id;
 		int len = elt->len;
 
-		
+		/* Punt if we start seeing IDs > than target key */
 		if (id > key)
 			return (NULL);
 
-		
+		/* validate remaining totlen */
 		if ((id == key) &&
 		    (totlen >= (len + TLV_HDR_LEN)))
 			return (elt);
@@ -1457,39 +1568,40 @@ bcm_format_flags(const bcm_bit_desc_t *bd, uint32 flags, char* buf, int len)
 		bit = bd[i].bit;
 		name = bd[i].name;
 		if (bit == 0 && flags != 0) {
-			
+			/* print any unnamed bits */
 			snprintf(hexstr, 16, "0x%X", flags);
 			name = hexstr;
-			flags = 0;	
+			flags = 0;	/* exit loop */
 		} else if ((flags & bit) == 0)
 			continue;
 		flags &= ~bit;
 		nlen = strlen(name);
 		slen += nlen;
-		
+		/* count btwn flag space */
 		if (flags != 0)
 			slen += 1;
-		
+		/* need NULL char as well */
 		if (len <= slen)
 			break;
-		
+		/* copy NULL char but don't count it */
 		strncpy(p, name, nlen + 1);
 		p += nlen;
-		
+		/* copy btwn flag space and NULL char */
 		if (flags != 0)
 			p += snprintf(p, 2, " ");
 	}
 
-	
+	/* indicate the str was too short */
 	if (flags != 0) {
 		if (len < 2)
-			p -= 2 - len;	
+			p -= 2 - len;	/* overwrite last char */
 		p += snprintf(p, 2, ">");
 	}
 
 	return (int)(p - buf);
 }
 
+/* print bytes formatted as hex to a string. return the resulting string length */
 int
 bcm_format_hex(char *str, const void *bytes, int len)
 {
@@ -1505,6 +1617,7 @@ bcm_format_hex(char *str, const void *bytes, int len)
 }
 #endif 
 
+/* pretty hex print a contiguous buffer */
 void
 prhex(const char *msg, uchar *buf, uint nbytes)
 {
@@ -1519,7 +1632,7 @@ prhex(const char *msg, uchar *buf, uint nbytes)
 	p = line;
 	for (i = 0; i < nbytes; i++) {
 		if (i % 16 == 0) {
-			nchar = snprintf(p, len, "  %04d: ", i);	
+			nchar = snprintf(p, len, "  %04d: ", i);	/* line prefix */
 			p += nchar;
 			len -= nchar;
 		}
@@ -1530,13 +1643,13 @@ prhex(const char *msg, uchar *buf, uint nbytes)
 		}
 
 		if (i % 16 == 15) {
-			printf("%s\n", line);		
+			printf("%s\n", line);		/* flush line */
 			p = line;
 			len = sizeof(line);
 		}
 	}
 
-	
+	/* flush last partial line */
 	if (p != line)
 		printf("%s\n", line);
 }
@@ -1555,7 +1668,7 @@ static const char *crypto_algo_names[] = {
 	"UNDEF",
 #ifdef BCMWAPI_WPI
 	"WAPI",
-#endif 
+#endif /* BCMWAPI_WPI */
 	"UNDEF"
 };
 
@@ -1576,6 +1689,7 @@ bcm_chipname(uint chipid, char *buf, uint len)
 	return buf;
 }
 
+/* Produce a human-readable string for boardrev */
 char *
 bcm_brev_str(uint32 brev, char *buf)
 {
@@ -1587,8 +1701,9 @@ bcm_brev_str(uint32 brev, char *buf)
 	return (buf);
 }
 
-#define BUFSIZE_TODUMP_ATONCE 512 
+#define BUFSIZE_TODUMP_ATONCE 512 /* Buffer size */
 
+/* dump large strings to console */
 void
 printbig(char *buf)
 {
@@ -1608,11 +1723,12 @@ printbig(char *buf)
 		buf += max_len;
 		len -= max_len;
 	}
-	
+	/* print the remaining string */
 	printf("%s\n", buf);
 	return;
 }
 
+/* routine to dump fields in a fileddesc structure */
 uint
 bcmdumpfields(bcmutl_rdreg_rtn read_rtn, void *arg0, uint arg1, struct fielddesc *fielddesc_array,
 	char *buf, uint32 bufsize)
@@ -1629,7 +1745,7 @@ bcmdumpfields(bcmutl_rdreg_rtn read_rtn, void *arg0, uint arg1, struct fielddesc
 			break;
 		len = snprintf(buf, bufsize, cur_ptr->nameandfmt,
 		               read_rtn(arg0, arg1, cur_ptr->offset));
-		
+		/* check for snprintf overflow or error */
 		if (len < 0 || (uint32)len >= bufsize)
 			len = bufsize - 1;
 		buf += len;
@@ -1702,13 +1818,13 @@ bcm_mw_to_qdbm(uint16 mw)
 	uint mw_uint = mw;
 	uint boundary;
 
-	
+	/* handle boundary case */
 	if (mw_uint <= 1)
 		return 0;
 
 	offset = QDBM_OFFSET;
 
-	
+	/* move mw into the range of the table */
 	while (mw_uint < QDBM_TABLE_LOW_BOUND) {
 		mw_uint *= 10;
 		offset -= 40;
@@ -1743,6 +1859,7 @@ bcm_bitcount(uint8 *bitmap, uint length)
 
 #ifdef BCMDRIVER
 
+/* Initialization of bcmstrbuf structure */
 void
 bcm_binit(struct bcmstrbuf *b, char *buf, uint size)
 {
@@ -1750,6 +1867,7 @@ bcm_binit(struct bcmstrbuf *b, char *buf, uint size)
 	b->origbuf = b->buf = buf;
 }
 
+/* Buffer sprintf wrapper to guard against buffer overflow */
 int
 bcm_bprintf(struct bcmstrbuf *b, const char *fmt, ...)
 {
@@ -1760,6 +1878,13 @@ bcm_bprintf(struct bcmstrbuf *b, const char *fmt, ...)
 
 	r = vsnprintf(b->buf, b->size, fmt, ap);
 
+	/* Non Ansi C99 compliant returns -1,
+	 * Ansi compliant return r >= b->size,
+	 * bcmstdlib returns 0, handle all
+	 */
+	/* r == 0 is also the case when strlen(fmt) is zero.
+	 * typically the case when "" is passed as argument.
+	 */
 	if ((r == -1) || (r >= (int)b->size)) {
 		b->size = 0;
 	} else {
@@ -1858,8 +1983,14 @@ bcm_format_ssid(char* buf, const uchar ssid[], uint ssid_len)
 }
 #endif 
 
-#endif 
+#endif /* BCMDRIVER */
 
+/*
+ * ProcessVars:Takes a buffer of "<var>=<value>\n" lines read from a file and ending in a NUL.
+ * also accepts nvram files which are already in the format of <var1>=<value>\0\<var2>=<value2>\0
+ * Removes carriage returns, empty lines, comment lines, and converts newlines to NULs.
+ * Shortens buffer as needed and pads with NULs.  End of buffer is marked by two NULs.
+*/
 
 unsigned int
 process_nvram_vars(char *varbuf, unsigned int len)

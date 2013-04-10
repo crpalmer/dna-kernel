@@ -27,20 +27,47 @@ enum rpm_vreg_pin_fn_8930 {
 	RPM_VREG_PIN_FN_8930_NONE,
 };
 
+/**
+ * enum rpm_vreg_force_mode_8930 - RPM regulator force mode choices
+ * %RPM_VREG_FORCE_MODE_8930_PIN_CTRL:	allow pin control usage
+ * %RPM_VREG_FORCE_MODE_8930_NONE:	do not force any mode
+ * %RPM_VREG_FORCE_MODE_8930_LPM:	force into low power mode
+ * %RPM_VREG_FORCE_MODE_8930_AUTO:	allow regulator to automatically select
+ *					its own mode based on realtime current
+ *					draw (only available for SMPS
+ *					regulators)
+ * %RPM_VREG_FORCE_MODE_8930_HPM:	force into high power mode
+ * %RPM_VREG_FORCE_MODE_8930_BYPASS:	set regulator to use bypass mode, i.e.
+ *					to act as a switch and not regulate
+ *					(only available for LDO regulators)
+ *
+ * Force mode is used to override aggregation with other masters and to set
+ * special operating modes.
+ */
 enum rpm_vreg_force_mode_8930 {
 	RPM_VREG_FORCE_MODE_8930_PIN_CTRL = 0,
 	RPM_VREG_FORCE_MODE_8930_NONE = 0,
 	RPM_VREG_FORCE_MODE_8930_LPM,
-	RPM_VREG_FORCE_MODE_8930_AUTO,		
+	RPM_VREG_FORCE_MODE_8930_AUTO,		/* SMPS only */
 	RPM_VREG_FORCE_MODE_8930_HPM,
-	RPM_VREG_FORCE_MODE_8930_BYPASS,	
+	RPM_VREG_FORCE_MODE_8930_BYPASS,	/* LDO only */
 };
 
+/**
+ * enum rpm_vreg_power_mode_8930 - power mode for SMPS regulators
+ * %RPM_VREG_POWER_MODE_8930_HYSTERETIC: Use hysteretic mode for HPM and when
+ *					 usage goes high in AUTO
+ * %RPM_VREG_POWER_MODE_8930_PWM:	 Use PWM mode for HPM and when usage
+ *					 goes high in AUTO
+ */
 enum rpm_vreg_power_mode_8930 {
 	RPM_VREG_POWER_MODE_8930_HYSTERETIC,
 	RPM_VREG_POWER_MODE_8930_PWM,
 };
 
+/**
+ * enum rpm_vreg_id - RPM regulator ID numbers (both real and pin control)
+ */
 enum rpm_vreg_id_8930 {
 	RPM_VREG_ID_PM8038_L1,
 	RPM_VREG_ID_PM8038_L2,
@@ -78,7 +105,7 @@ enum rpm_vreg_id_8930 {
 	RPM_VREG_ID_PM8038_VDD_DIG_CORNER,
 	RPM_VREG_ID_PM8038_MAX_REAL = RPM_VREG_ID_PM8038_VDD_DIG_CORNER,
 
-	
+	/* The following are IDs for regulator devices to enable pin control. */
 	RPM_VREG_ID_PM8038_L2_PC,
 	RPM_VREG_ID_PM8038_L3_PC,
 	RPM_VREG_ID_PM8038_L4_PC,
@@ -107,6 +134,7 @@ enum rpm_vreg_id_8930 {
 	RPM_VREG_ID_PM8038_MAX = RPM_VREG_ID_PM8038_LVS2_PC,
 };
 
+/* Minimum high power mode loads in uA. */
 #define RPM_VREG_8930_LDO_50_HPM_MIN_LOAD		5000
 #define RPM_VREG_8930_LDO_150_HPM_MIN_LOAD		10000
 #define RPM_VREG_8930_LDO_300_HPM_MIN_LOAD		10000

@@ -1056,6 +1056,7 @@ uint8_t dppclib_u_ov2722[] =
 };
 
 uint8_t dopclib_u_ov2722[] =
+// default to use lib v1.1
 {
 	0x02,
 	0x03,
@@ -2146,7 +2147,8 @@ struct yushan_reg_clib_t yushan_regs_clib_ov2722 = {
 	.dppclib = &dppclib_u_ov2722[0],
 	.dppclib_size = ARRAY_SIZE(dppclib_u_ov2722),
 
-#if 1 
+// default to use lib v1.1
+#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
 	.dopclib_first_addr = 0x3bcc,
 #else
 	.dopclib_first_addr = 0x3bcc,

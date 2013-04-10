@@ -169,6 +169,7 @@ static void do_read_data(struct work_struct *work);
 #define RESTART_NORMAL 0
 #define RESTART_PEND 1
 
+/* State for remote ep following restart */
 #define RESTART_QUOTA_ABORT  1
 
 static LIST_HEAD(xprt_info_list);
@@ -225,6 +226,7 @@ static struct msm_ipc_routing_table_entry *alloc_routing_table_entry(
 	return rt_entry;
 }
 
+/*Please take routing_table_lock before calling this function*/
 static int add_routing_table_entry(
 	struct msm_ipc_routing_table_entry *rt_entry)
 {
@@ -238,6 +240,7 @@ static int add_routing_table_entry(
 	return 0;
 }
 
+/*Please take routing_table_lock before calling this function*/
 static struct msm_ipc_routing_table_entry *lookup_routing_table(
 	uint32_t node_id)
 {
@@ -469,6 +472,9 @@ struct msm_ipc_port *msm_ipc_router_create_raw_port(void *endpoint,
 	return port_ptr;
 }
 
+/*
+ * Should be called with local_ports_lock locked
+ */
 static struct msm_ipc_port *msm_ipc_router_lookup_local_port(uint32_t port_id)
 {
 	int key = (port_id & (LP_HASH_SIZE - 1));
@@ -1223,7 +1229,7 @@ static int process_control_msg(struct msm_ipc_router_xprt_info *xprt_info,
 
 		xprt_info->initialized = 1;
 
-		
+		/* Send list of servers one at a time */
 		msm_ipc_router_send_server_list(xprt_info);
 
 		if (first) {
@@ -1332,7 +1338,7 @@ static int process_control_msg(struct msm_ipc_router_xprt_info *xprt_info,
 		post_control_ports(pkt);
 		break;
 	case IPC_ROUTER_CTRL_CMD_PING:
-		
+		/* No action needed for ping messages received */
 		RR("o PING\n");
 		break;
 	default:
@@ -1776,7 +1782,7 @@ int msm_ipc_router_send_to(struct msm_ipc_port *src,
 		return -EINVAL;
 	}
 
-	
+	/* Resolve Address*/
 	if (dest->addrtype == MSM_IPC_ADDR_ID) {
 		dst_node_id = dest->addr.port_addr.node_id;
 		dst_port_id = dest->addr.port_addr.port_id;
@@ -1802,7 +1808,7 @@ int msm_ipc_router_send_to(struct msm_ipc_port *src,
 		return ret;
 	}
 
-	
+	/* Achieve Flow control */
 	rport_ptr = msm_ipc_router_lookup_remote_port(dst_node_id,
 						      dst_port_id);
 	if (!rport_ptr) {
@@ -2032,7 +2038,7 @@ int msm_ipc_router_lookup_server_name(struct msm_ipc_port_name *srv_name,
 {
 	struct msm_ipc_server *server;
 	struct msm_ipc_server_port *server_port;
-	int key, i = 0; 
+	int key, i = 0; /*num_entries_found*/
 
 	if (!srv_name) {
 		pr_err("%s: Invalid srv_name\n", __func__);
@@ -2080,7 +2086,7 @@ int msm_ipc_router_lookup_server_name(struct msm_ipc_port_name *srv_name,
 {
 	struct msm_ipc_server *server;
 	struct msm_ipc_server_port *server_port;
-	int key, i = 0; 
+	int key, i = 0; /*num_entries_found*/
 
 	if (!srv_name) {
 		pr_err("%s: Invalid srv_name\n", __func__);
@@ -2122,7 +2128,7 @@ int msm_ipc_router_lookup_server_name(struct msm_ipc_port_name *srv_name,
 
 	return i;
 }
-#endif 
+#endif //CONFIG_MSM8960_ONLY
 
 int msm_ipc_router_close(void)
 {

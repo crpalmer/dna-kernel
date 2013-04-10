@@ -115,6 +115,7 @@ void find_membank0_hole(void);
 
 #endif
 
+/* these correspond to values known by the modem */
 #define MEMORY_DEEP_POWERDOWN	0
 #define MEMORY_SELF_REFRESH	1
 #define MEMORY_ACTIVE		2

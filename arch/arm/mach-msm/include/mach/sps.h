@@ -193,19 +193,70 @@ struct sps_command_element {
 	u32 reserved;
 };
 
+/*
+ * BAM device's security configuation
+ */
 struct sps_bam_pipe_sec_config_props {
 	u32 pipe_mask;
 	u32 vmid;
 };
 
 struct sps_bam_sec_config_props {
-	
+	/* Per-EE configuration - This is a pipe bit mask for each EE */
 	struct sps_bam_pipe_sec_config_props ees[SPS_BAM_NUM_EES];
 };
 
+/**
+ * This struct defines a BAM device. The client must memset() this struct to
+ * zero before writing device information.  A value of zero for uninitialized
+ * values will instruct the SPS driver to use general defaults or
+ * hardware/BIOS supplied values.
+ *
+ *
+ * @options - See SPS_BAM_OPT_* bit flag.
+ * @phys_addr - BAM base physical address (not peripheral address).
+ * @virt_addr - BAM base virtual address.
+ * @virt_size - For virtual mapping.
+ * @irq - IRQ enum for use in ISR vector install.
+ * @num_pipes - number of pipes. Can be read from hardware.
+ * @summing_threshold - BAM event threshold.
+ *
+ * @periph_class - Peripheral device enumeration class.
+ * @periph_dev_id - Peripheral global device ID.
+ * @periph_phys_addr - Peripheral base physical address, for BAM-DMA only.
+ * @periph_virt_addr - Peripheral base virtual address.
+ * @periph_virt_size - Size for virtual mapping.
+ *
+ * @callback - callback function for BAM user.
+ * @user - pointer to user data.
+ *
+ * @event_threshold - Pipe event threshold.
+ * @desc_size - Size (bytes) of descriptor FIFO.
+ * @data_size - Size (bytes) of data FIFO.
+ * @desc_mem_id - Heap ID for default descriptor FIFO allocations.
+ * @data_mem_id - Heap ID for default data FIFO allocations.
+ *
+ * @manage - BAM device management flags (see SPS_BAM_MGR_*).
+ * @restricted_pipes - Bitmask of pipes restricted from local use.
+ * @ee - Local execution environment index.
+ *
+ * @irq_gen_addr - MTI interrupt generation address. This configuration only
+ * applies to BAM rev 1 and 2 hardware. MTIs are only supported on BAMs when
+ * global config is controlled by a remote processor.
+ * NOTE: This address must correspond to the MTI associated with the "irq" IRQ
+ * enum specified above.
+ *
+ * @sec_config - must be set to SPS_BAM_SEC_DO_CONFIG to perform BAM security
+ * configuration.  Only the processor that manages the BAM is allowed to
+ * perform the configuration. The global (top-level) BAM interrupt will be
+ * assigned to the EE of the processor that manages the BAM.
+ *
+ * @p_sec_config_props - BAM device's security configuation
+ *
+ */
 struct sps_bam_props {
 
-	
+	/* BAM device properties. */
 
 	u32 options;
 	u32 phys_addr;
@@ -215,7 +266,7 @@ struct sps_bam_props {
 	u32 num_pipes;
 	u32 summing_threshold;
 
-	
+	/* Peripheral device properties */
 
 	u32 periph_class;
 	u32 periph_dev_id;
@@ -223,7 +274,7 @@ struct sps_bam_props {
 	void *periph_virt_addr;
 	u32 periph_virt_size;
 
-	
+	/* Connection pipe parameter defaults. */
 
 	u32 event_threshold;
 	u32 desc_size;
@@ -231,26 +282,35 @@ struct sps_bam_props {
 	u32 desc_mem_id;
 	u32 data_mem_id;
 
-	
+	/* Feedback to BAM user */
 	void (*callback)(enum sps_callback_case, void *);
 	void *user;
 
-	
+	/* Security properties */
 
 	u32 manage;
 	u32 restricted_pipes;
 	u32 ee;
 
-	
+	/* BAM MTI interrupt generation */
 
 	u32 irq_gen_addr;
 
-	
+	/* Security configuration properties */
 
 	u32 sec_config;
 	struct sps_bam_sec_config_props *p_sec_config_props;
 };
 
+/**
+ *  This struct specifies memory buffer properties.
+ *
+ * @base - Buffer virtual address.
+ * @phys_base - Buffer physical address.
+ * @size - Specifies buffer size (or maximum size).
+ * @min_size - If non-zero, specifies buffer minimum size.
+ *
+ */
 struct sps_mem_buffer {
 	void *base;
 	u32 phys_base;
@@ -258,6 +318,43 @@ struct sps_mem_buffer {
 	u32 min_size;
 };
 
+/**
+ * This struct defines a connection's end point and is used as the argument
+ * for the sps_connect(), sps_get_config(), and sps_set_config() functions.
+ * For system mode pipe, use SPS_DEV_HANDLE_MEM for the end point that
+ * corresponds to system memory.
+ *
+ * The client can force SPS to reserve a specific pipe on a BAM.
+ * If the pipe is in use, the sps_connect/set_config() will fail.
+ *
+ * @source - Source BAM.
+ * @src_pipe_index - BAM pipe index, 0 to 30.
+ * @destination - Destination BAM.
+ * @dest_pipe_index - BAM pipe index, 0 to 30.
+ *
+ * @mode - specifies which end (source or destination) of the connection will
+ * be controlled/referenced by the client.
+ *
+ * @config - This value is for future use and should be set to
+ * SPS_CONFIG_DEFAULT or left as default from sps_get_config().
+ *
+ * @options - OR'd connection end point options (see SPS_O defines).
+ *
+ * WARNING: The memory provided should be physically contiguous and non-cached.
+ * The user can use one of the following:
+ * 1. sps_alloc_mem() - allocated from pipe-memory.
+ * 2. dma_alloc_coherent() - allocate coherent DMA memory.
+ * 3. dma_map_single() - for using memory allocated by kmalloc().
+ *
+ * @desc - Descriptor FIFO.
+ * @data - Data FIFO (BAM-to-BAM mode only).
+ *
+ * @event_thresh - Pipe event threshold or derivative.
+ * @lock_group - The lock group this pipe belongs to.
+ *
+ * @sps_reserved - Reserved word - client must not modify.
+ *
+ */
 struct sps_connect {
 	u32 source;
 	u32 src_pipe_index;
@@ -277,7 +374,7 @@ struct sps_connect {
 
 	u32 lock_group;
 
-	
+	/* SETPEND/MTI interrupt generation parameters */
 
 	u32 irq_gen_addr;
 	u32 irq_gen_data;
@@ -360,6 +457,20 @@ struct sps_event_notify {
 	} data;
 };
 
+/**
+ * This struct defines a event registration parameters and is used as the
+ * argument for the sps_register_event() function.
+ *
+ * @options - Event options that will trigger the event object.
+ * @mode - Event trigger mode.
+ *
+ * @xfer_done - a pointer to a completion object. NULL if not in use.
+ *
+ * @callback - a callback to call on completion. NULL if not in use.
+ *
+ * @user - User pointer that will be provided in event callback data.
+ *
+ */
 struct sps_register_event {
 	enum sps_option options;
 	enum sps_trigger mode;
@@ -368,6 +479,16 @@ struct sps_register_event {
 	void *user;
 };
 
+/**
+ * This struct defines a system memory transfer's parameters and is used as the
+ * argument for the sps_transfer() function.
+ *
+ * @iovec_phys - Physical address of I/O vectors buffer.
+ * @iovec - Pointer to I/O vectors buffer.
+ * @iovec_count - Number of I/O vectors.
+ * @user - User pointer passed in callback event.
+ *
+ */
 struct sps_transfer {
 	u32 iovec_phys;
 	struct sps_iovec *iovec;
@@ -651,4 +772,4 @@ static inline int sps_get_unused_desc_num(struct sps_pipe *h, u32 *desc_num)
 }
 #endif
 
-#endif 
+#endif /* _SPS_H_ */

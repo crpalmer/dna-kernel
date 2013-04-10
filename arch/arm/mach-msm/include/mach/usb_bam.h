@@ -35,5 +35,5 @@ static inline int usb_bam_register_wake_cb(u8 idx,
 	return -ENODEV;
 }
 #endif
-#endif				
+#endif				/* _USB_BAM_H_ */
 

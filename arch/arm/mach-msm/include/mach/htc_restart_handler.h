@@ -21,6 +21,11 @@
 #define RESTART_REASON_POWEROFF         (RESTART_REASON_BOOT_BASE | 0xBB)
 #define RESTART_REASON_ERASE_FLASH      (RESTART_REASON_BOOT_BASE | 0xEF)
 
+/*
+   This restart constant is used for oem commands.
+   The actual value is parsed from reboot commands.
+   RIL FATAL will use oem-99 to restart a device.
+*/
 #define RESTART_REASON_OEM_BASE         0x6f656d00
 #define RESTART_REASON_RIL_FATAL        (RESTART_REASON_OEM_BASE | 0x99)
 

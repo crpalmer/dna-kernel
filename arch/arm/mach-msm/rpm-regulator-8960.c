@@ -57,6 +57,7 @@ static struct rpm_vreg_parts ncp_parts = {
 	.freq		= REQUEST_MEMBER(0, 0x3E000000, 25),
 };
 
+/* Physically available PMIC regulator voltage setpoint ranges */
 static struct vreg_range pldo_ranges[] = {
 	VOLTAGE_RANGE( 750000, 1487500, 12500),
 	VOLTAGE_RANGE(1500000, 3075000, 25000),

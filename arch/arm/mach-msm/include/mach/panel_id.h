@@ -18,6 +18,12 @@
 
 extern int panel_type;
 
+/* BIT0 - BIT15 : panel id */
+/* BIT16 - BIT18 : backlight interface */
+/* BIT19- BIT21 : display interface */
+/* BIT22- BIT24 : color depth */
+/* BIT25- BIT27 : lcm revision */
+/* BIT28- BIT31 : reserved */
 
 #define BL_SHIFT        16
 #define BL_MASK         (0x7 << BL_SHIFT)
@@ -150,6 +156,7 @@ extern int panel_type;
 #define PANEL_ID_VILLE_AUO (0x53 | BL_MIPI | IF_MIPI | DEPTH_RGB888)
 #define PANEL_ID_DLX_SHARP_RENESAS  (0x5B | BL_MIPI | IF_MIPI | DEPTH_RGB888)
 #define PANEL_ID_DLX_SONY_RENESAS  (0x5C | BL_MIPI | IF_MIPI | DEPTH_RGB888)
+// FIXME: Change PANEL_ID_K2_WL_AUO from 0x5C to 0x5D
 #define PANEL_ID_K2_WL_AUO (0x5D | BL_MIPI | IF_MIPI | DEPTH_RGB888 | MIPI_VIDEO_ONLY)
 #define PANEL_ID_IMN_SHARP_HX (0x60 | BL_MIPI | IF_MIPI | DEPTH_RGB888)
 #define PANEL_ID_DLXJ_SHARP_RENESAS  (0x63 | BL_MIPI | IF_MIPI | DEPTH_RGB888)
@@ -157,5 +164,5 @@ extern int panel_type;
 
 #define PANEL_ID_END            0xFFFF
 
-#endif	
+#endif	/* __PANEL_ID_H */
 

@@ -25,6 +25,7 @@
 
 #define V4L2_IDENT_CSIPHY                        50003
 
+/*MIPI CSI PHY registers*/
 #define MIPI_CSIPHY_LNn_CFG1_ADDR                0x0
 #define MIPI_CSIPHY_LNn_CFG2_ADDR                0x4
 #define MIPI_CSIPHY_LNn_CFG3_ADDR                0x8

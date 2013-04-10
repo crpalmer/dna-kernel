@@ -27,6 +27,7 @@ if (vidc_msg_debug) {				\
 	if (vidc_msg_debug) {				\
 		printk(KERN_WARNING "\n [VID] " xx_fmt);\
 	}
+/*HTC_END*/
 
 #define VCD_MSG_ERROR(xx_fmt...)	printk(KERN_ERR "\n [VID] err: " xx_fmt)
 #define VCD_MSG_FATAL(xx_fmt...)	printk(KERN_ERR "\n [VID] <FATAL> " xx_fmt)

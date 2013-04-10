@@ -350,7 +350,7 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 #else
 	struct msm_ipc_server_info *srv_info = NULL;
 	unsigned int n, srv_info_sz = 0;
-#endif 
+#endif //CONFIG_MSM8960_ONLY
 	int ret;
 
 	if (!sk)
@@ -421,7 +421,7 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 			kfree(port_addr);
 		}
 
-#else 
+#else //not MSM8960
 
 		if (server_arg.num_entries_in_array) {
 			srv_info_sz = server_arg.num_entries_in_array *
@@ -452,7 +452,7 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 				ret = -EFAULT;
 			kfree(srv_info);
 		}
-#endif 
+#endif //CONFIG_MSM8960_ONLY
 		break;
 
 	case IPC_ROUTER_IOCTL_BIND_CONTROL_PORT:

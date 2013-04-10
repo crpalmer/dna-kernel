@@ -71,6 +71,7 @@ static bcm_static_buf_t *bcm_static_buf = 0;
 #else
 #define STATIC_PKT_4PAGE_NUM	0
 #define DHD_SKB_MAX_BUFSIZE DHD_SKB_4PAGE_BUFSIZE
+//#define DHD_SKB_MAX_BUFSIZE DHD_SKB_2PAGE_BUFSIZE
 #endif 
 
 typedef struct bcm_static_pkt {

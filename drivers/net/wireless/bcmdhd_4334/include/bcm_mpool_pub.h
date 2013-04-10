@@ -116,35 +116,178 @@ int bcm_mpm_create_prealloc_pool(bcm_mpm_mgr_h mgr,
                                  bcm_mp_pool_h *newp);
 
 
+/*
+ * bcm_mpm_delete_prealloc_pool() - Delete a memory pool. This should only be called after
+ *                                  all memory objects have been freed back to the pool.
+ *
+ * Parameters:
+ *    mgr:     INPUT The handle to the pools manager
+ *    pool:    INPUT The handle of the  pool to delete
+ *
+ * Returns:
+ *    BCME_OK   Pool deleted ok.
+ *    other     Pool not deleted due to indicated error.
+ *
+ */
 int bcm_mpm_delete_prealloc_pool(bcm_mpm_mgr_h mgr, bcm_mp_pool_h *poolp);
 
+/*
+ * bcm_mpm_create_heap_pool() - Create a new pool for fixed size objects. The memory
+ *                              pool allocator uses the heap (malloc/free) for memory.
+ *                              In this case, the pool allocator is just providing
+ *                              statistics and instrumentation on top of the heap,
+ *                              without modifying the heap allocation implementation.
+ *
+ * Parameters:
+ *    mgr:      INPUT  The handle to the pool manager
+ *    obj_sz:   INPUT  Size of objects that will be allocated by the new pool
+ *    poolname  INPUT  For instrumentation, the name of the pool
+ *    newp:     OUTPUT The handle for the new pool, if creation is successful
+ *
+ * Returns:
+ *    BCME_OK   Pool created ok.
+ *    other     Pool not created due to indicated error. newpoolp set to NULL.
+ *
+ *
+ */
 int bcm_mpm_create_heap_pool(bcm_mpm_mgr_h mgr, unsigned int obj_sz,
                              char poolname[BCM_MP_NAMELEN],
                              bcm_mp_pool_h *newp);
 
 
+/*
+ * bcm_mpm_delete_heap_pool() - Delete a memory pool. This should only be called after
+ *                              all memory objects have been freed back to the pool.
+ *
+ * Parameters:
+ *    mgr:     INPUT The handle to the pools manager
+ *    pool:    INPUT The handle of the  pool to delete
+ *
+ * Returns:
+ *    BCME_OK   Pool deleted ok.
+ *    other     Pool not deleted due to indicated error.
+ *
+ */
 int bcm_mpm_delete_heap_pool(bcm_mpm_mgr_h mgr, bcm_mp_pool_h *poolp);
 
 
+/*
+ * bcm_mpm_stats() - Return stats for all pools
+ *
+ * Parameters:
+ *    mgr:         INPUT   The handle to the pools manager
+ *    stats:       OUTPUT  Array of pool statistics.
+ *    nentries:    MOD     Max elements in 'stats' array on INPUT. Actual number
+ *                         of array elements copied to 'stats' on OUTPUT.
+ *
+ * Returns:
+ *    BCME_OK   Ok
+ *    other     Error getting stats.
+ *
+ */
 int bcm_mpm_stats(bcm_mpm_mgr_h mgr, bcm_mp_stats_t *stats, int *nentries);
 
 
+/*
+ * bcm_mpm_dump() - Display statistics on all pools
+ *
+ * Parameters:
+ *    mgr:     INPUT  The handle to the pools manager
+ *    b:       OUTPUT Output buffer.
+ *
+ * Returns:
+ *    BCME_OK   Ok
+ *    other     Error during dump.
+ *
+ */
 int bcm_mpm_dump(bcm_mpm_mgr_h mgr, struct bcmstrbuf *b);
 
 
+/*
+ * bcm_mpm_get_obj_size() - The size of memory objects may need to be padded to
+ *                          compensate for alignment requirements of the objects.
+ *                          This function provides the padded object size. If clients
+ *                          pre-allocate a memory slab for a memory pool, the
+ *                          padded object size should be used by the client to allocate
+ *                          the memory slab (in order to provide sufficent space for
+ *                          the maximum number of objects).
+ *
+ * Parameters:
+ *    mgr:            INPUT   The handle to the pools manager.
+ *    obj_sz:         INPUT   Input object size.
+ *    padded_obj_sz:  OUTPUT  Padded object size.
+ *
+ * Returns:
+ *    BCME_OK      Ok
+ *    BCME_BADARG  Bad arguments.
+ *
+ */
 int bcm_mpm_get_obj_size(bcm_mpm_mgr_h mgr, unsigned int obj_sz, unsigned int *padded_obj_sz);
 
 
+/*
+***************************************************************************
+*
+* API Routines on a specific pool.
+*
+***************************************************************************
+*/
 
 
+/*
+ * bcm_mp_alloc() - Allocate a memory pool object.
+ *
+ * Parameters:
+ *    pool:    INPUT    The handle to the pool.
+ *
+ * Returns:
+ *    A pointer to the new object. NULL on error.
+ *
+ */
 void* bcm_mp_alloc(bcm_mp_pool_h pool);
 
+/*
+ * bcm_mp_free() - Free a memory pool object.
+ *
+ * Parameters:
+ *    pool:  INPUT   The handle to the pool.
+ *    objp:  INPUT   A pointer to the object to free.
+ *
+ * Returns:
+ *    BCME_OK   Ok
+ *    other     Error during free.
+ *
+ */
 int bcm_mp_free(bcm_mp_pool_h pool, void *objp);
 
+/*
+ * bcm_mp_stats() - Return stats for this pool
+ *
+ * Parameters:
+ *    pool:     INPUT    The handle to the pool
+ *    stats:    OUTPUT   Pool statistics
+ *
+ * Returns:
+ *    BCME_OK   Ok
+ *    other     Error getting statistics.
+ *
+ */
 int bcm_mp_stats(bcm_mp_pool_h pool, bcm_mp_stats_t *stats);
 
 
+/*
+ * bcm_mp_dump() - Dump a pool
+ *
+ * Parameters:
+ *    pool:    INPUT    The handle to the pool
+ *    b        OUTPUT   Output buffer
+ *
+ * Returns:
+ *    BCME_OK   Ok
+ *    other     Error during dump.
+ *
+ */
 int bcm_mp_dump(bcm_mp_pool_h pool, struct bcmstrbuf *b);
 
 
-#endif 
+#endif /* _BCM_MPOOL_PUB_H */

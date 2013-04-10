@@ -22,6 +22,7 @@
    SOFTWARE IS DISCLAIMED.
 */
 
+/* Bluetooth HCI connection handling. */
 
 #include <linux/module.h>
 
@@ -197,12 +198,12 @@ void hci_setup_sync(struct hci_conn *conn, __u16 handle)
 	cp.tx_bandwidth   = cpu_to_le32(0x00001f40);
 	cp.rx_bandwidth   = cpu_to_le32(0x00001f40);
 	if (conn->hdev->is_wbs) {
-		
+		/* Transparent Data */
 		uint16_t voice_setting = hdev->voice_setting | ACF_TRANS;
 		cp.max_latency    = cpu_to_le16(0x000D);
 		cp.pkt_type = cpu_to_le16(ESCO_WBS);
 		cp.voice_setting  = cpu_to_le16(voice_setting);
-		
+		/* Retransmission Effort */
 		cp.retrans_effort = RE_LINK_QUALITY;
 	} else {
 		cp.max_latency    = cpu_to_le16(0x000A);
@@ -283,6 +284,7 @@ void hci_le_ltk_neg_reply(struct hci_conn *conn)
 	hci_send_cmd(hdev, HCI_OP_LE_LTK_NEG_REPLY, sizeof(cp), &cp);
 }
 
+/* Device _must_ be locked */
 void hci_sco_setup(struct hci_conn *conn, __u8 status)
 {
 	struct hci_conn *sco = conn->link;
@@ -391,9 +393,13 @@ struct hci_conn *hci_conn_add(struct hci_dev *hdev, int type,
 		if (!pkt_type)
 			pkt_type = ALL_ESCO_MASK;
 		if (lmp_esco_capable(hdev)) {
+			/* HCI Setup Synchronous Connection Command uses
+			   reverse logic on the EDR_ESCO_MASK bits */
 			conn->pkt_type = (pkt_type ^ EDR_ESCO_MASK) &
 					hdev->esco_type;
 		} else {
+			/* Legacy HCI Add Sco Connection Command uses a
+			   shifted bitmask */
 			conn->pkt_type = (pkt_type << 5) & hdev->pkt_type &
 					SCO_PTYPE_MASK;
 		}
@@ -444,7 +450,7 @@ int hci_conn_del(struct hci_conn *conn)
 
 	BT_DBG("%s conn %p handle %d type %d", hdev->name, conn, conn->handle, conn->type);
 
-	
+	/* Make sure no timers are running */
 	del_timer(&conn->idle_timer);
 	del_timer(&conn->disc_timer);
 	del_timer(&conn->smp_timer);
@@ -455,7 +461,7 @@ int hci_conn_del(struct hci_conn *conn)
 		if (sco)
 			sco->link = NULL;
 
-		
+		/* Unacked frames */
 		hdev->acl_cnt += conn->sent;
 	} else if (conn->type == LE_LINK) {
 		if (hdev->le_pkts)
@@ -486,7 +492,7 @@ int hci_conn_del(struct hci_conn *conn)
 
 	hci_dev_put(hdev);
 
-	
+	/* free it if no handle */
 	if (conn->handle == 0)
 		kfree(conn);
 
@@ -573,6 +579,10 @@ struct hci_dev *hci_get_route(bdaddr_t *dst, bdaddr_t *src)
 		if (!test_bit(HCI_UP, &d->flags) || test_bit(HCI_RAW, &d->flags))
 			continue;
 
+		/* Simple routing:
+		 *   No source address - find interface with bdaddr != dst
+		 *   Source address    - find interface with bdaddr == src
+		 */
 
 		if (use_src) {
 			if (!bacmp(&d->bdaddr, src)) {
@@ -645,6 +655,8 @@ struct hci_dev *hci_dev_get_amp(bdaddr_t *dst)
 }
 EXPORT_SYMBOL(hci_dev_get_amp);
 
+/* Create SCO, ACL or LE connection.
+ * Device _must_ be locked */
 struct hci_conn *hci_connect(struct hci_dev *hdev, int type,
 					__u16 pkt_type, bdaddr_t *dst,
 					__u8 sec_level, __u8 auth_type)
@@ -726,7 +738,7 @@ struct hci_conn *hci_connect(struct hci_dev *hdev, int type,
 		hci_conn_enter_active_mode(acl, 1);
 
 		if (test_bit(HCI_CONN_MODE_CHANGE_PEND, &acl->pend)) {
-			
+			/* defer SCO setup until mode change completed */
 			set_bit(HCI_CONN_SCO_SETUP_PEND, &acl->pend);
 			return sco;
 		}
@@ -768,6 +780,7 @@ void hci_disconnect_amp(struct hci_conn *conn, __u8 reason)
 	read_unlock_bh(&hci_dev_list_lock);
 }
 
+/* Check link security requirement */
 int hci_conn_check_link_mode(struct hci_conn *conn)
 {
 	BT_DBG("conn %p", conn);
@@ -780,6 +793,7 @@ int hci_conn_check_link_mode(struct hci_conn *conn)
 }
 EXPORT_SYMBOL(hci_conn_check_link_mode);
 
+/* Authenticate remote device */
 static int hci_conn_auth(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 {
 	BT_DBG("conn %p", conn);
@@ -792,7 +806,7 @@ static int hci_conn_auth(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 	else if (conn->link_mode & HCI_LM_AUTH)
 		return 1;
 
-	
+	/* Make sure we preserve an existing MITM requirement*/
 	auth_type |= (conn->auth_type & 0x01);
 	conn->auth_type = auth_type;
 	conn->auth_initiator = 1;
@@ -800,7 +814,7 @@ static int hci_conn_auth(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 	if (!test_and_set_bit(HCI_CONN_AUTH_PEND, &conn->pend)) {
 		struct hci_cp_auth_requested cp;
 
-		
+		/* encrypt must be pending if auth is also pending */
 		set_bit(HCI_CONN_ENCRYPT_PEND, &conn->pend);
 
 		cp.handle = cpu_to_le16(conn->handle);
@@ -811,6 +825,7 @@ static int hci_conn_auth(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 	return 0;
 }
 
+/* Enable security */
 int hci_conn_security(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 {
 	BT_DBG("conn %p %d %d", conn, sec_level, auth_type);
@@ -848,6 +863,7 @@ int hci_conn_security(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 }
 EXPORT_SYMBOL(hci_conn_security);
 
+/* Change link key */
 int hci_conn_change_link_key(struct hci_conn *conn)
 {
 	BT_DBG("conn %p", conn);
@@ -863,6 +879,7 @@ int hci_conn_change_link_key(struct hci_conn *conn)
 }
 EXPORT_SYMBOL(hci_conn_change_link_key);
 
+/* Switch role */
 int hci_conn_switch_role(struct hci_conn *conn, __u8 role)
 {
 	BT_DBG("conn %p", conn);
@@ -881,6 +898,7 @@ int hci_conn_switch_role(struct hci_conn *conn, __u8 role)
 }
 EXPORT_SYMBOL(hci_conn_switch_role);
 
+/* Enter active mode */
 void hci_conn_enter_active_mode(struct hci_conn *conn, __u8 force_active)
 {
 	struct hci_dev *hdev = conn->hdev;
@@ -908,6 +926,7 @@ timer:
 			jiffies + msecs_to_jiffies(hdev->idle_timeout));
 }
 
+/* Enter sniff mode */
 void hci_conn_enter_sniff_mode(struct hci_conn *conn)
 {
 	struct hci_dev *hdev = conn->hdev;
@@ -1037,6 +1056,7 @@ void hci_chan_modify(struct hci_chan *chan,
 }
 EXPORT_SYMBOL(hci_chan_modify);
 
+/* Drop all connection on the device */
 void hci_conn_hash_flush(struct hci_dev *hdev, u8 is_process)
 {
 	struct hci_conn_hash *h = &hdev->conn_hash;
@@ -1058,6 +1078,7 @@ void hci_conn_hash_flush(struct hci_dev *hdev, u8 is_process)
 	}
 }
 
+/* Check pending connect attempts */
 void hci_conn_check_pending(struct hci_dev *hdev)
 {
 	struct hci_conn *conn;

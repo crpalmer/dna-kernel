@@ -58,6 +58,11 @@ enum gpiomux_pull {
 	GPIOMUX_PULL_UP,
 };
 
+/* Direction settings are only meaningful when GPIOMUX_FUNC_GPIO is selected.
+ * This element is ignored for all other FUNC selections, as the output-
+ * enable pin is not under software control in those cases.  See the SWI
+ * for your target for more details.
+ */
 enum gpiomux_dir {
 	GPIOMUX_IN = 0,
 	GPIOMUX_OUT_HIGH,
@@ -71,11 +76,34 @@ struct gpiomux_setting {
 	enum gpiomux_dir  dir;
 };
 
+/**
+ * struct msm_gpiomux_config: gpiomux settings for one gpio line.
+ *
+ * A complete gpiomux config is the combination of a drive-strength,
+ * function, pull, and (sometimes) direction.  For functions other than GPIO,
+ * the input/output setting is hard-wired according to the function.
+ *
+ * @gpio: The index number of the gpio being described.
+ * @settings: The settings to be installed, specifically:
+ *           GPIOMUX_ACTIVE: The setting to be installed when the
+ *           line is active, or its reference count is > 0.
+ *           GPIOMUX_SUSPENDED: The setting to be installed when
+ *           the line is suspended, or its reference count is 0.
+ */
 struct msm_gpiomux_config {
 	unsigned gpio;
 	struct gpiomux_setting *settings[GPIOMUX_NSETTINGS];
 };
 
+/**
+ * struct msm_gpiomux_configs: a collection of gpiomux configs.
+ *
+ * It is so common to manage blocks of gpiomux configs that the data structure
+ * for doing so has been standardized here as a convenience.
+ *
+ * @cfg:  A pointer to the first config in an array of configs.
+ * @ncfg: The number of configs in the array.
+ */
 struct msm_gpiomux_configs {
 	struct msm_gpiomux_config *cfg;
 	size_t                     ncfg;

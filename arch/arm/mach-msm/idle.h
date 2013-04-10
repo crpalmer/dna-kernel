@@ -45,16 +45,16 @@ extern uint32_t *l2x0_base_addr;
 #else
 static inline void msm_pm_set_l2_flush_flag(unsigned int flag)
 {
-	
+	/* empty */
 }
 static inline void msm_pm_boot_entry(void)
 {
-	
+	/* empty */
 }
 static inline void msm_pm_write_boot_vector(unsigned int cpu,
 						unsigned long address)
 {
-	
+	/* empty */
 }
 #endif
 #endif

@@ -190,27 +190,29 @@ typedef BWL_PRE_PACKED_STRUCT struct bcm_event {
 #define WLC_E_TDLS_PEER_EVENT 	92	
 #define WLC_E_SPEEDY_RECREATE_FAIL	93	
 #define WLC_E_RELOAD		94
-#define WLC_E_RSSI_LOW		95      
-#define WLC_E_ASSOCREQ_IE	96	
+#define WLC_E_RSSI_LOW		95      /* Send up rssi low event */
+#define WLC_E_ASSOCREQ_IE	96	/* Send up assoc ie */
 #define WLC_E_LOAD_IND		97
 #define WLC_E_TX_STAT_ERROR     98    
 #define WLC_E_LAST			99	
 #else 
-#define WLC_E_WAKE_EVENT	76	
-#define WLC_E_OVERLAY_REQ	77	
-#define WLC_E_ASSOC_IND_NDIS		78	
-#define WLC_E_REASSOC_IND_NDIS		79	
-#define WLC_E_CSA_COMPLETE_IND		80	
-#define WLC_E_EXCESS_PM_WAKE_EVENT	81	
-#define WLC_E_PFN_SCAN_NONE		82	
-#define WLC_E_PFN_SCAN_ALLGONE	83	
+#define WLC_E_WAKE_EVENT	76	/* Wake Event timer fired, used for wake WLAN test mode */
+#define WLC_E_OVERLAY_REQ	77	/* request an overlay IOCTL/iovar from the host */
+#define WLC_E_ASSOC_IND_NDIS		78	/* 802.11 ASSOC indication for NDIS only */
+#define WLC_E_REASSOC_IND_NDIS		79	/* 802.11 REASSOC indication for NDIS only */
+#define WLC_E_CSA_COMPLETE_IND		80	/* 802.11 CHANNEL SWITCH ACTION completed */
+#define WLC_E_EXCESS_PM_WAKE_EVENT	81	/* excess PM Wake Event to inform host  */
+#define WLC_E_PFN_SCAN_NONE		82	/* no PFN networks around */
+#define WLC_E_PFN_SCAN_ALLGONE	83	/* last found PFN network gets lost */
 #define WLC_E_GTK_PLUMBED 84
 #define WLC_E_ASSOC_REQ_IE 85
 #define WLC_E_ASSOC_RESP_IE 86
-#define WLC_E_RSSI_LOW		87      
-#define WLC_E_LOAD_IND		88	
-#define WLC_E_TX_STAT_ERROR     89      
-#define WLC_E_LAST	90	
+//Hugh add 2012-05-07 Add new event ++++
+#define WLC_E_RSSI_LOW		87      /* Send up rssi low event */
+#define WLC_E_LOAD_IND		88	/* loading incicate */
+#define WLC_E_TX_STAT_ERROR     89      /* tx error indicate */
+//Hugh add 2012-05-07 Add new event ----
+#define WLC_E_LAST	90	/* highest val + 1 for range checking */
 #endif
 
 
@@ -346,7 +348,7 @@ typedef struct wl_event_data_if {
 #define WLC_E_TDLS_PEER_CONNECTED		1
 #define WLC_E_TDLS_PEER_DISCONNECTED	2
 
-#define WLC_E_RELOAD_STATUS1            1  
+#define WLC_E_RELOAD_STATUS1            1  /* Internal Firmware Error */
 
 #include <packed_section_end.h>
 

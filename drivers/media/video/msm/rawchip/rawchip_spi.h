@@ -27,7 +27,7 @@ int rawchip_spi_write(unsigned char addr, unsigned char data);
 int rawchip_spi_write_2B1B(uint16_t addr, unsigned char data);
 int rawchip_spi_read_2B1B(uint16_t addr, unsigned char *data);
 int rawchip_spi_read_2B2B(uint16_t addr, uint16_t *data);
-int yushan_spi_write(uint16_t reg, uint8_t val);
+int yushan_spi_write(uint16_t reg, uint8_t/*uint16_t*/ val);
 
 int	SPI_Read(uint16_t uwIndex , uint16_t uwCount , uint8_t *pData);
 int	SPI_Write(uint16_t uwIndex , uint16_t uwCount , uint8_t *pData);

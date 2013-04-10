@@ -86,38 +86,44 @@ enum {
 #define DHD_ARPOE_VAL	0x4000
 #define DHD_REORDER_VAL	0x8000
 #define DHD_WL_VAL		0x10000
-#define DHD_NOCHECKDIED_VAL		0x20000 
+#define DHD_NOCHECKDIED_VAL		0x20000 /* UTF WAR */
 
 #ifdef SDTEST
+/* For pktgen iovar */
 typedef struct dhd_pktgen {
-	uint version;		
-	uint freq;		
-	uint count;		
-	uint print;		
-	uint total;		
-	uint minlen;		
-	uint maxlen;		
-	uint numsent;		
-	uint numrcvd;		
-	uint numfail;		
-	uint mode;		
-	uint stop;		
+	uint version;		/* To allow structure change tracking */
+	uint freq;		/* Max ticks between tx/rx attempts */
+	uint count;		/* Test packets to send/rcv each attempt */
+	uint print;		/* Print counts every <print> attempts */
+	uint total;		/* Total packets (or bursts) */
+	uint minlen;		/* Minimum length of packets to send */
+	uint maxlen;		/* Maximum length of packets to send */
+	uint numsent;		/* Count of test packets sent */
+	uint numrcvd;		/* Count of test packets received */
+	uint numfail;		/* Count of test send failures */
+	uint mode;		/* Test mode (type of test packets) */
+	uint stop;		/* Stop after this many tx failures */
 } dhd_pktgen_t;
 
+/* Version in case structure changes */
 #define DHD_PKTGEN_VERSION 2
 
-#define DHD_PKTGEN_ECHO		1 
-#define DHD_PKTGEN_SEND 	2 
-#define DHD_PKTGEN_RXBURST	3 
-#define DHD_PKTGEN_RECV		4 
-#endif 
+/* Type of test packets to use */
+#define DHD_PKTGEN_ECHO		1 /* Send echo requests */
+#define DHD_PKTGEN_SEND 	2 /* Send discard packets */
+#define DHD_PKTGEN_RXBURST	3 /* Request dongle send N packets */
+#define DHD_PKTGEN_RECV		4 /* Continuous rx from continuous tx dongle */
+#endif /* SDTEST */
 
+/* Enter idle immediately (no timeout) */
 #define DHD_IDLE_IMMEDIATE	(-1)
 
-#define DHD_IDLE_ACTIVE	0	
-#define DHD_IDLE_STOP   (-1)	
+/* Values for idleclock iovar: other values are the sd_divisor to use when idle */
+#define DHD_IDLE_ACTIVE	0	/* Do not request any SD clock change when idle */
+#define DHD_IDLE_STOP   (-1)	/* Request SD clock be stopped (and use SD1 mode) */
 
 
+/* require default structure packing */
 #include <packed_section_end.h>
 
-#endif 
+#endif /* _dhdioctl_h_ */

@@ -35,7 +35,10 @@ DEFINE_MUTEX(s5k3h2yx_act_mutex);
 static struct msm_actuator_ctrl_t s5k3h2yx_act_t;
 
 static struct region_params_t g_regions[] = {
-	
+	/* step_bound[0] - macro side boundary
+	 * step_bound[1] - infinity side boundary
+	 */
+	/* Region 1 */
 	{
 		.step_bound = {S5K3H2YX_TOTAL_STEPS_NEAR_TO_FAR, 0},
 		.code_per_step = 2,
@@ -43,13 +46,13 @@ static struct region_params_t g_regions[] = {
 };
 
 static uint16_t g_scenario[] = {
-	
+	/* MOVE_NEAR and MOVE_FAR dir*/
 	S5K3H2YX_TOTAL_STEPS_NEAR_TO_FAR,
 };
 
 static struct damping_params_t g_damping[] = {
-	
-	
+	/* MOVE_NEAR Dir */
+	/* Scene 1 => Damping params */
 	{
 		.damping_step = 2,
 		.damping_delay = 0,
@@ -57,8 +60,8 @@ static struct damping_params_t g_damping[] = {
 };
 
 static struct damping_t g_damping_params[] = {
-	
-	
+	/* MOVE_NEAR and MOVE_FAR dir */
+	/* Region 1 */
 	{
 		.ringing_params = g_damping,
 	},
@@ -114,7 +117,7 @@ int32_t s5k3h2yx_msm_actuator_init_table(
 		return rc;
 	}
 
-	
+	/* Fill step position table */
 	if (a_ctrl->step_position_table != NULL) {
 		kfree(a_ctrl->step_position_table);
 		a_ctrl->step_position_table = NULL;
@@ -177,7 +180,7 @@ int32_t s5k3h2yx_msm_actuator_move_focus(
 		dir,
 		num_steps);
 
-	
+	/* Determine sign direction */
 	if (dir == MOVE_NEAR)
 		sign_dir = 1;
 	else if (dir == MOVE_FAR)
@@ -188,7 +191,7 @@ int32_t s5k3h2yx_msm_actuator_move_focus(
 		return rc;
 	}
 
-	
+	/* Determine destination step position */
 	dest_step_pos = a_ctrl->curr_step_pos +
 		(sign_dir * num_steps);
 
@@ -302,7 +305,7 @@ static int s5k3h2yx_act_config(
 {
 	LINFO("%s called\n", __func__);
 	return (int) msm_actuator_config(&s5k3h2yx_act_t,
-		s5k3h2yx_msm_actuator_info, argp); 
+		s5k3h2yx_msm_actuator_info, argp); /* HTC Angie 20111212 - Rawchip */
 }
 
 static int s5k3h2yx_i2c_add_driver_table(
@@ -388,13 +391,13 @@ static struct msm_actuator_ctrl_t s5k3h2yx_act_t = {
 
 	.set_info = {
 		.total_steps = S5K3H2YX_TOTAL_STEPS_NEAR_TO_FAR,
-		.gross_steps = 3,	
-		.fine_steps = 1,	
+		.gross_steps = 3,	/*[TBD]*/
+		.fine_steps = 1,	/*[TBD]*/
 	},
 
 	.curr_step_pos = 0,
 	.curr_region_index = 0,
-	.initial_code = 0,	
+	.initial_code = 0,	/*[TBD]*/
 	.actuator_mutex = &s5k3h2yx_act_mutex,
 
 	.func_tbl = {
@@ -406,7 +409,7 @@ static struct msm_actuator_ctrl_t s5k3h2yx_act_t = {
 		.actuator_i2c_write = s5k3h2yx_wrapper_i2c_write,
 	},
 
-	.get_info = {	
+	.get_info = {	/*[TBD]*/
 		.focal_length_num = 46,
 		.focal_length_den = 10,
 		.f_number_num = 265,
@@ -417,17 +420,17 @@ static struct msm_actuator_ctrl_t s5k3h2yx_act_t = {
 		.total_f_dist_den = 1000,
 	},
 
-	
+	/* Initialize scenario */
 	.ringing_scenario[MOVE_NEAR] = g_scenario,
 	.scenario_size[MOVE_NEAR] = ARRAY_SIZE(g_scenario),
 	.ringing_scenario[MOVE_FAR] = g_scenario,
 	.scenario_size[MOVE_FAR] = ARRAY_SIZE(g_scenario),
 
-	
+	/* Initialize region params */
 	.region_params = g_regions,
 	.region_size = ARRAY_SIZE(g_regions),
 
-	
+	/* Initialize damping params */
 	.damping[MOVE_NEAR] = g_damping_params,
 	.damping[MOVE_FAR] = g_damping_params,
 };

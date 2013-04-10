@@ -23,9 +23,11 @@
 #include <linux/mfd/pm8xxx/pm8921.h>
 #include "board-monarudo.h"
 
+/* static char *keycaps = "--qwerty"; */
 #undef MODULE_PARAM_PREFIX
 #define MODULE_PARAM_PREFIX "board_monarudo."
 
+/* module_param_named(keycaps, keycaps, charp, 0); */
 
 static struct gpio_event_direct_entry monarudo_keypad_map_xc[] = {
 	{
@@ -100,7 +102,7 @@ uint32_t hw_clr_gpio_table[] = {
 
 static void monarudo_clear_hw_reset(void)
 {
-	if (system_rev >= PVT ) { 
+	if (system_rev >= PVT ) { /* Function Ready after A01 */
 		printk(KERN_INFO "[KEY] %s ++++++\n", __func__);
 		gpio_tlmm_config(hw_clr_gpio_table[1], GPIO_CFG_ENABLE);
 		gpio_set_value(RESET_EN_CLRz_XC, 0);
@@ -148,7 +150,7 @@ static struct platform_device monarudo_keypad_device = {
 };
 
 static struct keyreset_platform_data monarudo_reset_keys_pdata = {
-	
+	/*.keys_up = 8064_reset_keys_up,*/
 	.keys_down = {
 		KEY_POWER,
 		KEY_VOLUMEDOWN,
@@ -168,7 +170,7 @@ int __init monarudo_init_keypad(void)
 		printk(KERN_WARNING "%s: register reset key fail\n", __func__);
 
 
-	if (system_rev < 2) { 
+	if (system_rev < 2) { /* XA and XB load different keymap*/
 		monarudo_keypad_power_info.keymap = monarudo_keypad_map;
 		monarudo_keypad_power_info.keymap_size =
 			ARRAY_SIZE(monarudo_keypad_map);

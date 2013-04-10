@@ -55,6 +55,11 @@ static struct device_attribute mmc_dev_attrs[] = {
 	__ATTR_NULL,
 };
 
+/*
+ * This currently matches any MMC driver to any MMC card - drivers
+ * themselves make the decision whether to drive this card in their
+ * probe method.
+ */
 static int mmc_bus_match(struct device *dev, struct device_driver *drv)
 {
 	return 1;
@@ -100,6 +105,10 @@ mmc_bus_uevent(struct device *dev, struct kobj_uevent_env *env)
 	if (retval)
 		return retval;
 
+	/*
+	 * Request the mmc_block device.  Note: that this is a direct request
+	 * for the module it carries no information as to what is inserted.
+	 */
 	retval = add_uevent_var(env, "MODALIAS=mmc:block");
 
 	return retval;
@@ -171,7 +180,7 @@ static int mmc_runtime_idle(struct device *dev)
 	return pm_runtime_suspend(dev);
 }
 
-#endif 
+#endif /* !CONFIG_PM_RUNTIME */
 
 static const struct dev_pm_ops mmc_bus_pm_ops = {
 	SET_RUNTIME_PM_OPS(mmc_runtime_suspend, mmc_runtime_resume,
@@ -199,6 +208,10 @@ void mmc_unregister_bus(void)
 	bus_unregister(&mmc_bus_type);
 }
 
+/**
+ *	mmc_register_driver - register a media driver
+ *	@drv: MMC media driver
+ */
 int mmc_register_driver(struct mmc_driver *drv)
 {
 	drv->drv.bus = &mmc_bus_type;
@@ -207,6 +220,10 @@ int mmc_register_driver(struct mmc_driver *drv)
 
 EXPORT_SYMBOL(mmc_register_driver);
 
+/**
+ *	mmc_unregister_driver - unregister a media driver
+ *	@drv: MMC media driver
+ */
 void mmc_unregister_driver(struct mmc_driver *drv)
 {
 	drv->drv.bus = &mmc_bus_type;
@@ -227,6 +244,9 @@ static void mmc_release_card(struct device *dev)
 	kfree(card);
 }
 
+/*
+ * Allocate and initialise a new MMC card structure.
+ */
 struct mmc_card *mmc_alloc_card(struct mmc_host *host, struct device_type *type)
 {
 	struct mmc_card *card;
@@ -249,6 +269,9 @@ struct mmc_card *mmc_alloc_card(struct mmc_host *host, struct device_type *type)
 	return card;
 }
 
+/*
+ * Register a new MMC card with the driver model.
+ */
 int mmc_add_card(struct mmc_card *card)
 {
 	int ret;
@@ -368,6 +391,10 @@ int mmc_add_card(struct mmc_card *card)
 	return 0;
 }
 
+/*
+ * Unregister a new MMC card with the driver model, and
+ * (eventually) free it.
+ */
 void mmc_remove_card(struct mmc_card *card)
 {
 #ifdef CONFIG_DEBUG_FS

@@ -26,6 +26,7 @@
 #include <mach/usbdiag.h>
 #include <asm/mach-types.h>
 #include <linux/delay.h>
+/* Size of the USB buffers used for read and write*/
 #define USB_MAX_OUT_BUF 4096
 #define APPS_BUF_SIZE	2000
 #define IN_BUF_SIZE		16384
@@ -33,6 +34,8 @@
 #define DIAG_PKT_SIZE		4096
 #define MAX_IN_BUF_SIZE	32768
 #define MAX_SYNC_OBJ_NAME_SIZE	32
+/* Size of the buffer used for deframing a packet
+  reveived from the PC tool*/
 #define HDLC_MAX 4096
 #define HDLC_OUT_BUF_SIZE	8192
 #define POOL_TYPE_COPY		1
@@ -63,6 +66,7 @@
 #define DIAG_CTRL_MSG_F3_MASK	11
 #define CONTROL_CHAR	0x7E
 
+/* Maximum number of pkt reg supported at initialization*/
 extern unsigned int diag_max_reg;
 extern unsigned int diag_threshold_reg;
 
@@ -83,10 +87,10 @@ struct diag_master_table {
 };
 
 struct bindpkt_params_per_process {
-	
+	/* Name of the synchronization object associated with this proc */
 	char sync_obj_name[MAX_SYNC_OBJ_NAME_SIZE];
-	uint32_t count;	
-	struct bindpkt_params *params; 
+	uint32_t count;	/* Number of entries in this bind */
+	struct bindpkt_params *params; /* first bind params */
 };
 
 struct bindpkt_params {
@@ -94,11 +98,11 @@ struct bindpkt_params {
 	uint16_t subsys_id;
 	uint16_t cmd_code_lo;
 	uint16_t cmd_code_hi;
-	
+	/* For Central Routing, used to store Processor number */
 	uint16_t proc_id;
 	uint32_t event_id;
 	uint32_t log_code;
-	
+	/* For Central Routing, used to store SMD channel pointer */
 	uint32_t client_id;
 };
 
@@ -113,6 +117,7 @@ struct diag_client_map {
 	int timeout;
 };
 
+/* This structure is defined in USB header file */
 #ifndef CONFIG_DIAG_OVER_USB
 struct diag_request {
 	char *buf;
@@ -125,7 +130,7 @@ struct diag_request {
 
 struct diagchar_dev {
 
-	
+	/* State for the char driver */
 	unsigned int major;
 	unsigned int minor_start;
 	int num;
@@ -142,7 +147,7 @@ struct diagchar_dev {
 	int polling_reg_flag;
 	struct diag_write_device *buf_tbl;
 	int use_device_tree;
-	
+	/* DCI related variables */
 	struct diag_dci_tbl *dci_tbl;
 	struct dci_notification_tbl *dci_notify_tbl;
 	int dci_tag;
@@ -161,7 +166,7 @@ struct diagchar_dev {
 	int *mdmdata_ready;
 	int mdm_logging_process_id;
 #endif
-	
+	/* Memory pool parameters */
 	unsigned int itemsize;
 	unsigned int poolsize;
 	unsigned int itemsize_hdlc;
@@ -169,7 +174,7 @@ struct diagchar_dev {
 	unsigned int itemsize_write_struct;
 	unsigned int poolsize_write_struct;
 	unsigned int debug_flag;
-	
+	/* State for the mempool for the char driver */
 	mempool_t *diagpool;
 	mempool_t *diag_hdlc_pool;
 	mempool_t *diag_write_struct_pool;
@@ -178,12 +183,12 @@ struct diagchar_dev {
 	int count_hdlc_pool;
 	int count_write_struct_pool;
 	int used;
-	
+	/* Buffers for masks */
 	struct mutex diag_cntl_mutex;
 	struct diag_ctrl_event_mask *event_mask;
 	struct diag_ctrl_log_mask *log_mask;
 	struct diag_ctrl_msg_mask *msg_mask;
-	
+	/* State for diag forwarding */
 	unsigned char *buf_in_1;
 	unsigned char *buf_in_2;
 	unsigned char *buf_in_cntl;
@@ -198,7 +203,7 @@ struct diagchar_dev {
 	unsigned char *apps_rsp_buf;
 	unsigned char *user_space_data;
 	unsigned char *user_space_mdm_data;
-	
+	/* buffer for updating mask to peripherals */
 	unsigned char *buf_msg_mask_update;
 	unsigned char *buf_log_mask_update;
 	unsigned char *buf_event_mask_update;
@@ -287,13 +292,13 @@ struct diagchar_dev {
 	struct diag_request *write_ptr_mdm;
 #endif
 #ifdef CONFIG_DIAG_BRIDGE_CODE
-	
+	/* SGLTE variables */
 	int lcid;
 	unsigned char *buf_in_smux;
 	int in_busy_smux;
 	int diag_smux_enabled;
 	struct diag_request *write_ptr_mdm;
-	
+	/* HSIC variables */
 	int hsic_ch;
 	int hsic_device_enabled;
 	int hsic_device_opened;
@@ -301,7 +306,7 @@ struct diagchar_dev {
 	int in_busy_hsic_read_on_device;
 	int in_busy_hsic_write;
 	struct work_struct diag_read_hsic_work;
-	
+	/* USB MDM channel variables */
 	int usb_mdm_connected;
 	int read_len_mdm;
 	int write_len_mdm;

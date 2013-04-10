@@ -9,10 +9,10 @@
 #define imx175_obj imx175_##obj
 
 #define IMX175_REG_READ_MODE 0x0101
-#define IMX175_READ_NORMAL_MODE 0x0000	
-#define IMX175_READ_MIRROR 0x0001			
-#define IMX175_READ_FLIP 0x0002			
-#define IMX175_READ_MIRROR_FLIP 0x0003	
+#define IMX175_READ_NORMAL_MODE 0x0000	/* without mirror/flip */
+#define IMX175_READ_MIRROR 0x0001			/* with mirror */
+#define IMX175_READ_FLIP 0x0002			/* with flip */
+#define IMX175_READ_MIRROR_FLIP 0x0003	/* with mirror/flip */
 
 #define REG_DIGITAL_GAIN_GREEN_R 0x020E
 #define REG_DIGITAL_GAIN_RED 0x0210
@@ -20,7 +20,7 @@
 #define REG_DIGITAL_GAIN_GREEN_B 0x0214
 
 DEFINE_MUTEX(imx175_mut);
-DEFINE_MUTEX(imx175_sensor_init_mut);
+DEFINE_MUTEX(imx175_sensor_init_mut);//CC120826,
 static struct msm_sensor_ctrl_t imx175_s_ctrl;
 
 static struct msm_camera_i2c_reg_conf imx175_start_settings[] = {
@@ -56,7 +56,7 @@ static struct msm_camera_i2c_reg_conf imx175_mipi_settings[] = {
 	{0x3109, 0x41},
 	{0x3148, 0x3F},
 	{0x330F, 0x07},
-	{0x4100, 0x0E}, 
+	{0x4100, 0x0E}, // HTC pg 20120913 dymanic defect correction
 	{0x4104, 0x32},
 	{0x4105, 0x32},
 	{0x4108, 0x01},
@@ -77,10 +77,10 @@ static struct msm_camera_i2c_reg_conf imx175_pll_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf imx175_prev_settings[] = {
-	
-	{0x0103, 0x01}, 
+	//S/W reset
+	{0x0103, 0x01}, //HTC_START steven 20120613 fix tearing on lower half of preview when transcat from HFR to ZSL
 
-	
+	/* PLL Setting EXTCLK=24MHz, 4 lanes, PLL=648MHz */
 	{0x0301, 0x05},
 	{0x0303, 0x01},
 	{0x0305, 0x06},
@@ -90,7 +90,7 @@ static struct msm_camera_i2c_reg_conf imx175_prev_settings[] = {
 	{0x030D, 0xA2},
 	{0x030E, 0x01},
 
-	
+	//sensor setting
 	{0x41C0, 0x01},
 	{0x0100, 0x00},
 	{0x0202, 0x09},
@@ -145,7 +145,7 @@ static struct msm_camera_i2c_reg_conf imx175_prev_settings[] = {
 	{0x33D5, 0x68},
 	{0x33D6, 0x04},
 	{0x33D7, 0xD0},
-	{0x4100, 0x0E}, 
+	{0x4100, 0x0E}, // HTC pg 20120913 dymanic defect correction
 	{0x4104, 0x32},
 	{0x4105, 0x32},
 	{0x4108, 0x01},
@@ -155,10 +155,10 @@ static struct msm_camera_i2c_reg_conf imx175_prev_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf imx175_video_settings[] = {
-	
-	{0x0103, 0x01}, 
+	//S/W reset
+	{0x0103, 0x01}, //HTC_START steven 20120613 fix tearing on lower half of preview when transcat from HFR to ZSL
 
-	
+	/* PLL Setting EXTCLK=24MHz, 4 lanes, PLL=648MHz */
 	{0x0301, 0x05},
 	{0x0303, 0x01},
 	{0x0305, 0x06},
@@ -168,7 +168,7 @@ static struct msm_camera_i2c_reg_conf imx175_video_settings[] = {
 	{0x030D, 0xA2},
 	{0x030E, 0x01},
 
-	
+	//sensor setting
 	{0x41C0, 0x01},
 	{0x0100, 0x00},
 	{0x0202, 0x09},
@@ -223,7 +223,7 @@ static struct msm_camera_i2c_reg_conf imx175_video_settings[] = {
 	{0x33D5, 0x0C},
 	{0x33D6, 0x06},
 	{0x33D7, 0xC8},
-	{0x4100, 0x0E}, 
+	{0x4100, 0x0E}, // HTC pg 20120913 dymanic defect correction
 	{0x4104, 0x32},
 	{0x4105, 0x32},
 	{0x4108, 0x01},
@@ -233,10 +233,10 @@ static struct msm_camera_i2c_reg_conf imx175_video_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf imx175_fast_video_settings[] = {
-	
-	{0x0103, 0x01}, 
+	//S/W reset
+	{0x0103, 0x01}, //HTC_START steven 20120613 fix tearing on lower half of preview when transcat from HFR to ZSL
 
-	
+	/* PLL Setting EXTCLK=24MHz, 4 lanes, PLL=648MHz */
 	{0x0301, 0x05},
 	{0x0303, 0x01},
 	{0x0305, 0x06},
@@ -246,7 +246,7 @@ static struct msm_camera_i2c_reg_conf imx175_fast_video_settings[] = {
 	{0x030D, 0xA2},
 	{0x030E, 0x01},
 
-	
+	//sensor setting
 	{0x41C0, 0x01},
 	{0x0100, 0x00},
 	{0x0202, 0x02},
@@ -302,7 +302,7 @@ static struct msm_camera_i2c_reg_conf imx175_fast_video_settings[] = {
 	{0x33D5, 0x68},
 	{0x33D6, 0x01},
 	{0x33D7, 0xFE},
-	{0x4100, 0x0E}, 
+	{0x4100, 0x0E}, // HTC pg 20120913 dymanic defect correction
 	{0x4104, 0x32},
 	{0x4105, 0x32},
 	{0x4108, 0x01},
@@ -312,10 +312,10 @@ static struct msm_camera_i2c_reg_conf imx175_fast_video_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf imx175_snap_settings[] = {
-	
-	{0x0103, 0x01}, 
+	//S/W reset
+	{0x0103, 0x01}, //HTC_START steven 20120613 fix tearing on lower half of preview when transcat from HFR to ZSL
 
-	
+	/* PLL Setting EXTCLK=24MHz, 4 lanes, PLL=648MHz */
 	{0x0301, 0x05},
 	{0x0303, 0x01},
 	{0x0305, 0x06},
@@ -325,7 +325,7 @@ static struct msm_camera_i2c_reg_conf imx175_snap_settings[] = {
 	{0x030D, 0xA2},
 	{0x030E, 0x01},
 
-	
+	//sensor setting
 	{0x41C0, 0x01},
 	{0x0100, 0x00},
 	{0x0202, 0x09},
@@ -380,7 +380,7 @@ static struct msm_camera_i2c_reg_conf imx175_snap_settings[] = {
 	{0x33D5, 0xD0},
 	{0x33D6, 0x09},
 	{0x33D7, 0xA0},
-	{0x4100, 0x0E}, 
+	{0x4100, 0x0E}, // HTC pg 20120913 dymanic defect correction
 	{0x4104, 0x32},
 	{0x4105, 0x32},
 	{0x4108, 0x01},
@@ -390,10 +390,10 @@ static struct msm_camera_i2c_reg_conf imx175_snap_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf imx175_16_9_settings[] = {
-	
-	{0x0103, 0x01}, 
+	//S/W reset
+	{0x0103, 0x01}, //HTC_START steven 20120613 fix tearing on lower half of preview when transcat from HFR to ZSL
 
-	
+	// PLL settings
 	{0x0301, 0x05},
 	{0x0303, 0x01},
 	{0x0305, 0x06},
@@ -403,7 +403,7 @@ static struct msm_camera_i2c_reg_conf imx175_16_9_settings[] = {
 	{0x030D, 0xA2},
 	{0x030E, 0x01},
 
-	
+	//sensor setting
 	{0x41C0, 0x01},
 	{0x0100, 0x00},
 	{0x0202, 0x09},
@@ -458,7 +458,7 @@ static struct msm_camera_i2c_reg_conf imx175_16_9_settings[] = {
 	{0x33D5, 0xD0},
 	{0x33D6, 0x07},
 	{0x33D7, 0x40},
-	{0x4100, 0x0E}, 
+	{0x4100, 0x0E}, // HTC pg 20120913 dymanic defect correction
 	{0x4104, 0x32},
 	{0x4105, 0x32},
 	{0x4108, 0x01},
@@ -468,10 +468,10 @@ static struct msm_camera_i2c_reg_conf imx175_16_9_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf imx175_snap_wide_settings[] = {
-	
-	{0x0103, 0x01}, 
+	//S/W reset
+	{0x0103, 0x01}, //HTC_START steven 20120613 fix tearing on lower half of preview when transcat from HFR to ZSL
 
-	
+	/* PLL Setting EXTCLK=24MHz, 4 lanes, PLL=648MHz */
 	{0x0301, 0x05},
 	{0x0303, 0x01},
 	{0x0305, 0x06},
@@ -481,7 +481,7 @@ static struct msm_camera_i2c_reg_conf imx175_snap_wide_settings[] = {
 	{0x030D, 0xA2},
 	{0x030E, 0x01},
 
-	
+	//sensor setting
 	{0x41C0, 0x01},
 	{0x0100, 0x00},
 	{0x0202, 0x09},
@@ -536,7 +536,7 @@ static struct msm_camera_i2c_reg_conf imx175_snap_wide_settings[] = {
 	{0x33D5, 0xD0},
 	{0x33D6, 0x07},
 	{0x33D7, 0x40},
-	{0x4100, 0x0E}, 
+	{0x4100, 0x0E}, // HTC pg 20120913 dymanic defect correction
 	{0x4104, 0x32},
 	{0x4105, 0x32},
 	{0x4108, 0x01},
@@ -545,41 +545,41 @@ static struct msm_camera_i2c_reg_conf imx175_snap_wide_settings[] = {
 	{0x410B, 0x00},
 };
 
- 
+ /* TMP - Now it's same as FULL SIZE */
  static struct msm_camera_i2c_reg_conf imx175_night_settings[] = {
-	
-	{0x0103, 0x01}, 
+	//S/W reset
+	{0x0103, 0x01}, //HTC_START steven 20120613 fix tearing on lower half of preview when transcat from HFR to ZSL
 
-	
-	{0x0301, 0x0A}, 
-	{0x0303, 0x01}, 
-	{0x0305, 0x06}, 
-	{0x0309, 0x0A}, 
-	{0x030B, 0x01}, 
-	{0x030C, 0x00}, 
-	{0x030D, 0xDD}, 
+	/* PLL Setting EXTCLK=24MHz, PLL=884MHz */
+	{0x0301, 0x0A}, /* vt_pix_clk_div */
+	{0x0303, 0x01}, /* vt_sys_clk_div */
+	{0x0305, 0x06}, /* pre_pll_clk _div */
+	{0x0309, 0x0A}, /* op_pix_clk_div */
+	{0x030B, 0x01}, /* op_sys_clk_div */
+	{0x030C, 0x00}, /* pll_ multiplier[10:8] */
+	{0x030D, 0xDD}, /* pll_ multiplier[7:0] */
 	{0x030E, 0x01},
 
-	{0x0202, 0x09}, 
+	{0x0202, 0x09}, /* coarse_integration_time */
 	{0x0203, 0xC0},
-	{0x0340, 0x09}, 
+	{0x0340, 0x09}, /* frame_length_lines */
 	{0x0341, 0xC4},
-	{0x0342, 0x0D}, 
+	{0x0342, 0x0D}, /* line_length_pck */
 	{0x0343, 0x70},
-	{0x0344, 0x00}, 
+	{0x0344, 0x00}, /* x_addr_start */
 	{0x0345, 0x00},
-	{0x0346, 0x00}, 
+	{0x0346, 0x00}, /* y_addr_start */
 	{0x0347, 0x00},
-	{0x0348, 0x0C}, 
+	{0x0348, 0x0C}, /* x_addr_end */
 	{0x0349, 0xCF},
-	{0x034A, 0x09}, 
+	{0x034A, 0x09}, /* y_addr_end */
 	{0x034B, 0x9F},
-	
-	{0x034C, 0x0C}, 
+	/* TMP: need x_even_inc/x_odd_inc/y_even_inc/y_odd_inc */
+	{0x034C, 0x0C}, /* x_output_size */
 	{0x034D, 0xD0},
-	{0x034E, 0x09}, 
+	{0x034E, 0x09}, /* y_output_size */
 	{0x034F, 0xA0},
-	{0x0390, 0x00}, 
+	{0x0390, 0x00}, /* binning mode */
 	{0x3344, 0x6F},
 	{0x3345, 0x1F},
 	{0x3364, 0x02},
@@ -610,7 +610,7 @@ static struct v4l2_subdev_info imx175_subdev_info[] = {
 	.fmt    = 1,
 	.order    = 0,
 	},
-	
+	/* more can be supported, to be added later */
 };
 
 static struct msm_camera_i2c_conf_array imx175_init_conf[] = {
@@ -640,84 +640,84 @@ static struct msm_camera_i2c_conf_array imx175_confs[] = {
 };
 
 static struct msm_sensor_output_info_t imx175_dimensions[] = {
-	{
-		.x_output = 0xCD0, 
-		.y_output = 0x9A0, 
-		.line_length_pclk = 0xD70, 
-		.frame_length_lines = 0x9D0, 
-		.vt_pixel_clk = 259200000, 
+	{/*full size*/
+		.x_output = 0xCD0, //3280
+		.y_output = 0x9A0, //2464
+		.line_length_pclk = 0xD70, //3440
+		.frame_length_lines = 0x9D0, //2512
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
 		.y_addr_start = 0,
-		.x_addr_end = 0xCCF, 
-		.y_addr_end = 0x99F, 
+		.x_addr_end = 0xCCF, //3279
+		.y_addr_end = 0x99F, //2463
 		.x_even_inc = 1,
 		.x_odd_inc = 1,
 		.y_even_inc = 1,
 		.y_odd_inc = 1,
 		.binning_rawchip = 0x11,
 	},
-	{
-		.x_output = 0x668, 
-		.y_output = 0x4D0, 
-		.line_length_pclk = 0xD70, 
-		.frame_length_lines = 0x9D0, 
-		.vt_pixel_clk = 259200000,
+	{/*Q size*/
+		.x_output = 0x668, //1640
+		.y_output = 0x4D0, //1232
+		.line_length_pclk = 0xD70, //3440
+		.frame_length_lines = 0x9D0, //2512
+		.vt_pixel_clk = 259200000,/*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
 		.y_addr_start = 0,
-		.x_addr_end = 0xCCF, 
-		.y_addr_end = 0x99F, 
+		.x_addr_end = 0xCCF, //3279
+		.y_addr_end = 0x99F, //2463
 		.x_even_inc = 1,
 		.x_odd_inc = 3,
 		.y_even_inc = 1,
 		.y_odd_inc = 3,
 		.binning_rawchip = 0x22,
 	},
-	{
-		.x_output = 0xC0C, 
-		.y_output = 0x6C8, 
-		.line_length_pclk = 0xD70, 
-		.frame_length_lines = 0x9D0, 
-		.vt_pixel_clk = 259200000, 
+	{/*video size*/
+		.x_output = 0xC0C, //3084
+		.y_output = 0x6C8, //1736
+		.line_length_pclk = 0xD70, //3440
+		.frame_length_lines = 0x9D0, //2512
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
-		.x_addr_start = 0x62, 
-		.y_addr_start = 0x16C, 
-		.x_addr_end = 0xC6D, 
-		.y_addr_end = 0x833, 
+		.x_addr_start = 0x62, //98
+		.y_addr_start = 0x16C, //364
+		.x_addr_end = 0xC6D, //3181
+		.y_addr_end = 0x833, //2099
 		.x_even_inc = 1,
 		.x_odd_inc = 1,
 		.y_even_inc = 1,
 		.y_odd_inc = 1,
 		.binning_rawchip = 0x11,
 	},
-	{
-		.x_output = 0x668, 
-		.y_output = 0x1FE, 
-		.line_length_pclk = 0xD70, 
-		.frame_length_lines = 0x274, 
-		.vt_pixel_clk = 259200000,  
+	{/*fast video size*/
+		.x_output = 0x668, //1640
+		.y_output = 0x1FE, //510
+		.line_length_pclk = 0xD70, //3440
+		.frame_length_lines = 0x274, //628
+		.vt_pixel_clk = 259200000,  /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
-		.y_addr_start = 0xD4, 
-		.x_addr_end = 0xCCF, 
-		.y_addr_end = 0x8CB, 
+		.y_addr_start = 0xD4, //212
+		.x_addr_end = 0xCCF, //3279
+		.y_addr_end = 0x8CB, //2251
 		.x_even_inc = 1,
 		.x_odd_inc = 3,
 		.y_even_inc = 1,
 		.y_odd_inc = 7,
 		.binning_rawchip = 0x22,
 	},
-	{
+	{/*16:9*/
 		.x_output = 0xCD0,
 		.y_output = 0x740,
 		.line_length_pclk = 0xD70,
 		.frame_length_lines = 0x9D0,
-		.vt_pixel_clk = 259200000, 
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
@@ -730,7 +730,7 @@ static struct msm_sensor_output_info_t imx175_dimensions[] = {
 		.y_odd_inc = 1,
 		.binning_rawchip = 0x11,
 	},
-	{ 
+	{/*night mode size*/ /* TMP - Now it's same as FULL SIZE */
 		.x_output = 0xCD0,
 		.y_output = 0x9A0,
 		.line_length_pclk = 0xD70,
@@ -748,12 +748,12 @@ static struct msm_sensor_output_info_t imx175_dimensions[] = {
 		.y_odd_inc = 1,
 		.binning_rawchip = 0x11,
 	},
-	{
+	{/*wide full size*/
 		.x_output = 0xCD0,
 		.y_output = 0x740,
-		.line_length_pclk = 0xD70,  
-		.frame_length_lines = 0x9D0,  
-		.vt_pixel_clk = 259200000, 
+		.line_length_pclk = 0xD70,  // 0xD70  0xD8E
+		.frame_length_lines = 0x9D0,  // 0x9D0  0x960
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
@@ -784,8 +784,8 @@ static struct msm_camera_csi2_params imx175_csi_params = {
 	},
 	.csiphy_params = {
 		.lane_cnt = 4,
-		
-		.settle_cnt = 0x15,
+		/*.settle_cnt = 0x1B,*/
+		.settle_cnt = 0x15,/* Tom 20120224 changed for 876 MHz*/
 	},
 };
 
@@ -814,8 +814,8 @@ static struct msm_sensor_exp_gain_info_t imx175_exp_gain_info = {
 	.coarse_int_time_addr = 0x202,
 	.global_gain_addr = 0x204,
 	.vert_offset = 4,
-	.min_vert = 4,  
-	.sensor_max_linecount = 65531,  
+	.min_vert = 4, /* min coarse integration time */ /* HTC Angie 20111019 - Fix FPS */
+	.sensor_max_linecount = 65531, /* sensor max linecount = max unsigned value of linecount register size - vert_offset */ /* HTC ben 20120229 */
 };
 
 #if 0
@@ -839,6 +839,7 @@ int32_t imx175_set_dig_gain(struct msm_sensor_ctrl_t *s_ctrl, uint16_t dig_gain)
 #endif
 
 #if 0
+/* HTC_START Awii 20120306 */
 static uint32_t vcm_clib;
 static uint16_t vcm_clib_min,vcm_clib_med,vcm_clib_max;
 
@@ -856,12 +857,12 @@ static int imx175_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 
 	pr_info("%s: sensor OTP information:\n", __func__);
 
-	
+	/* testmode disable */
 	rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x3A1C, 0x00);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x3A1C fail\n", __func__);
 
-	
+	/* Initialize */
 	rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A00, 0x04);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00 (Start) fail\n", __func__);
@@ -872,7 +873,7 @@ static int imx175_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 	rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A02, 5);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, 5);
-			
+			/* Set Read Mode */
 	rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A00, 0x01);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
@@ -894,8 +895,8 @@ static int imx175_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 		vcm_clib = (vcm_clib << 8) | info_value;
 		}
 
-	
-	if(vcm_clib >> 8 == 0x03)
+	//parsing into min/med/max
+	if(vcm_clib >> 8 == 0x03)//SHARP
 		{
 		  uint32_t p;
 
@@ -929,7 +930,7 @@ static int imx175_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 			rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A02, 16);
 			if (rc < 0)
 				pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, 16);
-			
+			/* Set Read Mode */
 			rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A00, 0x01);
 			if (rc < 0)
 				pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
@@ -951,7 +952,7 @@ static int imx175_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 				vcm_clib = (vcm_clib << 8) | info_value;
 			}
 
-			if(vcm_clib >> 8 == 0x04)
+			if(vcm_clib >> 8 == 0x04)//Lite-On
 			{
 				uint32_t p;
 
@@ -973,7 +974,7 @@ static int imx175_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 			}
 		}
 	if(((vcm_clib & 0x0000FFFF) == 0x0000) || (vcm_clib_min==0 && vcm_clib_med==0 && vcm_clib_max==0)
-		||(
+		||(//protect vcm range within theoratical
 		     (DEFAULT_VCM_MAX < vcm_clib_max) || (DEFAULT_VCM_MAX < vcm_clib_med) || (DEFAULT_VCM_MAX < vcm_clib_min)
 		  || (DEFAULT_VCM_MIN > vcm_clib_max) || (DEFAULT_VCM_MIN > vcm_clib_med) || (DEFAULT_VCM_MIN > vcm_clib_min)
 		  || ((vcm_clib_med < vcm_clib_min) || (vcm_clib_med > vcm_clib_max))
@@ -994,14 +995,16 @@ static int imx175_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 	return 0;
 
 }
+/* HTC_END*/
 #endif
 
-static int lens_info;	
+static int lens_info;	//	IR: 5;	BG: 6;
 
 static void imx175_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 {
-	lens_info = 6;	
+	lens_info = 6;	//default: BG
 
+/* always use BG lens */
 #if 0
 	int32_t  rc;
 	int page = 0;
@@ -1009,24 +1012,24 @@ static void imx175_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 	unsigned short  OTP[10] = {0};
 	struct msm_camera_i2c_client *imx175_msm_camera_i2c_client = s_ctrl->sensor_i2c_client;
 
-	lens_info = 6;	
+	lens_info = 6;	//default: BG
 
 	pr_info("%s\n", __func__);
 	pr_info("%s: sensor OTP information:\n", __func__);
 
-	
+	/* testmode disable */
 	rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x3A1C, 0x00);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x3A1C fail\n", __func__);
 
-	
+	/* Initialize */
 	rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A00, 0x04);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00 (Start) fail\n", __func__);
 
 	mdelay(4);
 
-	
+	/*Read Page 20 to Page 16*/
 	info_index = 1;
 	info_value = 0;
 	memset(OTP, 0, sizeof(OTP));
@@ -1036,17 +1039,17 @@ static void imx175_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, page);
 
-		
+		/* Set Read Mode */
 		rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A00, 0x01);
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
 
-		
+		/* 0x0A04~0x0A0D: read Information 0~9 according to SPEC*/
 		rc = msm_camera_i2c_read_b(imx175_msm_camera_i2c_client, (0x0A04 + info_index), &info_value);
 		if (rc < 0)
 			pr_err("%s: i2c_read_b 0x%x fail\n", __func__, (0x0A04 + info_index));
 
-		 
+		 /* some values of fuseid are maybe zero */
 		if (((info_value&0x0F) != 0) || page == 0)
 			break;
 	}
@@ -1057,7 +1060,7 @@ static void imx175_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 		goto get_done;
 	}
 
-	
+	/*Read Page 4 to Page 0*/
 	info_index = 1;
 	info_value = 0;
 	memset(OTP, 0, sizeof(OTP));
@@ -1067,31 +1070,31 @@ static void imx175_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, page);
 
-		
+		/* Set Read Mode */
 		rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A00, 0x01);
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
 
-		
+		/* 0x0A04~0x0A0D: read Information 0~9 according to SPEC*/
 		rc = msm_camera_i2c_read_b(imx175_msm_camera_i2c_client, (0x0A04 + info_index), &info_value);
 		if (rc < 0)
 			pr_err("%s: i2c_read_b 0x%x fail\n", __func__, (0x0A04 + info_index));
 
-		 
+		 /* some values of fuseid are maybe zero */
 		if (((info_value & 0x0F) != 0) || page == 0)
 			break;
 	}
 	OTP[info_index] = (short)(info_value&0x0F);
 
 get_done:
-	
+	/* interface disable */
 	rc = msm_camera_i2c_write_b(imx175_msm_camera_i2c_client, 0x0A00, 0x00);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00 (Stop) fail\n", __func__);
 
 	pr_info("%s: LensID=%x\n", __func__, OTP[1]);
 
-	if (OTP[1] == 5)	
+	if (OTP[1] == 5)	// IR
 		lens_info = OTP[1];
 #endif
 
@@ -1106,6 +1109,8 @@ static int imx175_sensor_open_init(const struct msm_camera_sensor_info *data)
 
 	if (data->sensor_platform_info)
 		imx175_s_ctrl.mirror_flip = data->sensor_platform_info->mirror_flip;
+	/* move setting mirror_flip after sensor size config -
+		due to sw_rst when sensor size config (for HDR to ZSL preview split issue) */
 
 	imx175_read_lens_info(&imx175_s_ctrl);
 
@@ -1185,7 +1190,7 @@ static struct msm_camera_i2c_client imx175_sensor_i2c_client = {
 	.addr_type = MSM_CAMERA_I2C_WORD_ADDR,
 };
 
-int32_t imx175_power_up(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t imx175_power_up(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *sdata)
 {
 	int rc;
 	struct msm_camera_sensor_info *sdata = NULL;
@@ -1218,7 +1223,7 @@ int32_t imx175_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		goto enable_power_on_failed;
 	}
 
-	rc = msm_sensor_set_power_up(s_ctrl);
+	rc = msm_sensor_set_power_up(s_ctrl);//(sdata);
 	if (rc < 0) {
 		pr_info("%s msm_sensor_power_up failed\n", __func__);
 		goto enable_sensor_power_up_failed;
@@ -1294,6 +1299,7 @@ static struct v4l2_subdev_ops imx175_subdev_ops = {
 	.video  = &imx175_subdev_video_ops,
 };
 
+/*HTC_START*/
 static int imx175_read_fuseid(struct sensor_cfg_data *cdata,
 	struct msm_sensor_ctrl_t *s_ctrl)
 {
@@ -1311,7 +1317,7 @@ static int imx175_read_fuseid(struct sensor_cfg_data *cdata,
 		if (rc < 0)
 			pr_err("%s: msm_camera_i2c_write 0x3400 failed\n", __func__);
 
-		
+		/* Set Page 1 */
 		rc = msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3402, 0x01, MSM_CAMERA_I2C_BYTE_DATA);
 		if (rc < 0)
 			pr_err("%s: msm_camera_i2c_write 0x3402 failed\n", __func__);
@@ -1353,7 +1359,9 @@ static int imx175_read_fuseid(struct sensor_cfg_data *cdata,
 	return 0;
 
 }
+/* HTC_END*/
 
+/* HTC_START steven multiple VCM 20120605 */
 static int imx175_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t  rc;
@@ -1374,12 +1382,12 @@ static int imx175_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 		return 0;
 	}
 
-	
+	//Set Sensor to SW-Standby
 	rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x0100, 0x00);
 	if (rc < 0)
 		pr_info("%s: i2c_write_b 0x0100 fail\n", __func__);
 
-	
+	//Set Input clock freq.(24MHz)
 	rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x3368, 0x18);
 	if (rc < 0)
 		pr_info("%s: i2c_write_b 0x3368 fail\n", __func__);
@@ -1388,38 +1396,38 @@ static int imx175_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 	if (rc < 0)
 		pr_info("%s: i2c_write_b 0x3369 fail\n", __func__);
 
-	
+	//set read mode
 	rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x3400, 0x01);
 	if (rc < 0)
 		pr_info("%s: i2c_write_b 0x3400 fail\n", __func__);
 
 	mdelay(4);
 
-	
+	//select information index, Driver ID at 10th index
 	info_index = 10;
-	
+	/*Read page 3 to Page 0*/
 	for (page = 3; page >= 0; page--) {
-		
+		//Select page
 		rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x3402, page);
 		if (rc < 0)
 			pr_info("%s: i2c_write_b 0x3402 (select page %d) fail\n", __func__, page);
 
-		
-		
+		//Select information index. Driver ID at 10th index
+		//for formal sample
 		rc = msm_camera_i2c_read_b(msm_camera_i2c_client, (0x3410 + info_index), &info_value);
 		if (rc < 0)
 			pr_info("%s: i2c_read_b 0x%x fail\n", __func__, (0x3410 + info_index));
 
-		
+		/* some values of fuseid are maybe zero */
 		if (((info_value & 0x0F) != 0) || page < 0)
 			break;
 
-		
+		//for first sample
 		rc = msm_camera_i2c_read_b(msm_camera_i2c_client, (0x3404 + info_index), &info_value);
 		if (rc < 0)
 			pr_info("%s: i2c_read_b 0x%x fail\n", __func__, (0x3404 + info_index));
 
-		
+		/* some values of fuseid are maybe zero */
 		if (((info_value & 0x0F) != 0) || page < 0)
 			break;
 
@@ -1430,18 +1438,20 @@ static int imx175_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 
 	if (sdata->num_actuator_info_table > 1)
 	{
-		if (OTP == 1) 
+		if (OTP == 1) //AD5816
 			sdata->actuator_info = &sdata->actuator_info_table[2][0];
-		else if (OTP == 2) 
+		else if (OTP == 2) //TI201
 			sdata->actuator_info = &sdata->actuator_info_table[1][0];
 
 		pr_info("%s: sdata->actuator_info->board_info->type=%s", __func__, sdata->actuator_info->board_info->type);
 		pr_info("%s: sdata->actuator_info->board_info->addr=0x%x", __func__, sdata->actuator_info->board_info->addr);
 	}
 
-	
+	/* interface disable */
 	return 0;
 }
+/* HTC_END steven multiple VCM 20120605 */
+/* HTC_START pg digi gain 20120710 */
 int32_t imx175_set_dig_gain(struct msm_sensor_ctrl_t *s_ctrl, uint16_t dig_gain)
 {
 	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
@@ -1459,14 +1469,16 @@ int32_t imx175_set_dig_gain(struct msm_sensor_ctrl_t *s_ctrl, uint16_t dig_gain)
 
 	return 0;
 }
+/* HTC_END pg digi gain 20120710 */
 
+/* HTC_START Angie 20120812 */
 int imx175_write_output_settings_specific(struct msm_sensor_ctrl_t *s_ctrl,
 	uint16_t res)
 {
 	int rc = 0;
 	uint16_t value = 0;
 
-	
+	/* Apply sensor mirror/flip */
 	if (imx175_s_ctrl.mirror_flip == CAMERA_SENSOR_MIRROR_FLIP)
 		value = IMX175_READ_MIRROR_FLIP;
 	else if (imx175_s_ctrl.mirror_flip == CAMERA_SENSOR_MIRROR)
@@ -1484,6 +1496,7 @@ int imx175_write_output_settings_specific(struct msm_sensor_ctrl_t *s_ctrl,
 
 	return rc;
 }
+/* HTC_END */
 
 static struct msm_sensor_fn_t imx175_func_tbl = {
 	.sensor_start_stream = msm_sensor_start_stream,
@@ -1493,9 +1506,9 @@ static struct msm_sensor_fn_t imx175_func_tbl = {
 	.sensor_set_fps = msm_sensor_set_fps,
 	.sensor_write_exp_gain_ex = msm_sensor_write_exp_gain1_ex,
 	.sensor_write_snapshot_exp_gain_ex = msm_sensor_write_exp_gain1_ex,
-	
+	/* HTC_START pg digi gain 20120710 */
 	.sensor_set_dig_gain = imx175_set_dig_gain,
-	
+	/* HTC_END pg digi gain 20120710 */
 	.sensor_write_snapshot_exp_gain = msm_sensor_write_exp_gain1,
 	.sensor_setting = msm_sensor_setting_parallel,
 	.sensor_set_sensor_mode = msm_sensor_set_sensor_mode,
@@ -1505,13 +1518,15 @@ static struct msm_sensor_fn_t imx175_func_tbl = {
 	.sensor_power_up = imx175_power_up,
 	.sensor_power_down = imx175_power_down,
 	.sensor_i2c_read_fuseid = imx175_read_fuseid,
+/* HTC_START steven multiple VCM 20120605 */
 	.sensor_i2c_read_vcm_driver_ic = imx175_read_VCM_driver_IC_info,
+/* HTC_END steven multiple VCM 20120605 */
 #if 0
-	
+	/* HTC_START Awii 20120306 */
 	.sensor_i2c_read_vcm_clib = imx175_read_vcm_clib,
-	
+	/* HTC_END*/
 #endif
-	.sensor_write_output_settings_specific = imx175_write_output_settings_specific, 
+	.sensor_write_output_settings_specific = imx175_write_output_settings_specific, /* HTC Angie 20120812 */
 };
 
 static struct msm_sensor_reg_t imx175_regs = {
@@ -1547,7 +1562,7 @@ static struct msm_sensor_ctrl_t imx175_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(imx175_subdev_info),
 	.sensor_v4l2_subdev_ops = &imx175_subdev_ops,
 	.func_tbl = &imx175_func_tbl,
-	.sensor_first_mutex = &imx175_sensor_init_mut, 
+	.sensor_first_mutex = &imx175_sensor_init_mut, //CC120826,
 };
 
 module_init(msm_sensor_init_module);

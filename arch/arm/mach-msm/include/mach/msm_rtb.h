@@ -21,7 +21,7 @@ enum logk_event_type {
 	LOGK_HOTPLUG = 4,
 	LOGK_CTXID = 5,
 	LOGK_TIMESTAMP = 6,
-	
+	/* HTC DEFINE: START FROM 10 */
 	LOGK_IRQ = 10,
 	LOGK_DIE = 11,
 };
@@ -39,9 +39,15 @@ void msm_rtb_disable(void);
 
 unsigned long get_current_timestamp(void);
 
+/*
+ * returns 1 if data was logged, 0 otherwise
+ */
 int uncached_logk_pc(enum logk_event_type log_type, void *caller,
 				void *data);
 
+/*
+ * returns 1 if data was logged, 0 otherwise
+ */
 int uncached_logk(enum logk_event_type log_type, void *data);
 
 #define ETB_WAYPOINT  do { \
@@ -52,6 +58,10 @@ int uncached_logk(enum logk_event_type log_type, void *data);
 			} while (0)
 
 #define BRANCH_TO_NEXT_ISTR  asm volatile("b .+4\n" : : : "memory")
+/*
+ * both the mb and the isb are needed to ensure enough waypoints for
+ * etb tracing
+ */
 #define LOG_BARRIER	do { \
 				mb(); \
 				isb();\
@@ -71,6 +81,10 @@ static inline int uncached_logk(enum logk_event_type log_type,
 
 #define ETB_WAYPOINT
 #define BRANCH_TO_NEXT_ISTR
+/*
+ * Due to a GCC bug, we need to have a nop here in order to prevent an extra
+ * read from being generated after the write.
+ */
 #define LOG_BARRIER		nop()
 #endif
 #endif

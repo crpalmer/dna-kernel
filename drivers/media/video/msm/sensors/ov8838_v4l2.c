@@ -9,16 +9,16 @@
 #define ov8838_obj ov8838_##obj
 
 #define OV8838_REG_READ_MODE 0x0101
-#define OV8838_READ_NORMAL_MODE 0x0000	
-#define OV8838_READ_MIRROR 0x0001			
-#define OV8838_READ_FLIP 0x0002			
-#define OV8838_READ_MIRROR_FLIP 0x0003	
+#define OV8838_READ_NORMAL_MODE 0x0000	/* without mirror/flip */
+#define OV8838_READ_MIRROR 0x0001			/* with mirror */
+#define OV8838_READ_FLIP 0x0002			/* with flip */
+#define OV8838_READ_MIRROR_FLIP 0x0003	/* with mirror/flip */
 
 #define REG_DIGITAL_GAIN_GREEN_R 0x020E
 #define REG_DIGITAL_GAIN_RED 0x0210
 #define REG_DIGITAL_GAIN_BLUE 0x0212
 #define REG_DIGITAL_GAIN_GREEN_B 0x0214
-DEFINE_MUTEX(ov8838_sensor_init_mut);
+DEFINE_MUTEX(ov8838_sensor_init_mut);//CC120826,
 
 #if 0
 #define DEFAULT_VCM_MAX 73
@@ -34,7 +34,7 @@ static struct msm_camera_i2c_reg_conf ov8838_start_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf ov8838_stop_settings[] = {
-	{0x0100, 0x00}, 
+	{0x0100, 0x00}, //steven 00
 };
 
 static struct msm_camera_i2c_reg_conf ov8838_groupon_settings[] = {
@@ -73,30 +73,30 @@ static struct msm_camera_i2c_reg_conf ov8838_recommend_settings[] = {
 	{ 0x3081, 0x02 },
 	{ 0x3083, 0x01 },
 
-	
+	/* System clock PLL Start */
 	{ 0x3090, 0x03 },
 	{ 0x3091, 0x22 },
 	{ 0x3092, 0x00 },
 	{ 0x3093, 0x00 },
 	{ 0x3094, 0x00 },
-	
+	/* System clock PLL End */
 
-	
+	/* Reference Clock PLL Start */
 	{ 0x3098, 0x04 },
 	{ 0x3099, 0x10 },
 	{ 0x309a, 0x00 },
 	{ 0x309b, 0x00 },
-	
+	/* Reference Clock PLL End */
 
-	{ 0x30a2, 0x01 }, 
+	{ 0x30a2, 0x01 }, /* for ov internal */
 
-	
+	/* Mipi clock PLL Start */
 	{ 0x30b0, 0x05 },
 	{ 0x30b2, 0x00 },
 	{ 0x30b3, 0x51 },
 	{ 0x30b4, 0x03 },
 	{ 0x30b5, 0x04 },
-	
+	/* Mipi clock PLL End */
 
 	{ 0x30b6, 0x01 },
 	{ 0x3104, 0xa1 },
@@ -121,7 +121,7 @@ static struct msm_camera_i2c_reg_conf ov8838_recommend_settings[] = {
 	{ 0x350a, 0x00 },
 	{ 0x350b, 0x38 },
 
-	
+	/* for ov internal */
 	{ 0x3600, 0xb8 },
 	{ 0x3601, 0x0a },
 	{ 0x3602, 0x9c },
@@ -227,7 +227,7 @@ static struct msm_camera_i2c_reg_conf ov8838_recommend_settings[] = {
 	{ 0x37de, 0x00 },
 	{ 0x37df, 0x00 },
 
-	
+	/* resolution setting for default */
 	{ 0x3800, 0x00 },
 	{ 0x3801, 0x04 },
 	{ 0x3802, 0x01 },
@@ -243,7 +243,7 @@ static struct msm_camera_i2c_reg_conf ov8838_recommend_settings[] = {
 	{ 0x380c, 0x0e },
 	{ 0x380d, 0x18 },
 	{ 0x380e, 0x09 },
-	{ 0x380f, 0xce },    
+	{ 0x380f, 0xce },    // Ethan  { 0x380f, 0xd0 },
 	{ 0x3810, 0x00 },
 	{ 0x3811, 0x04 },
 	{ 0x3812, 0x00 },
@@ -293,7 +293,7 @@ static struct msm_camera_i2c_reg_conf ov8838_recommend_settings[] = {
 	{ 0x4005, 0x18 },
 	{ 0x4006, 0x20 },
 	{ 0x4008, 0x24 },
-	{ 0x4009, 0x40 },  
+	{ 0x4009, 0x40 },  //  Ethan   0x10
 	{ 0x404f, 0x90 },
 	{ 0x4100, 0x20 },
 	{ 0x4101, 0x03 },
@@ -337,37 +337,37 @@ static struct msm_camera_i2c_reg_conf ov8838_recommend_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf ov8838_prev_settings[] = {
-	 
+	 /* Group 3 hold start/Group Bank 3 */
 	{0x3208, 0x03},
 
-	
-	{0x3800, 0x03},	
+	/* resolution setting */
+	{0x3800, 0x03},	//x start address
 	{0x3801, 0x38},
-	{0x3802, 0x01}, 
+	{0x3802, 0x01}, //y start address
 	{0x3803, 0x34},
-	{0x3804, 0x09},	
+	{0x3804, 0x09},	//x end address
 	{0x3805, 0xa7},
-	{0x3806, 0x08},	
+	{0x3806, 0x08},	//y end address
 	{0x3807, 0x7B},
-	{0x3808, 0x06},	
+	{0x3808, 0x06},	//x output
 	{0x3809, 0x68},
-	{0x380a, 0x04},	
+	{0x380a, 0x04},	//y output
 	{0x380b, 0xD0},
-	{0x380c, 0x0e},	
+	{0x380c, 0x0e},	//frame length
 	{0x380d, 0x28},
-	{0x380e, 0x09},	
-	{0x380f, 0xce},    
+	{0x380e, 0x09},	//line length
+	{0x380f, 0xce},    // Ethan {0x380f, 0xD0},
 	{0x3810, 0x00},
 	{0x3811, 0x04},
 	{0x3812, 0x00},
-	{0x3813, 0x04},  
+	{0x3813, 0x04},  // Ethan 0803  0x03
 	{0x3814, 0x11},
 	{0x3815, 0x11},
 
 	{0x3a04, 0x07},
 	{0x3a05, 0x49},
 
-	
+	/* Group 3 hold end/Group Bank 3 */
 	{0x3016, 0xf9},
 	{0x3016, 0xf0},
 	{0x3208, 0x13},
@@ -375,25 +375,25 @@ static struct msm_camera_i2c_reg_conf ov8838_prev_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf ov8838_video_settings[] = {
-	
+	/* Group 1 hold start/Group Bank 1 */
 	{0x3208, 0x01},
 
-	
-	{0x3800, 0x00},	
+	/* resolution setting */
+	{0x3800, 0x00},	//x start address
 	{0x3801, 0x64},
-	{0x3802, 0x01},
+	{0x3802, 0x01},//y start address
 	{0x3803, 0x70},
-	{0x3804, 0x0c},	
+	{0x3804, 0x0c},	//x end address
 	{0x3805, 0x7B},
-	{0x3806, 0x08},
+	{0x3806, 0x08},//y end address
 	{0x3807, 0x3F},
-	{0x3808, 0x0c},
+	{0x3808, 0x0c},//x output
 	{0x3809, 0x0C},
-	{0x380a, 0x06},
+	{0x380a, 0x06},//y output
 	{0x380b, 0xC8},
-	{0x380c, 0x0e},	
+	{0x380c, 0x0e},	//frame length
 	{0x380d, 0x28},
-	{0x380e, 0x06},	
+	{0x380e, 0x06},	//line length
 	{0x380f, 0xFA},
 	{0x3810, 0x00},
 	{0x3811, 0x06},
@@ -411,7 +411,7 @@ static struct msm_camera_i2c_reg_conf ov8838_video_settings[] = {
 	{0x3709, 0x43},
 	{0x4512, 0x01},
 
-	
+	/* Group 1 hold end/Group Bank 1 */
 	{0x3016, 0xf9},
 	{0x3016, 0xf0},
 	{0x3208, 0x11},
@@ -419,25 +419,25 @@ static struct msm_camera_i2c_reg_conf ov8838_video_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf ov8838_fast_video_settings[] = {
-	
+	/* Group 3 hold start/Group Bank 3 */
 	{ 0x3208, 0x03 },
 
-	
-	{ 0x3800, 0x00 },
+	/* resolution setting */
+	{ 0x3800, 0x00 },//x start address
 	{ 0x3801, 0x00 },
-	{ 0x3802, 0x00 },
+	{ 0x3802, 0x00 },//y start address
 	{ 0x3803, 0xc0 },
-	{ 0x3804, 0x0c },
+	{ 0x3804, 0x0c },//x end address
 	{ 0x3805, 0xdf },
-	{ 0x3806, 0x08 },
+	{ 0x3806, 0x08 },//y end address
 	{ 0x3807, 0xed },
-	{ 0x3808, 0x06 },
+	{ 0x3808, 0x06 },//x output
 	{ 0x3809, 0x68 },
-	{ 0x380a, 0x01 },
+	{ 0x380a, 0x01 },//y output
 	{ 0x380b, 0xfe },
-	{ 0x380c, 0x0e },
+	{ 0x380c, 0x0e },//frame length
 	{ 0x380d, 0x28 },
-	{ 0x380e, 0x02 },
+	{ 0x380e, 0x02 },//line length
 	{ 0x380f, 0x53 },
 	{ 0x3810, 0x00 },
 	{ 0x3811, 0x04 },
@@ -455,33 +455,33 @@ static struct msm_camera_i2c_reg_conf ov8838_fast_video_settings[] = {
 	{ 0x3709, 0x03 },
 	{ 0x4512, 0x00 },
 
-	
+	/* Group 1 hold end/Group Bank 1 */
 	{ 0x3016, 0xf9 },
 	{ 0x3016, 0xf0 },
-	{ 0x3208, 0x13 }, 
+	{ 0x3208, 0x13 }, /* Group 3 hold end/Group Bank 3 */
 	{ 0x3208, 0xa3 },
 };
 
 static struct msm_camera_i2c_reg_conf ov8838_snap_settings[] = {
-	
+	/* Group 0 hold start/Group Bank 0 */
 	{ 0x3208, 0x00 },
 
-	
-	{ 0x3800, 0x00 },
+	/* resolution setting */
+	{ 0x3800, 0x00 },//x start address
 	{ 0x3801, 0x04 },
-	{ 0x3802, 0x00 },
+	{ 0x3802, 0x00 },//y start address
 	{ 0x3803, 0x04 },
-	{ 0x3804, 0x0c },
+	{ 0x3804, 0x0c },//x end address
 	{ 0x3805, 0xdb },
-	{ 0x3806, 0x09 },
+	{ 0x3806, 0x09 },//y end address
 	{ 0x3807, 0xab },
-	{ 0x3808, 0x0c },
+	{ 0x3808, 0x0c },//x output
 	{ 0x3809, 0xd0 },
-	{ 0x380a, 0x09 },
+	{ 0x380a, 0x09 },//y output
 	{ 0x380b, 0xa0 },
-	{ 0x380c, 0x0e },
+	{ 0x380c, 0x0e },//frame length
 	{ 0x380d, 0x28 },
-	{ 0x380e, 0x09 },
+	{ 0x380e, 0x09 },//line length
 	{ 0x380f, 0xe6 },
 	{ 0x3810, 0x00 },
 	{ 0x3811, 0x04 },
@@ -500,7 +500,7 @@ static struct msm_camera_i2c_reg_conf ov8838_snap_settings[] = {
 	{ 0x3709, 0x43},
 	{ 0x4512, 0x01},
 
-	
+	/* Group 0 hold end/Group Bank 0 */
 	{ 0x3016, 0xf9 },
 	{ 0x3016, 0xf0 },
 	{ 0x3208, 0x10 },
@@ -508,26 +508,26 @@ static struct msm_camera_i2c_reg_conf ov8838_snap_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf ov8838_snap_wide_settings[] = {
-	
+	/* Group 1 hold start/Group Bank 1 */
 	{0x3208, 0x01},
 
-	
-	{0x3800, 0x00},	
+	/* resolution setting */
+	{0x3800, 0x00},	//x start address
 	{0x3801, 0x04},
-	{0x3802, 0x01},	
+	{0x3802, 0x01},	//y start address
 	{0x3803, 0x34},
-	{0x3804, 0x0c},	
+	{0x3804, 0x0c},	//x end address
 	{0x3805, 0xdb},
-	{0x3806, 0x08},	
+	{0x3806, 0x08},	//y end address
 	{0x3807, 0x7B},
-	{0x3808, 0x0c},	
+	{0x3808, 0x0c},	//x output
 	{0x3809, 0xd0},
-	{0x380a, 0x07},	
+	{0x380a, 0x07},	//y output
 	{0x380b, 0x40},
-	{0x380c, 0x0e},	
+	{0x380c, 0x0e},	//frame length
 	{0x380d, 0x28},
-	{0x380e, 0x09},	
-	{0x380f, 0xce},    
+	{0x380e, 0x09},	//line length
+	{0x380f, 0xce},    // Ethan {0x380f, 0xd0},
 	{0x3810, 0x00},
 	{0x3811, 0x04},
 	{0x3812, 0x00},
@@ -543,18 +543,18 @@ static struct msm_camera_i2c_reg_conf ov8838_snap_wide_settings[] = {
 	{0x3709, 0x43},
 	{0x4512, 0x01},
 
-	
+	/* Group 1 hold end/Group Bank 1 */
 	{0x3016, 0xf9},
 	{0x3016, 0xf0},
 	{0x3208, 0x11},
 	{0x3208, 0xa1},
 };
 
- 
+ /* TMP - Now it's same as FULL SIZE */
  static struct msm_camera_i2c_reg_conf ov8838_night_settings[] = {
-	
+	//Group 0 hold start/Group Bank 0
 	{0x3208, 0x00},
-	
+	// resolution setting for default
 	{0x3800, 0x00},
 	{0x3801, 0x04},
 	{0x3802, 0x00},
@@ -570,7 +570,7 @@ static struct msm_camera_i2c_reg_conf ov8838_snap_wide_settings[] = {
 	{0x380c, 0x0e},
 	{0x380d, 0x28},
 	{0x380e, 0x09},
-	{0x380f, 0xe6},	
+	{0x380f, 0xe6},	//0xc6
 	{0x3810, 0x00},
 	{0x3811, 0x04},
 	{0x3812, 0x00},
@@ -584,7 +584,7 @@ static struct msm_camera_i2c_reg_conf ov8838_snap_wide_settings[] = {
 	{0x3016, 0xf9},
 	{0x3016, 0xf0},
 	{0x3208, 0x10},
-	
+	//Group 0 hold end/Group Bank 0
 
 	{0x3208, 0xa0},
 };
@@ -596,7 +596,7 @@ static struct v4l2_subdev_info ov8838_subdev_info[] = {
 	.fmt    = 1,
 	.order    = 0,
 	},
-	
+	/* more can be supported, to be added later */
 };
 
 static struct msm_camera_i2c_conf_array ov8838_init_conf[] = {
@@ -624,84 +624,84 @@ static struct msm_camera_i2c_conf_array ov8838_confs[] = {
 };
 
 static struct msm_sensor_output_info_t ov8838_dimensions[] = {
-	{
-		.x_output = 0xCD0,	
-		.y_output = 0x9A0, 
-		.line_length_pclk = 0xe28, 
-		.frame_length_lines = 0x9ce, 
-		.vt_pixel_clk = 272000000, 
-		.op_pixel_clk = 259200000, 
+	{/*full size*/
+		.x_output = 0xCD0,	//3280
+		.y_output = 0x9A0, //2464
+		.line_length_pclk = 0xe28, //3624
+		.frame_length_lines = 0x9ce, // Ethan 0815 //2534  0x9c6
+		.vt_pixel_clk = 272000000, // System clk //Ethan 0815 
+		.op_pixel_clk = 259200000, // mipi pixel clk
 		.binning_factor = 1,
 		.x_addr_start = 0,
 		.y_addr_start = 0,
-		.x_addr_end = 0xCCF, 
-		.y_addr_end = 0x99F, 
+		.x_addr_end = 0xCCF, //3279
+		.y_addr_end = 0x99F, //2463
 		.x_even_inc = 1,
 		.x_odd_inc = 1,
 		.y_even_inc = 1,
 		.y_odd_inc = 1,
 		.binning_rawchip = 0x11,
 	},
-	{
-		.x_output = 0x668, 
-		.y_output = 0x4D0, 
-		.line_length_pclk = 0xe28, 
-		.frame_length_lines = 0x9d0,  
-		.vt_pixel_clk = 259200000, 
+	{/*Q size*/
+		.x_output = 0x668, //1640
+		.y_output = 0x4D0, //1232
+		.line_length_pclk = 0xe28, //3624
+		.frame_length_lines = 0x9d0,  //2512
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
 		.y_addr_start = 0,
-		.x_addr_end = 0xCCF, 
-		.y_addr_end = 0x99F, 
+		.x_addr_end = 0xCCF, //3277
+		.y_addr_end = 0x99F, //2463
 		.x_even_inc = 1,
 		.x_odd_inc = 3,
 		.y_even_inc = 1,
 		.y_odd_inc = 3,
 		.binning_rawchip = 0x22,
 	},
-	{
-		.x_output = 0xC0C, 
-		.y_output = 0x6C8, 
-		.line_length_pclk = 0xe28, 
-		.frame_length_lines = 0x6FA,  
-		.vt_pixel_clk = 259200000, 
+	{/*video size*/
+		.x_output = 0xC0C, //3084
+		.y_output = 0x6C8, //1736
+		.line_length_pclk = 0xe28, //3624
+		.frame_length_lines = 0x6FA,  //1786
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
-		.x_addr_start = 0x62, 
-		.y_addr_start = 0x16C, 
-		.x_addr_end = 0xC6D, 
-		.y_addr_end = 0x833, 
+		.x_addr_start = 0x62, //98
+		.y_addr_start = 0x16C, //364
+		.x_addr_end = 0xC6D, //3181
+		.y_addr_end = 0x833, //2099
 		.x_even_inc = 1,
 		.x_odd_inc = 1,
 		.y_even_inc = 1,
 		.y_odd_inc = 1,
 		.binning_rawchip = 0x11,
 	},
-	{
-		.x_output = 0x668, 
-		.y_output = 0x1FE, 
-		.line_length_pclk = 0xe28, 
-		.frame_length_lines = 0x253,  
-		.vt_pixel_clk = 259200000, 
+	{/*fast video size*/
+		.x_output = 0x668, //1640
+		.y_output = 0x1FE, //510 0x1FE
+		.line_length_pclk = 0xe28, //3624
+		.frame_length_lines = 0x253,  //595 (0x274 628)
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
-		.y_addr_start = 0xD4, 
-		.x_addr_end = 0xCCF, 
-		.y_addr_end = 0x8CB, 
+		.y_addr_start = 0xD4, //212 0xD2
+		.x_addr_end = 0xCCF, //3279
+		.y_addr_end = 0x8CB, //2251 0x8C9
 		.x_even_inc = 1,
 		.x_odd_inc = 3,
 		.y_even_inc = 1,
 		.y_odd_inc = 7,
 		.binning_rawchip = 0x22,
 	},
-	{ 
+	{/*night mode size*/ /* TMP - Now it's same as FULL SIZE */
 		.x_output = 0xCD0,
 		.y_output = 0x9A0,
 		.line_length_pclk = 0xe28,
-		.frame_length_lines = 0x9e6,  
-		.vt_pixel_clk = 259200000, 
+		.frame_length_lines = 0x9e6,  //0x9c6
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0x4,
@@ -714,18 +714,18 @@ static struct msm_sensor_output_info_t ov8838_dimensions[] = {
 		.y_odd_inc = 1,
 		.binning_rawchip = 0x11,
 	},
-	{
-		.x_output = 0xCD0,	
-		.y_output = 0x740,	
-		.line_length_pclk = 0xe28,	
-		.frame_length_lines = 0x9d0,	
-		.vt_pixel_clk = 259200000, 
+	{/*wide full size*/
+		.x_output = 0xCD0,	//3280
+		.y_output = 0x740,	//1856
+		.line_length_pclk = 0xe28,	//3624
+		.frame_length_lines = 0x9d0,	//2512
+		.vt_pixel_clk = 259200000, /*PLL(648) * 4 lanes=2592(Pixel CLK) /10(vt_pixel_clk_divider)* 1(vt_sys_clk_div) = 259.2MHZx4(lanes)*/
 		.op_pixel_clk = 259200000,
 		.binning_factor = 1,
 		.x_addr_start = 0,
-		.y_addr_start = 0x130,	
-		.x_addr_end = 0xCCF,	
-		.y_addr_end = 0x86F,	
+		.y_addr_start = 0x130,	//304
+		.x_addr_end = 0xCCF,	//3279
+		.y_addr_end = 0x86F,	//2159
 		.x_even_inc = 1,
 		.x_odd_inc = 1,
 		.y_even_inc = 1,
@@ -750,8 +750,8 @@ static struct msm_camera_csi2_params ov8838_csi_params = {
 	},
 	.csiphy_params = {
 		.lane_cnt = 4,
-		
-		.settle_cnt = 0x15,
+		/*.settle_cnt = 0x1B,*/
+		.settle_cnt = 0x15,/* Tom 20120224 changed for 876 MHz*/
 	},
 };
 
@@ -777,11 +777,11 @@ static struct msm_sensor_id_info_t ov8838_id_info = {
 };
 
 static struct msm_sensor_exp_gain_info_t ov8838_exp_gain_info = {
-	.coarse_int_time_addr = 0x3500, 
-	.global_gain_addr = 0x350B, 
-	.vert_offset = 12,	
-	.min_vert = 4,  
-	.sensor_max_linecount = 65519,  
+	.coarse_int_time_addr = 0x3500, /* HTC_START Steven 20120704 OV exposure */
+	.global_gain_addr = 0x350B, /* HTC_START Steven 20120704 OV exposure */
+	.vert_offset = 12,	//16
+	.min_vert = 4, /* min coarse integration time */ /* HTC Angie 20111019 - Fix FPS */
+	.sensor_max_linecount = 65519, /* sensor max linecount = max unsigned value of linecount register size - vert_offset */ /* HTC ben 20120229 */
 };
 
 #if 0
@@ -805,6 +805,7 @@ int32_t ov8838_set_dig_gain(struct msm_sensor_ctrl_t *s_ctrl, uint16_t dig_gain)
 #endif
 
 #if 0
+/* HTC_START Awii 20120306 */
 static uint32_t vcm_clib;
 static uint16_t vcm_clib_min,vcm_clib_med,vcm_clib_max;
 
@@ -822,12 +823,12 @@ static int ov8838_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 
 	pr_info("%s: sensor OTP information:\n", __func__);
 
-	
+	/* testmode disable */
 	rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x3A1C, 0x00);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x3A1C fail\n", __func__);
 
-	
+	/* Initialize */
 	rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A00, 0x04);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00 (Start) fail\n", __func__);
@@ -838,7 +839,7 @@ static int ov8838_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 	rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A02, 5);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, 5);
-			
+			/* Set Read Mode */
 	rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A00, 0x01);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
@@ -860,8 +861,8 @@ static int ov8838_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 		vcm_clib = (vcm_clib << 8) | info_value;
 		}
 
-	
-	if(vcm_clib >> 8 == 0x03)
+	//parsing into min/med/max
+	if(vcm_clib >> 8 == 0x03)//SHARP
 		{
 		  uint32_t p;
 
@@ -895,7 +896,7 @@ static int ov8838_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 			rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A02, 16);
 			if (rc < 0)
 				pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, 16);
-			
+			/* Set Read Mode */
 			rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A00, 0x01);
 			if (rc < 0)
 				pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
@@ -917,7 +918,7 @@ static int ov8838_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 				vcm_clib = (vcm_clib << 8) | info_value;
 			}
 
-			if(vcm_clib >> 8 == 0x04)
+			if(vcm_clib >> 8 == 0x04)//Lite-On
 			{
 				uint32_t p;
 
@@ -939,7 +940,7 @@ static int ov8838_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 			}
 		}
 	if(((vcm_clib & 0x0000FFFF) == 0x0000) || (vcm_clib_min==0 && vcm_clib_med==0 && vcm_clib_max==0)
-		||(
+		||(//protect vcm range within theoratical
 		     (DEFAULT_VCM_MAX < vcm_clib_max) || (DEFAULT_VCM_MAX < vcm_clib_med) || (DEFAULT_VCM_MAX < vcm_clib_min)
 		  || (DEFAULT_VCM_MIN > vcm_clib_max) || (DEFAULT_VCM_MIN > vcm_clib_med) || (DEFAULT_VCM_MIN > vcm_clib_min)
 		  || ((vcm_clib_med < vcm_clib_min) || (vcm_clib_med > vcm_clib_max))
@@ -960,14 +961,16 @@ static int ov8838_read_vcm_clib(struct sensor_cfg_data *cdata, struct msm_sensor
 	return 0;
 
 }
+/* HTC_END*/
 #endif
 
-static int lens_info;	
+static int lens_info;	//	IR: 5;	BG: 6;
 
 static void ov8838_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 {
-	lens_info = 6;	
+	lens_info = 6;	//default: BG
 
+/* always use BG lens */
 #if 0
 	int32_t  rc;
 	int page = 0;
@@ -975,24 +978,24 @@ static void ov8838_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 	unsigned short  OTP[10] = {0};
 	struct msm_camera_i2c_client *ov8838_msm_camera_i2c_client = s_ctrl->sensor_i2c_client;
 
-	lens_info = 6;	
+	lens_info = 6;	//default: BG
 
 	pr_info("%s\n", __func__);
 	pr_info("%s: sensor OTP information:\n", __func__);
 
-	
+	/* testmode disable */
 	rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x3A1C, 0x00);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x3A1C fail\n", __func__);
 
-	
+	/* Initialize */
 	rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A00, 0x04);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00 (Start) fail\n", __func__);
 
 	mdelay(4);
 
-	
+	/*Read Page 20 to Page 16*/
 	info_index = 1;
 	info_value = 0;
 	memset(OTP, 0, sizeof(OTP));
@@ -1002,17 +1005,17 @@ static void ov8838_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, page);
 
-		
+		/* Set Read Mode */
 		rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A00, 0x01);
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
 
-		
+		/* 0x0A04~0x0A0D: read Information 0~9 according to SPEC*/
 		rc = msm_camera_i2c_read_b(ov8838_msm_camera_i2c_client, (0x0A04 + info_index), &info_value);
 		if (rc < 0)
 			pr_err("%s: i2c_read_b 0x%x fail\n", __func__, (0x0A04 + info_index));
 
-		 
+		 /* some values of fuseid are maybe zero */
 		if (((info_value&0x0F) != 0) || page == 0)
 			break;
 	}
@@ -1023,7 +1026,7 @@ static void ov8838_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 		goto get_done;
 	}
 
-	
+	/*Read Page 4 to Page 0*/
 	info_index = 1;
 	info_value = 0;
 	memset(OTP, 0, sizeof(OTP));
@@ -1033,31 +1036,31 @@ static void ov8838_read_lens_info(struct msm_sensor_ctrl_t *s_ctrl)
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A02 (select page %d) fail\n", __func__, page);
 
-		
+		/* Set Read Mode */
 		rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A00, 0x01);
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x0A00: Set read mode fail\n", __func__);
 
-		
+		/* 0x0A04~0x0A0D: read Information 0~9 according to SPEC*/
 		rc = msm_camera_i2c_read_b(ov8838_msm_camera_i2c_client, (0x0A04 + info_index), &info_value);
 		if (rc < 0)
 			pr_err("%s: i2c_read_b 0x%x fail\n", __func__, (0x0A04 + info_index));
 
-		 
+		 /* some values of fuseid are maybe zero */
 		if (((info_value & 0x0F) != 0) || page == 0)
 			break;
 	}
 	OTP[info_index] = (short)(info_value&0x0F);
 
 get_done:
-	
+	/* interface disable */
 	rc = msm_camera_i2c_write_b(ov8838_msm_camera_i2c_client, 0x0A00, 0x00);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0A00 (Stop) fail\n", __func__);
 
 	pr_info("%s: LensID=%x\n", __func__, OTP[1]);
 
-	if (OTP[1] == 5)	
+	if (OTP[1] == 5)	// IR
 		lens_info = OTP[1];
 #endif
 
@@ -1073,7 +1076,7 @@ static int ov8838_sensor_open_init(const struct msm_camera_sensor_info *data)
 	if (data->sensor_platform_info)
 		ov8838_s_ctrl.mirror_flip = data->sensor_platform_info->mirror_flip;
 
-	
+	/* Apply sensor mirror/flip */
 	if (ov8838_s_ctrl.mirror_flip == CAMERA_SENSOR_MIRROR_FLIP)
 		value = OV8838_READ_MIRROR_FLIP;
 	else if (ov8838_s_ctrl.mirror_flip == CAMERA_SENSOR_MIRROR)
@@ -1160,7 +1163,7 @@ static struct msm_camera_i2c_client ov8838_sensor_i2c_client = {
 	.addr_type = MSM_CAMERA_I2C_WORD_ADDR,
 };
 
-int32_t ov8838_power_up(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t ov8838_power_up(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *sdata)
 {
 	int rc;
 	struct msm_camera_sensor_info *sdata = NULL;
@@ -1193,16 +1196,16 @@ int32_t ov8838_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		goto enable_power_on_failed;
 	}
 
-	rc = msm_sensor_set_power_up(s_ctrl);
+	rc = msm_sensor_set_power_up(s_ctrl);//(sdata);
 	if (rc < 0) {
 		pr_err("%s msm_sensor_power_up failed\n", __func__);
 		goto enable_sensor_power_up_failed;
 	}
 
-#if 1	
+#if 1	/* HTC_START +++ test0316_01 */
 	ov8838_sensor_open_init(sdata);
 	pr_info("%s end\n", __func__);
-#endif	
+#endif	/* HTC_END */
 
 	return rc;
 
@@ -1217,7 +1220,7 @@ enable_mclk_failed:
 	return rc;
 }
 
-int32_t ov8838_power_down(struct msm_sensor_ctrl_t *s_ctrl)
+int32_t ov8838_power_down(struct msm_sensor_ctrl_t *s_ctrl)//(const struct msm_camera_sensor_info *sdata)
 {
 	int rc;
 	struct msm_camera_sensor_info *sdata = NULL;
@@ -1239,7 +1242,7 @@ int32_t ov8838_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	if (rc < 0)
 		pr_err("%s failed to disable power\n", __func__);
 
-	rc = msm_sensor_set_power_down(s_ctrl);
+	rc = msm_sensor_set_power_down(s_ctrl);//(sdata);
 	if (rc < 0)
 		pr_err("%s msm_sensor_power_down failed\n", __func__);
 
@@ -1273,6 +1276,7 @@ static struct v4l2_subdev_ops ov8838_subdev_ops = {
 	.video  = &ov8838_subdev_video_ops,
 };
 
+/*HTC_START*/
 static int ov8838_read_fuseid(struct sensor_cfg_data *cdata,
 	struct msm_sensor_ctrl_t *s_ctrl)
 {
@@ -1289,7 +1293,7 @@ static int ov8838_read_fuseid(struct sensor_cfg_data *cdata,
 		if (rc < 0)
 			pr_err("%s: msm_camera_i2c_write 0x3400 failed\n", __func__);
 
-		
+		/* Set Page 1 */
 		rc = msm_camera_i2c_write(s_ctrl->sensor_i2c_client, 0x3402, 0x01, MSM_CAMERA_I2C_BYTE_DATA);
 		if (rc < 0)
 			pr_err("%s: msm_camera_i2c_write 0x3402 failed\n", __func__);
@@ -1331,7 +1335,9 @@ static int ov8838_read_fuseid(struct sensor_cfg_data *cdata,
 	return 0;
 
 }
+/* HTC_END*/
 
+/* HTC_START steven multiple VCM 20120605 */
 static int ov8838_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t  rc;
@@ -1352,12 +1358,12 @@ static int ov8838_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 		return 0;
 	}
 
-	
-	rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x0100, 0x00);	
+	//Set Sensor to SW-Standby
+	rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x0100, 0x00);	//steven 0x00
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x0100 fail\n", __func__);
 
-	
+	//Set Input clock freq.(24MHz)
 	rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x3368, 0x18);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x3368 fail\n", __func__);
@@ -1366,28 +1372,28 @@ static int ov8838_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x3369 fail\n", __func__);
 
-	
+	//set read mode
 	rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x3400, 0x01);
 	if (rc < 0)
 		pr_err("%s: i2c_write_b 0x3400 fail\n", __func__);
 
 	mdelay(4);
 
-	
+	//select information index, Driver ID at 10th index
 	info_index = 10;
-	
+	/*Read page 3 to Page 0*/
 	for (page = 3; page >= 0; page--) {
-		
+		//Select page
 		rc = msm_camera_i2c_write_b(msm_camera_i2c_client, 0x3402, page);
 		if (rc < 0)
 			pr_err("%s: i2c_write_b 0x3402 (select page %d) fail\n", __func__, page);
 
-		
+		//Select information index. Driver ID at 10th index
 		rc = msm_camera_i2c_read_b(msm_camera_i2c_client, (0x3404 + info_index), &info_value);
 		if (rc < 0)
 			pr_err("%s: i2c_read_b 0x%x fail\n", __func__, (0x3404 + info_index));
 
-		
+		/* some values of fuseid are maybe zero */
 		if (((info_value & 0x0F) != 0) || page < 0)
 			break;
 	}
@@ -1395,18 +1401,19 @@ static int ov8838_read_VCM_driver_IC_info(	struct msm_sensor_ctrl_t *s_ctrl)
 
 	if (sdata->num_actuator_info_table > 1)
 	{
-		if (OTP == 1) 
+		if (OTP == 1) //AD5816
 			sdata->actuator_info = &sdata->actuator_info_table[2][0];
-		else if (OTP == 2) 
+		else if (OTP == 2) //TI201
 			sdata->actuator_info = &sdata->actuator_info_table[1][0];
 
 		pr_info("%s: sdata->actuator_info->board_info->type=%s", __func__, sdata->actuator_info->board_info->type);
 		pr_info("%s: sdata->actuator_info->board_info->addr=0x%x", __func__, sdata->actuator_info->board_info->addr);
 	}
 
-	
+	/* interface disable */
 	return 0;
 }
+/* HTC_END steven multiple VCM 20120605 */
 
 static struct msm_sensor_fn_t ov8838_func_tbl = {
 	.sensor_start_stream = msm_sensor_start_stream,
@@ -1414,11 +1421,11 @@ static struct msm_sensor_fn_t ov8838_func_tbl = {
 	.sensor_group_hold_on = msm_sensor_group_hold_on,
 	.sensor_group_hold_off = msm_sensor_group_hold_off,
 	.sensor_set_fps = msm_sensor_set_fps,
-	.sensor_write_exp_gain_ex = msm_sensor_write_exp_gain_ov, 
-	.sensor_write_snapshot_exp_gain_ex = msm_sensor_write_exp_gain_ov, 
+	.sensor_write_exp_gain_ex = msm_sensor_write_exp_gain_ov, /* HTC_START Steven 20120704 OV exposure */
+	.sensor_write_snapshot_exp_gain_ex = msm_sensor_write_exp_gain_ov, /* HTC_START Steven 20120704 OV exposure */
 
 	.sensor_write_snapshot_exp_gain = msm_sensor_write_exp_gain1,
-	
+	//.sensor_setting = msm_sensor_setting_ov,
 	.sensor_setting = msm_sensor_setting_parallel_ov,
 	.sensor_set_sensor_mode = msm_sensor_set_sensor_mode,
 	.sensor_mode_init = msm_sensor_mode_init,
@@ -1427,11 +1434,13 @@ static struct msm_sensor_fn_t ov8838_func_tbl = {
 	.sensor_power_up = ov8838_power_up,
 	.sensor_power_down = ov8838_power_down,
 	.sensor_i2c_read_fuseid = ov8838_read_fuseid,
+/* HTC_START steven multiple VCM 20120605 */
 	.sensor_i2c_read_vcm_driver_ic = ov8838_read_VCM_driver_IC_info,
+/* HTC_END steven multiple VCM 20120605 */
 #if 0
-	
+	/* HTC_START Awii 20120306 */
 	.sensor_i2c_read_vcm_clib = ov8838_read_vcm_clib,
-	
+	/* HTC_END*/
 #endif
 };
 
@@ -1468,7 +1477,7 @@ static struct msm_sensor_ctrl_t ov8838_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(ov8838_subdev_info),
 	.sensor_v4l2_subdev_ops = &ov8838_subdev_ops,
 	.func_tbl = &ov8838_func_tbl,
-	.sensor_first_mutex = &ov8838_sensor_init_mut, 
+	.sensor_first_mutex = &ov8838_sensor_init_mut, //CC120826,
 	
 };
 

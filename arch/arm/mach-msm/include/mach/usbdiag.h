@@ -32,6 +32,7 @@
 #define DIAG_DBUG(fmt, args...) \
 	printk(KERN_DEBUG "[USBDIAG] " fmt, ## args)
 
+/*DRIVER_DIAGFWD_FUNCTION*/
 #define DIAGFWD_ERR(fmt, args...) \
 	printk(KERN_ERR "[USBDIAG:ERR] " fmt, ## args)
 #define DIAGFWD_WARNING(fmt, args...) \
@@ -41,6 +42,7 @@
 #define DIAGFWD_DBUG(fmt, args...) \
 	printk(KERN_DEBUG "[USBDIAG] " fmt, ## args)
 
+/* DRIVER_SDLOG_FUNCTION*/
 #define SDLOG_ERR(fmt, args...) \
 	printk(KERN_ERR "[USBDIAG:ERR] " fmt, ## args)
 #define SDLOG_WARNING(fmt, args...) \
@@ -50,7 +52,9 @@
 #define SDLOG_DBUG(fmt, args...) \
 	printk(KERN_DEBUG "[USBDIAG] " fmt, ## args)
 
+/*-------------------------------------------------------------------------*/
 
+/* #define SDQXDM_DEBUG */
 #define DIAG_XPST 1
 
 #define DIAG_LEGACY		"diag"
@@ -90,7 +94,7 @@ int usb_diag_write(struct usb_diag_ch *ch, struct diag_request *d_req);
 
 int diag_read_from_cb(unsigned char * , int);
 
-#if defined(CONFIG_MACH_MECHA) 
+#if defined(CONFIG_MACH_MECHA) /* || defined(CONFIG_ARCH_MSM8X60_LTE) */
 extern  int sdio_diag_init_enable;
 #endif
 #if defined(CONFIG_ARCH_MSM8X60_LTE)
@@ -105,4 +109,4 @@ void diag_sdio_mdm_send_req(int context);
 extern int sdio_diag_initialized;
 extern int smd_diag_initialized;
 
-#endif 
+#endif /* _DRIVERS_USB_DIAG_H_ */

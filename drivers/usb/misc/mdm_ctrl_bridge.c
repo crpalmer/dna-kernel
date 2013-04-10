@@ -31,6 +31,7 @@ static const char *ctrl_bridge_names[] = {
 	"rmnet_ctrl_hsic0"
 };
 
+/* polling interval for Interrupt ep */
 #define HS_INTERVAL		7
 #define FS_LS_INTERVAL		3
 
@@ -59,13 +60,13 @@ struct ctrl_bridge {
 
 	unsigned long		flags;
 
-	
+	/* input control lines (DSR, CTS, CD, RI) */
 	unsigned int		cbits_tohost;
 
-	
+	/* output control lines (DTR, RTS) */
 	unsigned int		cbits_tomdm;
 
-	
+	/* counters */
 	unsigned int		snd_encap_cmd;
 	unsigned int		get_encap_res;
 	unsigned int		resp_avail;
@@ -75,6 +76,7 @@ struct ctrl_bridge {
 
 static struct ctrl_bridge	*__dev[MAX_BRIDGE_DEVICES];
 
+/* counter used for indexing ctrl bridge devices */
 static int	ch_id;
 
 unsigned int ctrl_bridge_get_cbits_tohost(unsigned int id)
@@ -116,7 +118,7 @@ int ctrl_bridge_set_cbits(unsigned int id, unsigned int cbits)
 
 	retval = ctrl_bridge_write(id, NULL, 0);
 
-	
+	/* if DTR is high, update latest modem info to host */
 	if (brdg && (cbits & ACM_CTRL_DTR) && brdg->ops.send_cbits)
 		brdg->ops.send_cbits(brdg->ctx, dev->cbits_tohost);
 
@@ -133,22 +135,22 @@ static void resp_avail_cb(struct urb *urb)
 
 	switch (urb->status) {
 	case 0:
-		
+		/*success*/
 		dev->get_encap_res++;
 		if (brdg && brdg->ops.send_pkt)
 			brdg->ops.send_pkt(brdg->ctx, urb->transfer_buffer,
 				urb->actual_length);
 		break;
 
-	
+	/*do not resubmit*/
 	case -ESHUTDOWN:
 	case -ENOENT:
 	case -ECONNRESET:
-		
+		/* unplug */
 	case -EPROTO:
-		
+		/*babble error*/
 		resubmit_urb = 0;
-	
+	/*resubmit*/
 	case -EOVERFLOW:
 	default:
 		dev_dbg(&dev->intf->dev, "%s: non zero urb status = %d\n",
@@ -156,7 +158,7 @@ static void resp_avail_cb(struct urb *urb)
 	}
 
 	if (resubmit_urb) {
-		
+		/*re- submit int urb to check response available*/
 		usb_anchor_urb(dev->inturb, &dev->tx_submitted);
 		status = usb_submit_urb(dev->inturb, GFP_ATOMIC);
 		if (status) {
@@ -179,18 +181,18 @@ static void notification_available_cb(struct urb *urb)
 
 	switch (urb->status) {
 	case 0:
-		
+		/*success*/
 		break;
 	case -ESHUTDOWN:
 	case -ENOENT:
 	case -ECONNRESET:
 	case -EPROTO:
-		 
+		 /* unplug */
 		 return;
 	case -EPIPE:
 		dev_err(&dev->intf->dev,
 			"%s: stall on int endpoint\n", __func__);
-		
+		/* TBD : halt to be cleared in work */
 	case -EOVERFLOW:
 	default:
 		pr_debug_ratelimited("%s: non zero urb status = %d\n",
@@ -392,7 +394,7 @@ int ctrl_bridge_write(unsigned int id, char *data, size_t size)
 		goto free_urb;
 	}
 
-	
+	/* CDC Send Encapsulated Request packet */
 	out_ctlreq->bRequestType = (USB_DIR_OUT | USB_TYPE_CLASS |
 				 USB_RECIP_INTERFACE);
 	if (!data && !size) {
@@ -423,6 +425,10 @@ int ctrl_bridge_write(unsigned int id, char *data, size_t size)
 		dev_err(&dev->intf->dev, "%s: unable to resume interface: %d\n",
 			__func__, result);
 
+		/*
+		  * Revisit: if (result == -EPERM)
+		  * bridge_suspend(dev->intf, PMSG_SUSPEND);
+		  */
 
 		goto free_ctrlreq;
 	}
@@ -488,7 +494,7 @@ int ctrl_bridge_resume(unsigned int id)
 	if (!test_and_clear_bit(SUSPENDED, &dev->flags))
 		return 0;
 
-	
+	/* submit pending write requests */
 	while ((urb = usb_get_from_anchor(&dev->tx_deferred))) {
 		int ret;
 		usb_anchor_urb(urb, &dev->tx_submitted);
@@ -639,7 +645,7 @@ ctrl_bridge_probe(struct usb_interface *ifc, struct usb_host_endpoint *int_in,
 	init_usb_anchor(&dev->tx_submitted);
 	init_usb_anchor(&dev->tx_deferred);
 
-	
+	/*use max pkt size from ep desc*/
 	ep = &dev->intf->cur_altsetting->endpoint[0].desc;
 
 	dev->inturb = usb_alloc_urb(0, GFP_KERNEL);

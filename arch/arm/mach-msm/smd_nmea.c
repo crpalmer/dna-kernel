@@ -99,9 +99,9 @@ static ssize_t nmea_read(struct file *fp, char __user *buf,
 	r = wait_event_interruptible(nmea_wait_queue,
 				nmea_devp->bytes_read);
 	if (r < 0) {
-		
+		/* qualify error message */
 		if (r != -ERESTARTSYS) {
-			
+			/* we get this anytime a signal comes in */
 			printk(KERN_ERR "ERROR:%s:%i:%s: "
 				"wait_event_interruptible ret %i\n",
 				__FILE__,
