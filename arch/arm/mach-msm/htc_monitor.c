@@ -4,7 +4,6 @@
 #include <linux/seq_file.h>
 #include <net/tcp.h>
 
-//#define MAXDATASIZE	5000000
 #define MAXDATASIZE	5000000
 #define MAXTMP1SIZE 512
 
@@ -16,10 +15,9 @@
 
 unsigned int probe_seq_tx;
 
-/* Using Procfs to record log data */
 static struct proc_dir_entry *proc_mtd;
-static char *ProcBuffer;//[MAXDATASIZE]={0};
-static char *Tmp1;//[MAXTMP1SIZE]={0};
+static char *ProcBuffer;
+static char *Tmp1;
 static int Ring=0, WritingLength;
 
 static void* 	log_seq_start(struct seq_file *sfile, loff_t *pos);
@@ -46,7 +44,7 @@ static struct file_operations log_proc_ops = {
 
 int init_module(void)
 {
-	/* Procfs setting */
+	
 	ProcBuffer = vmalloc(MAXDATASIZE);
 	Tmp1 = vmalloc(MAXDATASIZE);
 	if(ProcBuffer == NULL || Tmp1 == NULL)
@@ -63,7 +61,7 @@ int init_module(void)
 
 void cleanup_module(void)
 {
-	/* Procfs setting */
+	
 	if(proc_mtd)
 		remove_proc_entry("test", 0);
 	vfree(ProcBuffer);
@@ -73,12 +71,6 @@ void cleanup_module(void)
 
 static void* log_seq_start(struct seq_file *sfile, loff_t *pos)
 {
-/*	
-	if(*pos >= WritingLength)
-		return NULL;
-		
-	return ProcBuffer + *pos;
-*/
 	if(*pos >= MAXDATASIZE)
 	{
      return NULL; 
@@ -126,7 +118,6 @@ static int log_proc_open(struct inode *inode, struct file *file)
 
 inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned long long t_pre)
 {
-//   struct timeval tv;	
    struct inet_sock *inet = inet_sk(sk);
    __be16 sport, dport;
    __be32 daddr, saddr;
@@ -136,7 +127,6 @@ inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned l
 	 t_now = sched_clock();
 	 nanosec_rem=do_div(t_now, 1000000000U);
 	 nanosec_rem_pre=do_div(t_pre, 1000000000U);
-//   do_gettimeofday(&tv);
 
    if (!inet)
       return;
@@ -145,19 +135,17 @@ inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned l
    daddr=inet->inet_daddr;
    dport=inet->inet_dport;
     
-   //filter
+   
    if (0x00000000==saddr || 0x0100007f==saddr)
       return;
    memset(Tmp1, 0, sizeof(char)*MAXTMP1SIZE);
    
    switch (type)
    {
-      case 1: //send
+      case 1: 
       {
          unsigned long long t_diff=t_now-t_pre;
 	  unsigned long nanosec_rem_diff;
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_pre,nanosec_rem_pre);
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_now,nanosec_rem);
 	  if (nanosec_rem>=nanosec_rem_pre)
 	     	nanosec_rem_diff=nanosec_rem-nanosec_rem_pre;
 	  else
@@ -173,17 +161,14 @@ inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned l
 		   nanosec_rem_diff=nanosec_rem_pre;
 	     	}
 	  }
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_diff,nanosec_rem_diff);	  
           sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d        SEND S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,%08d Bytes,D.T[%01u.%09lu]\n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport,size,(unsigned)t_diff,nanosec_rem_diff);     
           memset(&t_pre,0,sizeof(unsigned long long)); 
       	   break;
       }
-      case 2: //recv
+      case 2: 
       {
          unsigned long long t_diff=t_now-t_pre;		 
 	  unsigned long nanosec_rem_diff;
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_pre,nanosec_rem_pre);
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_now,nanosec_rem);	  
 	  if (nanosec_rem>=nanosec_rem_pre)
 	     	nanosec_rem_diff=nanosec_rem-nanosec_rem_pre;
 	  else
@@ -203,22 +188,21 @@ inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned l
           memset(&t_pre,0,sizeof(unsigned long long));  		  
       	   break;
       	}
-       case 3: //accept
+       case 3: 
         sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d      ACCEPT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);      	
       	break;      	
-      case 4: //tcp connect
+      case 4: 
         sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d TCP CONNECT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);	      	
       	break;
-      case 5: //udp connect
+      case 5: 
         sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d UDP CONNECT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);		 	      	
       	break;
-      case 6: //close
+      case 6: 
         sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d       CLOSE S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);      	
       	break;
       default:
       	break;
    }	  
-//	 printk("[victor_kernel_Tmp1]%s\n", Tmp1);	  
 	 if(WritingLength + strlen(Tmp1) < MAXDATASIZE)
 	 {
       memcpy(&ProcBuffer[WritingLength], Tmp1, strlen(Tmp1));
@@ -226,11 +210,11 @@ inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned l
 	 }
    else
    {
-   	  //char *startpos=NULL;
-      //printk("[victor_kernel] else \n");	   	  
-   	  //startpos=strstr(&ProcBuffer[StartLength], "\n");
-   	  //WritingLength=startpos-ProcBuffer;
-      //printk("[victor_kernel]ProcBuffer=%p, startpos=%p, WritingLength=%d \n", WritingLength, ProcBuffer, startpos);	   	  
+   	  
+      
+   	  
+   	  
+      
       WritingLength=0;
       Ring=1;
       memcpy(&ProcBuffer[WritingLength], Tmp1, strlen(Tmp1));
@@ -238,7 +222,6 @@ inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned l
    }
 }
 
-// --modify by victor START
 
 static int __init monitor_init(void)
 {
@@ -256,4 +239,3 @@ MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("htc monitor driver");
 MODULE_VERSION("1.0");
 MODULE_ALIAS("platform:htc_monitor");
-// -- modify by victor END

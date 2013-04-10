@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * Shared memory logging implementation.
- */
 
 #include <linux/slab.h>
 #include <linux/uaccess.h>
@@ -59,13 +56,6 @@ do { \
 #define D(x...) do {} while (0)
 #endif
 
-/*
- * Legacy targets use the 32KHz hardware timer and new targets will use
- * the scheduler timer scaled to a 32KHz tick count.
- *
- * As testing on legacy targets permits, we will move them to use
- * sched_clock() and eventually remove the conditiona compilation.
- */
 #if defined(CONFIG_ARCH_MSM7X30) || defined(CONFIG_ARCH_MSM8X60) \
 	|| defined(CONFIG_ARCH_FSM9XXX)
 #define TIMESTAMP_ADDR (MSM_TMR_BASE + 0x08)
@@ -98,7 +88,6 @@ struct smem_log_item {
 
 #define SMEM_SPINLOCK_SMEM_LOG		"S:2"
 #define SMEM_SPINLOCK_STATIC_LOG	"S:5"
-/* POWER shares with SMEM_SPINLOCK_SMEM_LOG */
 
 static remote_spinlock_t remote_spinlock;
 static remote_spinlock_t remote_spinlock_static;
@@ -392,7 +381,6 @@ struct sym smsm_syms[] = {
 	{ 0x00000001, "I" },
 };
 
-/* never reorder */
 struct sym voter_d2_syms[] = {
 	{ 0x00000001, NULL },
 	{ 0x00000002, NULL },
@@ -428,7 +416,6 @@ struct sym voter_d2_syms[] = {
 	{ 0x80000000, NULL },
 };
 
-/* never reorder */
 struct sym voter_d3_syms[] = {
 	{ 0x00000001, NULL },
 	{ 0x00000002, NULL },
@@ -634,15 +621,10 @@ static void init_syms(void) {}
 #endif
 
 #ifdef TIMESTAMP_ADDR
-/* legacy timestamp using 32.768KHz clock */
 static inline unsigned int read_timestamp(void)
 {
 	unsigned int tick = 0;
 
-	/* no barriers necessary as the read value is a dependency for the
-	 * comparison operation so the processor shouldn't be able to
-	 * reorder things
-	 */
 	do {
 		tick = __raw_readl(TIMESTAMP_ADDR);
 	} while (tick != __raw_readl(TIMESTAMP_ADDR));
@@ -654,7 +636,7 @@ static inline unsigned int read_timestamp(void)
 {
 	unsigned long long val;
 
-	/* SMEM LOG uses a 32.768KHz timestamp */
+	
 	val = sched_clock() * 32768U;
 	do_div(val, 1000000000U);
 
@@ -787,7 +769,7 @@ static void _smem_log_event6(
 
 	idx = *_idx;
 
-	/* FIXME: Wrap around */
+	
 	if (idx < (num-1)) {
 		memcpy(&events[idx],
 			&item, sizeof(item));

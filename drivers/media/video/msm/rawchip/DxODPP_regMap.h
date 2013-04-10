@@ -17,16 +17,10 @@
 #ifndef __DxODPP_regMap_h__
 #define __DxODPP_regMap_h__
 
-/* ********************************************************************************** */
-/* Command registers addresses: */
-/* ********************************************************************************** */
 #define DxODPP_boot                                                             0xd010
 #define DxODPP_execCmd                                                          0xd008
 #define DxODPP_newFrameCmd                                                      0xd00c
 
-/* ********************************************************************************** */
-/* User parameters registers addresses: */
-/* ********************************************************************************** */
 #define DxODPP_ucode_id_7_0                                                     0x0200
 #define DxODPP_ucode_id_15_8                                                    0x0201
 #define DxODPP_hw_id_7_0                                                        0x0202
@@ -71,9 +65,6 @@
 #define DxODPP_last_estimation_frame_number_7_0                                 0x0234
 #define DxODPP_last_estimation_frame_number_15_8                                0x0235
 
-/* ********************************************************************************** */
-/* User constant definition: */
-/* ********************************************************************************** */
 #define DxODPP_execCmd_SettingCmd                                               0x01
 #define DxODPP_mode_cls_msk                                                     0x01
 #define DxODPP_mode_grGb_msk                                                    0x02
@@ -83,11 +74,7 @@
 #define DxODPP_mode_flash                                                       0x10
 #define DxODPP_mode_restartEstim                                                0x80
 
-/* ********************************************************************************** */
-/* User parameters default values: */
-/* ********************************************************************************** */
-// default to use lib v1.1
-#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
+#if 1 
 #define DxODPP_dfltVal_ucode_id_7_0                         0x07
 #define DxODPP_dfltVal_ucode_id_15_8                        0x01
 #define DxODPP_dfltVal_hw_id_7_0                            0xe8
@@ -142,9 +129,6 @@
 #define DxODPP_dfltVal_last_estimation_frame_number_7_0                         0xff
 #define DxODPP_dfltVal_last_estimation_frame_number_15_8                        0xff
 
-/* ********************************************************************************** */
-/* Error constant definition: */
-/* ********************************************************************************** */
 #define DxODPP_error_code_ok                                                    0x00
 #define DxODPP_error_code_bad_hw_id                                             0x01
 #define DxODPP_error_code_bad_calib_data                                        0x02
@@ -158,17 +142,15 @@
 #define DxODPP_error_code_y_addr_end_even                                       0x0e
 #define DxODPP_error_code_y_boundaries_order                                    0x10
 #define DxODPP_error_code_y_odd_inc_too_large                                   0x12
-// default to use lib v1.1
-#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
+#if 1 
 #define DxODPP_error_code_y_odd_inc_even                    0x14
 #endif
 #define DxODPP_error_code_x_decim_unsupported                                   0x15
 #define DxODPP_error_code_y_decim_unsupported                                   0x16
-// default to use lib v1.1
-#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
+#if 1 
 #define DxODPP_error_code_y_even_inc_even                   0x18
 #endif
 #define DxODPP_error_code_y_even_inc_too_large                                  0x1a
 #define DxODPP_error_code_temporal_smoothing_too_large                          0x1b
 
-#endif /* __DxODPP_regMap_h__ */
+#endif 

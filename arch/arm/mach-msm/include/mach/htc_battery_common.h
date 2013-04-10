@@ -13,14 +13,9 @@
  */
 #ifndef _HTC_BATTERY_COMMON_H_
 #define _HTC_BATTERY_COMMON_H_
-/* Common battery terms are defined in this file. */
 
 
-/* enum definition */
 
-/* This order is the same as htc_power_supplies[]
- * And it's also the same as htc_cable_status_update()
- */
 enum charger_type_t {
 	CHARGER_UNKNOWN = -1,
 	CHARGER_BATTERY = 0,
@@ -28,7 +23,9 @@ enum charger_type_t {
 	CHARGER_AC,
 	CHARGER_9V_AC,
 	CHARGER_WIRELESS,
-	CHARGER_MHL_AC
+	CHARGER_MHL_AC,
+	CHARGER_DETECTING,
+	CHARGER_UNKNOWN_USB,
 };
 
 enum power_supplies_type {
@@ -48,11 +45,9 @@ enum charger_control_flag {
 	END_CHARGER
 };
 
-/* limited charge reason */
 #define HTC_BATT_CHG_LIMIT_BIT_TALK		(1)
 #define HTC_BATT_CHG_LIMIT_BIT_NAVI		(1<<1)
 
-/* context event */
 enum batt_context_event {
 	EVENT_TALK_START = 0,
 	EVENT_TALK_STOP,
@@ -62,7 +57,6 @@ enum batt_context_event {
 	EVENT_NAVIGATION_STOP
 };
 
-/* interface function declaration */
 
 int htc_battery_charger_disable(void);
 int htc_battery_pwrsrc_disable(void);

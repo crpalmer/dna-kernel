@@ -45,10 +45,6 @@ int __init parse_tag_memsize(const struct tag *tags)
 __tagtable(ATAG_MEMSIZE, parse_tag_memsize);
 
 #define ATAG_SMI 0x4d534D71
-/* setup calls mach->fixup, then parse_tags, parse_cmdline
- * We need to setup meminfo in mach->fixup, so this function
- * will need to traverse each tag to find smi tag.
- */
 int __init parse_tag_smi(const struct tag *tags)
 {
 	int smi_sz = 0, find = 0;
@@ -113,7 +109,6 @@ int __init parse_tag_skuid(const struct tag *tags)
 }
 __tagtable(ATAG_SKUID, parse_tag_skuid);
 
-/* Proximity sensor calibration values */
 
 unsigned int als_kadc;
 EXPORT_SYMBOL(als_kadc);
@@ -150,7 +145,6 @@ int __init parse_tag_engineerid(const struct tag *tags)
 __tagtable(ATAG_ENGINEERID, parse_tag_engineerid);
 
 
-/* G-Sensor calibration value */
 #define ATAG_GS         0x5441001d
 
 unsigned int gs_kvalue;
@@ -165,7 +159,6 @@ static int __init parse_tag_gs_calibration(const struct tag *tag)
 
 __tagtable(ATAG_GS, parse_tag_gs_calibration);
 
-/* Proximity sensor calibration values */
 #define ATAG_PS         0x5441001c
 
 unsigned int ps_kparam1;
@@ -187,7 +180,6 @@ static int __init parse_tag_ps_calibration(const struct tag *tag)
 
 __tagtable(ATAG_PS, parse_tag_ps_calibration);
 
-/* camera values */
 #define ATAG_CAM	0x54410021
 
 int __init parse_tag_cam(const struct tag *tags)
@@ -210,7 +202,6 @@ int __init parse_tag_cam(const struct tag *tags)
 }
 __tagtable(ATAG_CAM, parse_tag_cam);
 
-/* Gyro/G-senosr calibration values */
 #define ATAG_GRYO_GSENSOR	0x54410020
 unsigned char gyro_gsensor_kvalue[37];
 EXPORT_SYMBOL(gyro_gsensor_kvalue);
@@ -345,12 +336,9 @@ static int __init board_bootloader_setup(char *str)
 
 	strcpy(temp, str);
 
-	/*parse the last parameter*/
+	
 	while ((p = strsep(&args, ".")) != NULL) build = p;
 
-	/* Sometime hboot version would change from .X000 to .X001, .X002,...
-	 * So compare the first character to avoid unnecessary error.
-	 */
 	if (build) {
 		if (build[0] == '0') {
 			printk(KERN_INFO "%s: SHIP BUILD\n", __func__);
@@ -376,7 +364,6 @@ int board_build_flag(void)
 }
 EXPORT_SYMBOL(board_build_flag);
 
-/* ISL29028 ID values */
 #define ATAG_PS_TYPE 0x4d534D77
 int ps_type;
 EXPORT_SYMBOL(ps_type);
@@ -391,7 +378,6 @@ int __init tag_ps_parsing(const struct tag *tags)
 }
 __tagtable(ATAG_PS_TYPE, tag_ps_parsing);
 
-/* Gyro ID values */
 #define ATAG_GY_TYPE 0x4d534D78
 int gy_type;
 EXPORT_SYMBOL(gy_type);
@@ -503,3 +489,17 @@ int board_get_usb_ats(void)
 	return usb_ats;
 }
 EXPORT_SYMBOL(board_get_usb_ats);
+
+static int tamper_sf;
+int __init check_tamper_sf(char *s)
+{
+	tamper_sf = simple_strtoul(s, 0, 10);
+	return 1;
+}
+__setup("td.sf=", check_tamper_sf);
+
+unsigned int get_tamper_sf(void)
+{
+	return tamper_sf;
+}
+EXPORT_SYMBOL(get_tamper_sf);

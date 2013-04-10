@@ -55,11 +55,6 @@ static struct device_attribute mmc_dev_attrs[] = {
 	__ATTR_NULL,
 };
 
-/*
- * This currently matches any MMC driver to any MMC card - drivers
- * themselves make the decision whether to drive this card in their
- * probe method.
- */
 static int mmc_bus_match(struct device *dev, struct device_driver *drv)
 {
 	return 1;
@@ -105,10 +100,6 @@ mmc_bus_uevent(struct device *dev, struct kobj_uevent_env *env)
 	if (retval)
 		return retval;
 
-	/*
-	 * Request the mmc_block device.  Note: that this is a direct request
-	 * for the module it carries no information as to what is inserted.
-	 */
 	retval = add_uevent_var(env, "MODALIAS=mmc:block");
 
 	return retval;
@@ -180,7 +171,7 @@ static int mmc_runtime_idle(struct device *dev)
 	return pm_runtime_suspend(dev);
 }
 
-#endif /* !CONFIG_PM_RUNTIME */
+#endif 
 
 static const struct dev_pm_ops mmc_bus_pm_ops = {
 	SET_RUNTIME_PM_OPS(mmc_runtime_suspend, mmc_runtime_resume,
@@ -208,10 +199,6 @@ void mmc_unregister_bus(void)
 	bus_unregister(&mmc_bus_type);
 }
 
-/**
- *	mmc_register_driver - register a media driver
- *	@drv: MMC media driver
- */
 int mmc_register_driver(struct mmc_driver *drv)
 {
 	drv->drv.bus = &mmc_bus_type;
@@ -220,10 +207,6 @@ int mmc_register_driver(struct mmc_driver *drv)
 
 EXPORT_SYMBOL(mmc_register_driver);
 
-/**
- *	mmc_unregister_driver - unregister a media driver
- *	@drv: MMC media driver
- */
 void mmc_unregister_driver(struct mmc_driver *drv)
 {
 	drv->drv.bus = &mmc_bus_type;
@@ -244,9 +227,6 @@ static void mmc_release_card(struct device *dev)
 	kfree(card);
 }
 
-/*
- * Allocate and initialise a new MMC card structure.
- */
 struct mmc_card *mmc_alloc_card(struct mmc_host *host, struct device_type *type)
 {
 	struct mmc_card *card;
@@ -269,14 +249,15 @@ struct mmc_card *mmc_alloc_card(struct mmc_host *host, struct device_type *type)
 	return card;
 }
 
-/*
- * Register a new MMC card with the driver model.
- */
 int mmc_add_card(struct mmc_card *card)
 {
 	int ret;
 	const char *type;
 	const char *uhs_bus_speed_mode = "";
+	u8 *ext_csd;
+	char *buf;
+	int err, i, j;
+	ssize_t n = 0;
 	static const char *const uhs_speeds[] = {
 		[UHS_SDR12_BUS_SPEED] = "SDR12 ",
 		[UHS_SDR25_BUS_SPEED] = "SDR25 ",
@@ -339,6 +320,39 @@ int mmc_add_card(struct mmc_card *card)
 			(mmc_card_hs200(card) ? "HS200 " : ""),
 			mmc_card_ddr_mode(card) ? "DDR " : "",
 			uhs_bus_speed_mode, type, card->rca);
+		if (mmc_card_mmc(card)) {
+			pr_info("%s: cid %08x%08x%08x%08x\n",
+				mmc_hostname(card->host),
+				card->raw_cid[0], card->raw_cid[1],
+				card->raw_cid[2], card->raw_cid[3]);
+			pr_info("%s: csd %08x%08x%08x%08x\n",
+				mmc_hostname(card->host),
+				card->raw_csd[0], card->raw_csd[1],
+				card->raw_csd[2], card->raw_csd[3]);
+
+			ext_csd = kmalloc(512, GFP_KERNEL);
+			if(ext_csd) {
+				mmc_claim_host(card->host);
+				err = mmc_send_ext_csd(card, ext_csd);
+				mmc_release_host(card->host);
+				if (!err) {
+					buf = kmalloc(512, GFP_KERNEL);
+					if (buf) {
+						for (i = 0; i < 32; i++) {
+							for (j = 511 - (16 * i); j >= 496 - (16 * i); j--)
+								n += sprintf(buf + n, "%02x", ext_csd[j]);
+							n += sprintf(buf + n, "\n");
+							pr_info("%s: ext_csd %s", mmc_hostname(card->host), buf);
+							n = 0;
+						}
+					}
+					if (buf)
+						kfree(buf);
+				}
+			}
+			if (ext_csd)
+				kfree(ext_csd);
+		}
 	}
 
 #ifdef CONFIG_DEBUG_FS
@@ -354,10 +368,6 @@ int mmc_add_card(struct mmc_card *card)
 	return 0;
 }
 
-/*
- * Unregister a new MMC card with the driver model, and
- * (eventually) free it.
- */
 void mmc_remove_card(struct mmc_card *card)
 {
 #ifdef CONFIG_DEBUG_FS

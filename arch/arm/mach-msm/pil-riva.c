@@ -137,12 +137,12 @@ static int pil_riva_reset(struct pil_desc *pil)
 	unsigned long start_addr = drv->start_addr;
 	bool use_cxo = cxo_is_needed(drv);
 
-	/* Enable A2XB bridge */
+	
 	reg = readl_relaxed(base + RIVA_PMU_A2XB_CFG);
 	reg |= RIVA_PMU_A2XB_CFG_EN;
 	writel_relaxed(reg, base + RIVA_PMU_A2XB_CFG);
 
-	/* Program PLL 13 to 960 MHz */
+	
 	reg = readl_relaxed(RIVA_PLL_MODE);
 	reg &= ~(PLL_MODE_BYPASSNL | PLL_MODE_OUTCTRL | PLL_MODE_RESET_N);
 	writel_relaxed(reg, RIVA_PLL_MODE);
@@ -160,14 +160,10 @@ static int pil_riva_reset(struct pil_desc *pil)
 	reg |= use_cxo ? PLL_MODE_REF_XO_SEL_CXO : PLL_MODE_REF_XO_SEL_RF;
 	writel_relaxed(reg, RIVA_PLL_MODE);
 
-	/* Enable PLL 13 */
+	
 	reg |= PLL_MODE_BYPASSNL;
 	writel_relaxed(reg, RIVA_PLL_MODE);
 
-	/*
-	 * H/W requires a 5us delay between disabling the bypass and
-	 * de-asserting the reset. Delay 10us just to be safe.
-	 */
 	mb();
 	usleep_range(10, 20);
 
@@ -176,11 +172,11 @@ static int pil_riva_reset(struct pil_desc *pil)
 	reg |= PLL_MODE_OUTCTRL;
 	writel_relaxed(reg, RIVA_PLL_MODE);
 
-	/* Wait for PLL to settle */
+	
 	mb();
 	usleep_range(50, 100);
 
-	/* Configure cCPU for 240 MHz */
+	
 	sel = readl_relaxed(base + RIVA_PMU_ROOT_CLK_SEL);
 	reg = readl_relaxed(base + RIVA_PMU_CLK_ROOT3);
 	if (sel & RIVA_PMU_ROOT_CLK_SEL_3) {
@@ -201,25 +197,25 @@ static int pil_riva_reset(struct pil_desc *pil)
 	reg ^= RIVA_PMU_ROOT_CLK_SEL_3;
 	writel_relaxed(reg, base + RIVA_PMU_ROOT_CLK_SEL);
 
-	/* Use the high vector table */
+	
 	reg = readl_relaxed(base + RIVA_PMU_CCPU_CTL);
 	reg |= RIVA_PMU_CCPU_CTL_HIGH_IVT | RIVA_PMU_CCPU_CTL_REMAP_EN;
 	writel_relaxed(reg, base + RIVA_PMU_CCPU_CTL);
 
-	/* Set base memory address */
+	
 	writel_relaxed(start_addr >> 16, base + RIVA_PMU_CCPU_BOOT_REMAP_ADDR);
 
-	/* Clear warmboot bit indicating this is a cold boot */
+	
 	reg = readl_relaxed(base + RIVA_PMU_CFG);
 	reg &= ~(RIVA_PMU_CFG_WARM_BOOT);
 	writel_relaxed(reg, base + RIVA_PMU_CFG);
 
-	/* Enable the cCPU clock */
+	
 	reg = readl_relaxed(base + RIVA_PMU_OVRD_VAL);
 	reg |= RIVA_PMU_OVRD_VAL_CCPU_CLK;
 	writel_relaxed(reg, base + RIVA_PMU_OVRD_VAL);
 
-	/* Take cCPU out of reset */
+	
 	reg |= RIVA_PMU_OVRD_VAL_CCPU_RESET;
 	writel_relaxed(reg, base + RIVA_PMU_OVRD_VAL);
 
@@ -231,7 +227,7 @@ static int pil_riva_shutdown(struct pil_desc *pil)
 	struct riva_data *drv = dev_get_drvdata(pil->dev);
 	u32 reg;
 
-	/* Put cCPU and cCPU clock into reset */
+	
 	reg = readl_relaxed(drv->base + RIVA_PMU_OVRD_VAL);
 	reg &= ~(RIVA_PMU_OVRD_VAL_CCPU_RESET | RIVA_PMU_OVRD_VAL_CCPU_CLK);
 	writel_relaxed(reg, drv->base + RIVA_PMU_OVRD_VAL);
@@ -240,12 +236,12 @@ static int pil_riva_shutdown(struct pil_desc *pil)
 	writel_relaxed(reg, drv->base + RIVA_PMU_OVRD_EN);
 	mb();
 
-	/* Assert reset to Riva */
+	
 	writel_relaxed(1, RIVA_RESET);
 	mb();
 	usleep_range(1000, 2000);
 
-	/* Deassert reset to Riva */
+	
 	writel_relaxed(0, RIVA_RESET);
 	mb();
 

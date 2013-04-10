@@ -26,28 +26,20 @@
 
 #define KGSL_NAME "kgsl"
 
-/* The number of memstore arrays limits the number of contexts allowed.
- * If more contexts are needed, update multiple for MEMSTORE_SIZE
- */
 #define KGSL_MEMSTORE_SIZE	((int)(PAGE_SIZE * 2))
 #define KGSL_MEMSTORE_GLOBAL	(0)
 #define KGSL_MEMSTORE_MAX	(KGSL_MEMSTORE_SIZE / \
 		sizeof(struct kgsl_devmemstore) - 1)
 
-/* Timestamp window used to detect rollovers (half of integer range) */
 #define KGSL_TIMESTAMP_WINDOW 0x80000000
 
-/*cache coherency ops */
 #define DRM_KGSL_GEM_CACHE_OP_TO_DEV	0x0001
 #define DRM_KGSL_GEM_CACHE_OP_FROM_DEV	0x0002
 
-/* The size of each entry in a page table */
 #define KGSL_PAGETABLE_ENTRY_SIZE  4
 
-/* Pagetable Virtual Address base */
 #define KGSL_PAGETABLE_BASE	0x10000000
 
-/* Extra accounting entries needed in the pagetable */
 #define KGSL_PT_EXTRA_ENTRIES      16
 
 #define KGSL_PAGETABLE_ENTRIES(_sz) (((_sz) >> PAGE_SHIFT) + \
@@ -59,13 +51,9 @@
 #define KGSL_PAGETABLE_COUNT 1
 #endif
 
-/* Casting using container_of() for structures that kgsl owns. */
 #define KGSL_CONTAINER_OF(ptr, type, member) \
 		container_of(ptr, type, member)
 
-/* A macro for memory statistics - add the new size to the stat and if
-   the statisic is greater then _max, set _max
-*/
 
 #define KGSL_STATS_ADD(_size, _stat, _max) \
 	do { _stat += (_size); if (_stat > _max) _max = _stat; } while (0)
@@ -76,23 +64,23 @@ struct kgsl_driver {
 	struct cdev cdev;
 	dev_t major;
 	struct class *class;
-	/* Virtual device for managing the core */
+	
 	struct device virtdev;
-	/* Kobjects for storing pagetable and process statistics */
+	
 	struct kobject *ptkobj;
 	struct kobject *prockobj;
 	struct kgsl_device *devp[KGSL_DEVICE_MAX];
 
-	/* Global lilst of open processes */
+	
 	struct list_head process_list;
-	/* Global list of pagetables */
+	
 	struct list_head pagetable_list;
-	/* Spinlock for accessing the pagetable list */
+	
 	spinlock_t ptlock;
-	/* Mutex for accessing the process list */
+	
 	struct mutex process_mutex;
 
-	/* Mutex for protecting the device list */
+	
 	struct mutex devlock;
 
 	void *ptpool;
@@ -129,7 +117,6 @@ struct kgsl_memdesc_ops {
 
 #define KGSL_MEMDESC_GUARD_PAGE BIT(0)
 
-/* shared memory allocation */
 struct kgsl_memdesc {
 	struct kgsl_pagetable *pagetable;
 	void *hostptr;
@@ -145,7 +132,6 @@ struct kgsl_memdesc {
 	struct kgsl_process_private *private;
 };
 
-/* List of different memory entry types */
 #if 0
 #define KGSL_MEM_ENTRY_KERNEL		0
 #define KGSL_MEM_ENTRY_PMEM		1
@@ -168,7 +154,6 @@ enum {
 };
 #endif
 
-/* List of flags */
 
 #define KGSL_MEM_ENTRY_FROZEN (1 << 0)
 
@@ -180,8 +165,6 @@ struct kgsl_mem_entry {
 	void *priv_data;
 	struct rb_node node;
 	unsigned int context_id;
-	/* back pointer to private structure under whose context this
-	* allocation is made */
 	struct kgsl_process_private *priv;
 };
 
@@ -262,19 +245,14 @@ static inline uint8_t *kgsl_gpuaddr_to_vaddr(struct kgsl_memdesc *memdesc,
 
 static inline int timestamp_cmp(unsigned int a, unsigned int b)
 {
-	/* check for equal */
+	
 	if (a == b)
 		return 0;
 
-	/* check for greater-than for non-rollover case */
+	
 	if ((a > b) && (a - b < KGSL_TIMESTAMP_WINDOW))
 		return 1;
 
-	/* check for greater-than for rollover case
-	 * note that <= is required to ensure that consistent
-	 * results are returned for values whose difference is
-	 * equal to the window size
-	 */
 	a += KGSL_TIMESTAMP_WINDOW;
 	b += KGSL_TIMESTAMP_WINDOW;
 	return ((a > b) && (a - b <= KGSL_TIMESTAMP_WINDOW)) ? 1 : -1;
@@ -292,4 +270,4 @@ kgsl_mem_entry_put(struct kgsl_mem_entry *entry)
 	kref_put(&entry->refcount, kgsl_mem_entry_destroy);
 }
 
-#endif /* __KGSL_H */
+#endif 

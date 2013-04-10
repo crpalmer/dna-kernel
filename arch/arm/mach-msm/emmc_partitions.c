@@ -36,11 +36,10 @@
 
 #ifdef CONFIG_MMC_MUST_PREVENT_WP_VIOLATION
 #include <linux/mmc/card.h>
-#endif	/* CONFIG_MMC_MUST_PREVENT_WP_VIOLATION */
+#endif	
 
-/* configuration tags specific to msm */
 
-#define ATAG_MSM_PARTITION 0x4d534D70 /* MSMp */
+#define ATAG_MSM_PARTITION 0x4d534D70 
 
 struct msm_ptbl_entry {
 	char name[16];
@@ -114,7 +113,7 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 #ifdef CONFIG_MMC_MUST_PREVENT_WP_VIOLATION
 		if (!strncmp(ptn->name, "system", 6))
 			mmc_blk_set_wp_prevention_partno((int) ptn->offset);
-#endif	/* CONFIG_MMC_MUST_PREVENT_WP_VIOLATION */
+#endif	
 
 		name += 16;
 		entry++;
@@ -156,7 +155,7 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 		count++;
 	}
 out:
-#endif /* CONFIG_VIRTUAL_KPANIC_SRC */
+#endif 
 	msm_nand_data.nr_parts = count;
 	msm_nand_data.parts = msm_nand_partitions;
 

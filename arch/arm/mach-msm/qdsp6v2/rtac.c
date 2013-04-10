@@ -49,7 +49,6 @@ bool rtac_make_voice_callback(u32 mode, uint32_t *payload,
 #define VOICE_CMD_GET_PARAM		0x00011007
 #define VOICE_EVT_GET_PARAM_ACK		0x00011008
 
-/* Max size of payload (buf size - apr header) */
 #define MAX_PAYLOAD_SIZE		4076
 #define RTAC_MAX_ACTIVE_DEVICES		4
 #define RTAC_MAX_ACTIVE_VOICE_COMBOS	2
@@ -58,7 +57,6 @@ bool rtac_make_voice_callback(u32 mode, uint32_t *payload,
 
 #define TIMEOUT_MS	1000
 
-/* APR data */
 struct rtac_apr_data {
 	void			*apr_handle;
 	atomic_t		cmd_state;
@@ -70,7 +68,6 @@ static struct rtac_apr_data	rtac_asm_apr_data[SESSION_MAX+1];
 static struct rtac_apr_data	rtac_voice_apr_data[RTAC_VOICE_MODES];
 
 
-/* ADM info & APR */
 struct rtac_adm_data {
 	uint32_t	topology_id;
 	uint32_t	afe_port;
@@ -89,13 +86,11 @@ static u32			rtac_adm_user_buf_size;
 static u8			*rtac_adm_buffer;
 
 
-/* ASM APR */
 static u32			rtac_asm_payload_size;
 static u32			rtac_asm_user_buf_size;
 static u8			*rtac_asm_buffer;
 
 
-/* Voice info & APR */
 struct rtac_voice_data {
 	uint32_t	tx_topology_id;
 	uint32_t	rx_topology_id;
@@ -135,7 +130,6 @@ static int rtac_release(struct inode *inode, struct file *f)
 	return 0;
 }
 
-/* ADM Info */
 void add_popp(u32 dev_idx, u32 port_id, u32 popp_id)
 {
 	u32 i = 0;
@@ -167,7 +161,7 @@ void rtac_add_adm_device(u32 port_id, u32 copp_id, u32 path_id, u32 popp_id)
 		goto done;
 	}
 
-	/* Check if device already added */
+	
 	if (rtac_adm_data.num_of_dev != 0) {
 		for (; i < rtac_adm_data.num_of_dev; i++) {
 			if (rtac_adm_data.device[i].afe_port == port_id) {
@@ -182,7 +176,7 @@ void rtac_add_adm_device(u32 port_id, u32 copp_id, u32 path_id, u32 popp_id)
 		}
 	}
 
-	/* Add device */
+	
 	rtac_adm_data.num_of_dev++;
 
 	if (path_id == ADM_PATH_PLAYBACK)
@@ -229,7 +223,7 @@ void rtac_remove_adm_device(u32 port_id)
 	pr_debug("%s: port_id = %d\n", __func__, port_id);
 
 	mutex_lock(&rtac_adm_mutex);
-	/* look for device */
+	
 	for (i = 0; i < rtac_adm_data.num_of_dev; i++) {
 		if (rtac_adm_data.device[i].afe_port == port_id) {
 			memset(&rtac_adm_data.device[i], 0,
@@ -267,7 +261,6 @@ void rtac_remove_popp_from_adm_devices(u32 popp_id)
 	mutex_unlock(&rtac_adm_mutex);
 }
 
-/* Voice Info */
 static void set_rtac_voice_data(int idx, u32 cvs_handle, u32 cvp_handle,
 					u32 rx_afe_port, u32 tx_afe_port,
 					u32 session_id)
@@ -279,7 +272,7 @@ static void set_rtac_voice_data(int idx, u32 cvs_handle, u32 cvp_handle,
 	rtac_voice_data.voice[idx].cvs_handle = cvs_handle;
 	rtac_voice_data.voice[idx].cvp_handle = cvp_handle;
 
-	/* Store session ID for voice RTAC */
+	
 	voice_session_id[idx] = session_id;
 }
 
@@ -296,7 +289,7 @@ void rtac_add_voice(u32 cvs_handle, u32 cvp_handle, u32 rx_afe_port,
 		goto done;
 	}
 
-	/* Check if device already added */
+	
 	if (rtac_voice_data.num_of_voice_combos != 0) {
 		for (; i < rtac_voice_data.num_of_voice_combos; i++) {
 			if (rtac_voice_data.voice[i].cvs_handle ==
@@ -309,7 +302,7 @@ void rtac_add_voice(u32 cvs_handle, u32 cvp_handle, u32 rx_afe_port,
 		}
 	}
 
-	/* Add device */
+	
 	rtac_voice_data.num_of_voice_combos++;
 	set_rtac_voice_data(i, cvs_handle, cvp_handle,
 				rx_afe_port, tx_afe_port,
@@ -335,7 +328,7 @@ void rtac_remove_voice(u32 cvs_handle)
 	pr_debug("%s\n", __func__);
 
 	mutex_lock(&rtac_voice_mutex);
-	/* look for device */
+	
 	for (i = 0; i < rtac_voice_data.num_of_voice_combos; i++) {
 		if (rtac_voice_data.voice[i].cvs_handle == cvs_handle) {
 			shift_voice_devices(i);
@@ -368,7 +361,6 @@ static int get_voice_index(u32 cvs_handle)
 }
 
 
-/* ADM APR */
 void rtac_set_adm_handle(void *handle)
 {
 	pr_debug("%s: handle = %d\n", __func__, (unsigned int)handle);
@@ -385,7 +377,7 @@ bool rtac_make_adm_callback(uint32_t *payload, u32 payload_size)
 	if (atomic_read(&rtac_adm_apr_data.cmd_state) != 1)
 		return false;
 
-	/* Offset data for in-band payload */
+	
 	rtac_copy_adm_payload_to_user(payload, payload_size);
 	atomic_set(&rtac_adm_apr_data.cmd_state, 0);
 	wake_up(&rtac_adm_apr_data.cmd_wait);
@@ -468,9 +460,9 @@ u32 send_adm_apr(void *buf, u32 opcode)
 		goto err;
 	}
 
-	/* Set globals for copy of returned payload */
+	
 	rtac_adm_user_buf_size = count;
-	/* Copy buffer to in-band payload */
+	
 	if (copy_from_user(rtac_adm_buffer + sizeof(adm_params),
 			buf + 3 * sizeof(u32), payload_size)) {
 		pr_err("%s: Could not copy payload from user buffer\n",
@@ -478,7 +470,7 @@ u32 send_adm_apr(void *buf, u32 opcode)
 		goto err;
 	}
 
-	/* Pack header */
+	
 	adm_params.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
 		APR_HDR_LEN(20), APR_PKT_VER);
 	adm_params.pkt_size = APR_PKT_SIZE(APR_HDR_SIZE,
@@ -505,7 +497,7 @@ u32 send_adm_apr(void *buf, u32 opcode)
 			__func__, port_index, copp_id);
 		goto err;
 	}
-	/* Wait for the callback */
+	
 	result = wait_event_timeout(rtac_adm_apr_data.cmd_wait,
 		(atomic_read(&rtac_adm_apr_data.cmd_state) == 0),
 		msecs_to_jiffies(TIMEOUT_MS));
@@ -538,7 +530,6 @@ err:
 }
 
 
-/* ASM APR */
 void rtac_set_asm_handle(u32 session_id, void *handle)
 {
 	pr_debug("%s\n", __func__);
@@ -555,7 +546,7 @@ bool rtac_make_asm_callback(u32 session_id, uint32_t *payload,
 		return false;
 
 	pr_debug("%s\n", __func__);
-	/* Offset data for in-band payload */
+	
 	rtac_copy_asm_payload_to_user(payload, payload_size);
 	atomic_set(&rtac_asm_apr_data[session_id].cmd_state, 0);
 	wake_up(&rtac_asm_apr_data[session_id].cmd_wait);
@@ -632,10 +623,10 @@ u32 send_rtac_asm_apr(void *buf, u32 opcode)
 		}
 	}
 
-	/* Set globals for copy of returned payload */
+	
 	rtac_asm_user_buf_size = count;
 
-	/* Copy buffer to in-band payload */
+	
 	if (copy_from_user(rtac_asm_buffer + sizeof(asm_params),
 		buf + 3 * sizeof(u32), payload_size)) {
 		pr_err("%s: Could not copy payload from user buffer\n",
@@ -643,7 +634,7 @@ u32 send_rtac_asm_apr(void *buf, u32 opcode)
 		goto err;
 	}
 
-	/* Pack header */
+	
 	asm_params.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
 		APR_HDR_LEN(20), APR_PKT_VER);
 	asm_params.pkt_size = APR_PKT_SIZE(APR_HDR_SIZE,
@@ -672,7 +663,7 @@ u32 send_rtac_asm_apr(void *buf, u32 opcode)
 		goto err;
 	}
 
-	/* Wait for the callback */
+	
 	result = wait_event_timeout(rtac_asm_apr_data[session_id].cmd_wait,
 		(atomic_read(&rtac_asm_apr_data[session_id].cmd_state) == 0),
 		5 * HZ);
@@ -705,7 +696,6 @@ err:
 }
 
 
-/* Voice APR */
 void rtac_set_voice_handle(u32 mode, void *handle)
 {
 	pr_debug("%s\n", __func__);
@@ -721,7 +711,7 @@ bool rtac_make_voice_callback(u32 mode, uint32_t *payload, u32 payload_size)
 		return false;
 
 	pr_debug("%s\n", __func__);
-	/* Offset data for in-band payload */
+	
 	rtac_copy_voice_payload_to_user(payload, payload_size);
 	atomic_set(&rtac_voice_apr_data[mode].cmd_state, 0);
 	wake_up(&rtac_voice_apr_data[mode].cmd_wait);
@@ -798,10 +788,10 @@ u32 send_voice_apr(u32 mode, void *buf, u32 opcode)
 		goto err;
 	}
 
-	/* Set globals for copy of returned payload */
+	
 	rtac_voice_user_buf_size = count;
 
-	/* Copy buffer to in-band payload */
+	
 	if (copy_from_user(rtac_voice_buffer + sizeof(voice_params),
 		buf + 3 * sizeof(u32), payload_size)) {
 		pr_err("%s: Could not copy payload from user buffer\n",
@@ -809,7 +799,7 @@ u32 send_voice_apr(u32 mode, void *buf, u32 opcode)
 		goto err;
 	}
 
-	/* Pack header */
+	
 	voice_params.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
 		APR_HDR_LEN(20), APR_PKT_VER);
 	voice_params.pkt_size = APR_PKT_SIZE(APR_HDR_SIZE,
@@ -837,7 +827,7 @@ u32 send_voice_apr(u32 mode, void *buf, u32 opcode)
 			__func__, opcode);
 		goto err;
 	}
-	/* Wait for the callback */
+	
 	result = wait_event_timeout(rtac_voice_apr_data[mode].cmd_wait,
 		(atomic_read(&rtac_voice_apr_data[mode].cmd_state) == 0),
 		msecs_to_jiffies(TIMEOUT_MS));
@@ -955,7 +945,7 @@ static int __init rtac_init(void)
 	int i = 0;
 	pr_debug("%s\n", __func__);
 
-	/* ADM */
+	
 	memset(&rtac_adm_data, 0, sizeof(rtac_adm_data));
 	rtac_adm_apr_data.apr_handle = NULL;
 	atomic_set(&rtac_adm_apr_data.cmd_state, 0);
@@ -970,7 +960,7 @@ static int __init rtac_init(void)
 		goto nomem;
 	}
 
-	/* ASM */
+	
 	for (i = 0; i < SESSION_MAX+1; i++) {
 		rtac_asm_apr_data[i].apr_handle = NULL;
 		atomic_set(&rtac_asm_apr_data[i].cmd_state, 0);
@@ -986,7 +976,7 @@ static int __init rtac_init(void)
 		goto nomem;
 	}
 
-	/* Voice */
+	
 	memset(&rtac_voice_data, 0, sizeof(rtac_voice_data));
 	for (i = 0; i < RTAC_VOICE_MODES; i++) {
 		rtac_voice_apr_data[i].apr_handle = NULL;

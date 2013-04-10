@@ -71,7 +71,6 @@ static struct notifier_block panic_blk = {
 #ifdef CONFIG_MSM_DLOAD_MODE
 static void *dload_mode_addr;
 
-/* Download mode master kill-switch */
 static int dload_set(const char *val, struct kernel_param *kp);
 static int download_mode = 1;
 module_param_call(download_mode, dload_set, param_get_int,
@@ -97,7 +96,7 @@ static int dload_set(const char *val, struct kernel_param *kp)
 	if (ret)
 		return ret;
 
-	/* If download_mode is not zero or one, ignore. */
+	
 	if (download_mode >> 1) {
 		download_mode = old_val;
 		return -EINVAL;
@@ -117,7 +116,6 @@ void msm_set_restart_mode(int mode)
 }
 EXPORT_SYMBOL(msm_set_restart_mode);
 
-/* HTC add start */
 static unsigned mdm2ap_errfatal_restart;
 static unsigned ap2mdm_pmic_reset_n_gpio = -1;
 
@@ -137,7 +135,7 @@ void register_ap2mdm_pmic_reset_n_gpio(unsigned gpio)
 static void turn_off_mdm_power(void)
 {
 	int i;
-	/* Don't turn off MDM power if device restart is caused by MDM2AP_ERRFATAL high */
+	
 	if ((ap2mdm_pmic_reset_n_gpio >= 0) && !mdm2ap_errfatal_restart) {
 		printk(KERN_CRIT "Powering off MDM...\n");
 		gpio_direction_output(ap2mdm_pmic_reset_n_gpio, 0);
@@ -182,11 +180,10 @@ static void msm_flush_console(void)
 
 	local_irq_restore(flags);
 }
-/* HTC add end */
 
 static void __msm_power_off(int lower_pshold)
 {
-	turn_off_mdm_power();	/* Added by HTC */
+	turn_off_mdm_power();	
 
 	printk(KERN_CRIT "Powering off the SoC\n");
 #ifdef CONFIG_MSM_DLOAD_MODE
@@ -204,7 +201,7 @@ static void __msm_power_off(int lower_pshold)
 
 static void msm_power_off(void)
 {
-	/* MSM initiated power off, lower ps_hold */
+	
 	__msm_power_off(1);
 }
 
@@ -215,15 +212,11 @@ static void cpu_power_off(void *data)
 	pr_err("PMIC Initiated shutdown %s cpu=%d\n", __func__,
 						smp_processor_id());
 	if (smp_processor_id() == 0) {
-		/*
-		 * PMIC initiated power off, do not lower ps_hold, pmic will
-		 * shut msm down
-		 */
 		__msm_power_off(0);
 
 		pet_watchdog();
 		pr_err("Calling scm to disable arbiter\n");
-		/* call secure manager to disable arbiter and never return */
+		
 		rc = scm_call_atomic1(SCM_SVC_PWR,
 						SCM_IO_DISABLE_PMIC_ARBITER, 1);
 
@@ -254,17 +247,17 @@ void msm_restart(char mode, const char *cmd)
 
 #ifdef CONFIG_MSM_DLOAD_MODE
 
-	/* This looks like a normal reboot at this point. */
+	
 	set_dload_mode(0);
 
-	/* Write download mode flags if we're panic'ing */
+	
 	set_dload_mode(in_panic);
 
-	/* Write download mode flags if restart_mode says so */
+	
 	if (restart_mode == RESTART_DLOAD)
 		set_dload_mode(1);
 
-	/* Kill download mode if master-kill switch is set */
+	
 	if (!download_mode)
 		set_dload_mode(0);
 #endif
@@ -276,7 +269,7 @@ void msm_restart(char mode, const char *cmd)
 	pr_info("%s: restart by command: [%s]\r\n", __func__, (cmd) ? cmd : "");
 	
 	if (in_panic) {
-		/* KP, do not overwrite the restart reason */
+		
 	} else if (!cmd) {
 		set_restart_action(RESTART_REASON_REBOOT, NULL);
 	} else if (!strncmp(cmd, "bootloader", 10)) {
@@ -291,7 +284,7 @@ void msm_restart(char mode, const char *cmd)
 		set_restart_action(RESTART_REASON_REBOOT, NULL);
 	}
 
-	/* Added by HTC */
+	
 	if (!(get_radio_flag() & RADIO_FLAG_USB_UPLOAD) || ((get_restart_reason() != RESTART_REASON_RAMDUMP) && (get_restart_reason() != (RESTART_REASON_OEM_BASE | 0x99))))
 		turn_off_mdm_power();
 	else
@@ -300,9 +293,6 @@ void msm_restart(char mode, const char *cmd)
 	msm_flush_console();
 
 	__raw_writel(0, msm_tmr0_base + WDT0_EN);
-/* For APQ8064, we need to use watchdog reset to speed reboot process up,
- * or 9k will shut down completely and its memory data will loss.
- */
 #ifdef CONFIG_ARCH_APQ8064
 	mb();
 
@@ -316,12 +306,12 @@ void msm_restart(char mode, const char *cmd)
 	mdelay(10000);
 
 	pr_info("%s: Watchdog didn't work, falling back to PS_HOLD\r\n", __func__);
-	__raw_writel(0, PSHOLD_CTL_SU); /* Actually reset the chip */
+	__raw_writel(0, PSHOLD_CTL_SU); 
 	mdelay(5000);
 #else
 	if (!(machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa())) {
 		mb();
-		__raw_writel(0, PSHOLD_CTL_SU); /* Actually reset the chip */
+		__raw_writel(0, PSHOLD_CTL_SU); 
 		mdelay(5000);
 		pr_notice("PS_HOLD didn't work, falling back to watchdog\n");
 	}
@@ -348,7 +338,7 @@ static int __init msm_restart_init(void)
 #ifdef CONFIG_MSM_DLOAD_MODE
 	dload_mode_addr = MSM_IMEM_BASE + DLOAD_MODE_ADDR;
 
-	/* Reset detection is switched on below.*/
+	
 	set_dload_mode(1);
 #endif
 	msm_tmr0_base = msm_timer_get_timer0_base();

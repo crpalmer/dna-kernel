@@ -46,10 +46,6 @@ static void diag_read_hsic_work_fn(struct work_struct *work)
 		return;
 	}
 
-	/*
-	 * Determine the current number of available buffers for writing after
-	 * reading from the HSIC has completed.
-	 */
 	if (driver->logging_mode == MEMORY_DEVICE_MODE)
 		write_ptrs_available = driver->poolsize_hsic_write -
 					driver->num_hsic_buf_tbl_entries;
@@ -57,15 +53,7 @@ static void diag_read_hsic_work_fn(struct work_struct *work)
 		write_ptrs_available = driver->poolsize_hsic_write -
 					driver->count_hsic_write_pool;
 
-	/*
-	 * Queue up a read on the HSIC for all available buffers in the
-	 * pool, exhausting the pool.
-	 */
 	do {
-		/*
-		 * If no more write buffers are available,
-		 * stop queuing reads
-		 */
 		if (write_ptrs_available <= 0)
 			break;
 
@@ -74,11 +62,6 @@ static void diag_read_hsic_work_fn(struct work_struct *work)
 		buf_in_hsic = diagmem_alloc(driver, READ_HSIC_BUF_SIZE,
 							POOL_TYPE_HSIC);
 		if (buf_in_hsic) {
-			/*
-			 * Initiate the read from the hsic.  The hsic read is
-			 * asynchronous.  Once the read is complete the read
-			 * callback function will be called.
-			 */
 			pr_debug("diag: read from HSIC\n");
 			num_reads_submitted++;
 			err = diag_bridge_read((char *)buf_in_hsic,
@@ -86,26 +69,17 @@ static void diag_read_hsic_work_fn(struct work_struct *work)
 			if (err) {
 				num_reads_submitted--;
 
-				/* Return the buffer to the pool */
+				
 				diagmem_free(driver, buf_in_hsic,
 						POOL_TYPE_HSIC);
 
 				pr_err_ratelimited("diag: Error initiating HSIC read, err: %d\n",
 				err);
-				/*
-				 * An error occurred, discontinue queuing
-				 * reads
-				 */
 				break;
 			}
 		}
 	} while (buf_in_hsic);
 
-	/*
-	 * If there are read buffers available and for some reason the
-	 * read was not queued, and if no unrecoverable error occurred
-	 * (-ENODEV is an unrecoverable error), then set up the next read
-	 */
 	if ((driver->count_hsic_pool < driver->poolsize_hsic) &&
 		(num_reads_submitted == 0) && (err != -ENODEV))
 		queue_work(driver->diag_bridge_wq,
@@ -122,33 +96,25 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 	int err = -2, print_out_reason = 0;
 
 	if (!driver->hsic_ch) {
-		/*
-		 * The hsic channel is closed. Return the buffer to
-		 * the pool.  Do not send it on.
-		 */
 		diagmem_free(driver, buf, POOL_TYPE_HSIC);
 		pr_debug("diag: In %s: driver->hsic_ch == 0, actual_size: %d\n",
 			__func__, actual_size);
 		return;
 	}
 
-	/*
-	 * Note that zero length is valid and still needs to be sent to
-	 * the USB only when we are logging data to the USB
-	 */
 	if ((actual_size > 0) ||
 		((actual_size == 0) && (driver->logging_mode == USB_MODE))) {
 		if (!buf) {
 			pr_err("diag: Out of diagmem for HSIC\n");
 		} else {
 			if (diag9k_debug_mask) {
-				print_out_reason = 1;	/* for debug reason */
+				print_out_reason = 1;	
 			} else if (driver->debug_dmbytes_recv > 0) {
 				driver->debug_dmbytes_recv--;
-				print_out_reason = 2;		/* DM command */
+				print_out_reason = 2;		
 			} else if(driver->qxdmusb_drop &&
 					driver->logging_mode == USB_MODE) {
-				print_out_reason = 3;	/* receive unknown packets */
+				print_out_reason = 3;	
 			}
 
 			if (print_out_reason) {
@@ -173,34 +139,24 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 				}
 			}
 #if DIAG_XPST && defined(CONFIG_DIAG_BRIDGE_CODE)
-			/* HTC: only route to user space if the packet smd received
-			 * is the head of the full packet to avoid route wrong packet
-			 * to userspace. BTW, to avoid lost 1st packet (do not know if
-			 * the head of packet), we always check 1st packet. It should
-			 * be the 0xc sync packet.
-			 */
-			if (pkt_hdr || (first_pkt == 1)) {
+			if ((pkt_hdr || (first_pkt == 1)) && actual_size > 0) {
 				if (unlikely(first_pkt == 1)) first_pkt = 0;
 				type = checkcmd_modem_epst(buf);
 				if (type) {
 					modem_to_userspace(buf, actual_size, type, 1);
 					pkt_hdr = 1;
-					/* TODO[HTC] release buffer to diagmem
-					 * Only need to release USB_MODE because
-					 * MEMORY_DEVICE_MODE dont allocate memory yet
-					 * in the stage
-					 */
-					if (driver->logging_mode == USB_MODE)
-						diagmem_free(driver,
-							(unsigned char *)buf, POOL_TYPE_HSIC);
+					
+					diagmem_free(driver,
+						(unsigned char *)buf, POOL_TYPE_HSIC);
 					return;
 				}
 				pkt_hdr = 0;
 			}
 
 			if ((actual_size == 1 && *buf == CONTROL_CHAR) ||
+					((actual_size >= 2) &&
 					(*(buf+actual_size-1) == CONTROL_CHAR &&
-					 *(buf+actual_size-2) != ESC_CHAR))
+					 *(buf+actual_size-2) != ESC_CHAR)))
 				pkt_hdr = 1;
 #endif
 			/*
@@ -209,7 +165,7 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 			 */
 			driver->write_len_mdm = actual_size;
 			err = diag_device_write((void *)buf, HSIC_DATA, NULL);
-			/* If an error, return buffer to the pool */
+			
 			if (err) {
 				diagmem_free(driver, buf, POOL_TYPE_HSIC);
 				pr_err("diag: In %s, error calling diag_device_write, err: %d\n",
@@ -217,20 +173,11 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 			}
 		}
 	} else {
-		/*
-		 * The buffer has an error status associated with it. Do not
-		 * pass it on. Note that -ENOENT is sent when the diag bridge
-		 * is closed.
-		 */
 		diagmem_free(driver, buf, POOL_TYPE_HSIC);
 		pr_debug("diag: In %s: error status: %d\n", __func__,
 				actual_size);
 	}
 
-	/*
-	 * If for some reason there was no hsic data to write to the
-	 * mdm channel, set up another read
-	 */
 	if (err &&
 		((driver->logging_mode == MEMORY_DEVICE_MODE) ||
 		(driver->usb_mdm_connected && !driver->hsic_suspend))) {
@@ -242,7 +189,7 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 static void diag_hsic_write_complete_callback(void *ctxt, char *buf,
 					int buf_size, int actual_size)
 {
-	/* The write of the data to the HSIC bridge is complete */
+	
 	driver->in_busy_hsic_write = 0;
 
 	if (driver->in_busy_hsic_write_wait) {
@@ -266,11 +213,11 @@ static int diag_hsic_suspend(void *ctxt)
 {
 	pr_debug("diag: hsic_suspend\n");
 
-	/* Don't allow suspend if a write in the HSIC is in progress */
+	
 	if (driver->in_busy_hsic_write)
 		return -EBUSY;
 
-	/* Don't allow suspend if in MEMORY_DEVICE_MODE */
+	
 	if (driver->logging_mode == MEMORY_DEVICE_MODE)
 		return -EBUSY;
 
@@ -315,7 +262,6 @@ static int diag_hsic_close(void)
 	return 0;
 }
 
-/* diagfwd_cancel_hsic is called to cancel outstanding read/writes */
 int diagfwd_cancel_hsic(void)
 {
 	int err;
@@ -340,14 +286,13 @@ int diagfwd_cancel_hsic(void)
 	return 0;
 }
 
-/* diagfwd_connect_bridge is called when the USB mdm channel is connected */
 int diagfwd_connect_bridge(int process_cable)
 {
 	int err;
 
 	DIAGFWD_INFO("DIAG in %s\n", __func__);
 
-	/* If the usb cable is being connected */
+	
 	if (process_cable) {
 		err = usb_diag_alloc_req(driver->mdm_ch, N_MDM_WRITE,
 			N_MDM_READ);
@@ -368,7 +313,7 @@ int diagfwd_connect_bridge(int process_cable)
 		return 0;
 	}
 
-	/* If the hsic (diag_bridge) platform device is not open */
+	
 	if (driver->hsic_device_enabled) {
 		if (!driver->hsic_device_opened) {
 			err = diag_bridge_open(&hsic_diag_bridge_ops);
@@ -383,38 +328,30 @@ int diagfwd_connect_bridge(int process_cable)
 			pr_debug("diag: HSIC channel already open\n");
 		}
 
-		/*
-		 * Turn on communication over usb mdm and hsic, if the hsic
-		 * device driver is enabled and opened
-		 */
 		if (driver->hsic_device_opened)
 			driver->hsic_ch = 1;
 
-		/* Poll USB mdm channel to check for data */
+		
 		if (driver->logging_mode == USB_MODE)
 			queue_work(driver->diag_bridge_wq,
 					&driver->diag_read_mdm_work);
 
-		/* Poll HSIC channel to check for data */
+		
 		queue_work(driver->diag_bridge_wq,
 				 &driver->diag_read_hsic_work);
 	} else {
-		/* The hsic device driver has not yet been enabled */
+		
 		pr_info("diag: HSIC channel not yet enabled\n");
 	}
 
 	return 0;
 }
 
-/*
- * diagfwd_disconnect_bridge is called when the USB mdm channel
- * is disconnected
- */
 int diagfwd_disconnect_bridge(int process_cable)
 {
 	DIAGFWD_INFO("diag: In %s, process_cable: %d\n", __func__, process_cable);
 
-	/* If the usb cable is being disconnected */
+	
 	if (process_cable) {
 		driver->usb_mdm_connected = 0;
 		driver->qxdmusb_drop = 1;
@@ -423,13 +360,10 @@ int diagfwd_disconnect_bridge(int process_cable)
 
 	if (driver->hsic_device_enabled &&
 			driver->logging_mode != MEMORY_DEVICE_MODE) {
-	/* keep the connection even cable out
-	 * to not disconnect epst communication
-	 */
 #if 0
 		driver->in_busy_hsic_read_on_device = 1;
 		driver->in_busy_hsic_write = 1;
-		/* Turn off communication over usb mdm and hsic */
+		
 		return diag_hsic_close();
 #endif
 	} else if (driver->diag_smux_enabled &&
@@ -439,22 +373,18 @@ int diagfwd_disconnect_bridge(int process_cable)
 #if 0
 		driver->smux_connected = 0;
 #endif
-		/* Turn off communication over usb mdm and smux */
+		
 		msm_smux_close(LCID_VALID);
 	}
 	return 0;
 }
 
-/*
- * diagfwd_write_complete_hsic is called after the asynchronous
- * usb_diag_write() on mdm channel is complete
- */
 int diagfwd_write_complete_hsic(struct diag_request *diag_write_ptr)
 {
 	unsigned char *buf = (diag_write_ptr) ? diag_write_ptr->buf : NULL;
 
 	if (buf) {
-		/* Return buffers to their pools */
+		
 		diagmem_free(driver, (unsigned char *)buf, POOL_TYPE_HSIC);
 		diagmem_free(driver, (unsigned char *)diag_write_ptr,
 							POOL_TYPE_HSIC_WRITE);
@@ -465,16 +395,15 @@ int diagfwd_write_complete_hsic(struct diag_request *diag_write_ptr)
 		return 0;
 	}
 
-	/* Read data from the hsic */
+	
 	queue_work(driver->diag_bridge_wq, &driver->diag_read_hsic_work);
 
 	return 0;
 }
 
-/* Called after the asychronous usb_diag_read() on mdm channel is complete */
 static int diagfwd_read_complete_bridge(struct diag_request *diag_read_ptr)
 {
-	/* The read of the usb driver on the mdm (not hsic) has completed */
+	
 	driver->in_busy_hsic_read_on_device = 0;
 	driver->read_len_mdm = diag_read_ptr->actual;
 
@@ -482,18 +411,12 @@ static int diagfwd_read_complete_bridge(struct diag_request *diag_read_ptr)
 		diagfwd_read_complete_smux();
 		return 0;
 	}
-	/* If SMUX not enabled, check for HSIC */
+	
 	if (!driver->hsic_ch) {
 		pr_err("DIAG in %s: driver->hsic_ch == 0\n", __func__);
 		return 0;
 	}
 
-	/*
-	 * The read of the usb driver on the mdm channel has completed.
-	 * If there is no write on the hsic in progress, check if the
-	 * read has data to pass on to the hsic. If so, pass the usb
-	 * mdm data on to the hsic.
-	 */
 #if DIAG_XPST && defined(CONFIG_DIAG_BRIDGE_CODE)
 	if (!driver->in_busy_hsic_write && driver->usb_buf_mdm_out &&
 		(driver->read_len_mdm > 0) && !driver->nohdlc) {
@@ -502,11 +425,6 @@ static int diagfwd_read_complete_bridge(struct diag_request *diag_read_ptr)
 		(driver->read_len_mdm > 0)) {
 #endif
 
-		/*
-		 * Initiate the hsic write. The hsic write is
-		 * asynchronous. When complete the write
-		 * complete callback function will be called
-		 */
 		int err;
 		driver->in_busy_hsic_write = 1;
 		err = diag_bridge_write(driver->usb_buf_mdm_out,
@@ -514,21 +432,11 @@ static int diagfwd_read_complete_bridge(struct diag_request *diag_read_ptr)
 		if (err) {
 			pr_err_ratelimited("diag: mdm data on hsic write err: %d\n",
 					err);
-			/*
-			 * If the error is recoverable, then clear
-			 * the write flag, so we will resubmit a
-			 * write on the next frame.  Otherwise, don't
-			 * resubmit a write on the next frame.
-			 */
 			if ((-ENODEV) != err)
 				driver->in_busy_hsic_write = 0;
 		}
 	}
 
-	/*
-	 * If there is no write of the usb mdm data on the
-	 * hsic channel
-	 */
 	if (!driver->in_busy_hsic_write)
 		queue_work(driver->diag_bridge_wq, &driver->diag_read_mdm_work);
 
@@ -591,7 +499,7 @@ static void diag_read_mdm_work_fn(struct work_struct *work)
 		return;
 	}
 
-	/* if SMUX not enabled, check for HSIC */
+	
 	if (!driver->hsic_ch) {
 		pr_err("DIAG in %s: driver->hsic_ch == 0\n", __func__);
 		return;
@@ -606,7 +514,7 @@ static void diag_read_mdm_work_fn(struct work_struct *work)
 				 !driver->in_busy_hsic_write) {
 		APPEND_DEBUG('x');
 
-		/* Setup the next read from usb mdm channel */
+		
 		driver->in_busy_hsic_read_on_device = 1;
 		driver->usb_read_mdm_ptr->buf = driver->usb_buf_mdm_out;
 		driver->usb_read_mdm_ptr->length = USB_MAX_OUT_BUF;
@@ -614,10 +522,6 @@ static void diag_read_mdm_work_fn(struct work_struct *work)
 		APPEND_DEBUG('y');
 	}
 
-	/*
-	 * If for some reason there was no mdm channel read initiated,
-	 * queue up the reading of data from the mdm channel
-	 */
 	if (!driver->in_busy_hsic_read_on_device)
 		queue_work(driver->diag_bridge_wq,
 			 &driver->diag_read_mdm_work);
@@ -634,14 +538,9 @@ static int diag_hsic_probe(struct platform_device *pdev)
 		driver->hsic_device_enabled = 1;
 	}
 
-	/*
-	 * The probe function was called after the usb was connected
-	 * on the legacy channel OR ODL is turned on. Communication over usb
-	 * mdm and hsic needs to be turned on.
-	 */
 	if (driver->usb_mdm_connected || (driver->logging_mode ==
 							 MEMORY_DEVICE_MODE)) {
-		/* The hsic (diag_bridge) platform device driver is enabled */
+		
 		err = diag_bridge_open(&hsic_diag_bridge_ops);
 		if (err) {
 			pr_err("diag: could not open HSIC, err: %d\n", err);
@@ -657,12 +556,12 @@ static int diag_hsic_probe(struct platform_device *pdev)
 		driver->in_busy_hsic_write = 0;
 
 		if (driver->usb_mdm_connected) {
-			/* Poll USB mdm channel to check for data */
+			
 			queue_work(driver->diag_bridge_wq,
 					 &driver->diag_read_mdm_work);
 		}
 
-		/* Poll HSIC channel to check for data */
+		
 		queue_work(driver->diag_bridge_wq,
 				 &driver->diag_read_hsic_work);
 	}
@@ -720,7 +619,7 @@ void diagfwd_bridge_init(void)
 							 GFP_KERNEL);
 	if (driver->usb_buf_mdm_out == NULL)
 		goto err;
-	/* Only used by smux move to smux probe function */
+	
 	if (driver->write_ptr_mdm == NULL)
 		driver->write_ptr_mdm = kzalloc(
 		sizeof(struct diag_request), GFP_KERNEL);
@@ -741,9 +640,6 @@ void diagfwd_bridge_init(void)
 	driver->count_hsic_pool = 0;
 	driver->count_hsic_write_pool = 0;
 
-	/* By default, we drop all packets from modem
-	 * it will be reset to 0 if diagfwd_connect_bridge(1)
-	 */
 	driver->qxdmusb_drop = 1;
 
 	driver->itemsize_hsic = READ_HSIC_BUF_SIZE;
@@ -765,11 +661,11 @@ void diagfwd_bridge_init(void)
 		goto err;
 	}
 #endif
-	/* register HSIC device */
+	
 	ret = platform_driver_register(&msm_hsic_ch_driver);
 	if (ret)
 		pr_err("diag: could not register HSIC device, ret: %d\n", ret);
-	/* register SMUX device */
+	
 	ret = platform_driver_register(&msm_diagfwd_smux_driver);
 	if (ret)
 		pr_err("diag: could not register SMUX device, ret: %d\n", ret);
@@ -803,7 +699,7 @@ void diagfwd_bridge_exit(void)
 	}
 	platform_driver_unregister(&msm_hsic_ch_driver);
 	platform_driver_unregister(&msm_diagfwd_smux_driver);
-	/* destroy USB MDM specific variables */
+	
 #ifdef CONFIG_DIAG_OVER_USB
 	if (driver->usb_mdm_connected)
 		usb_diag_free_req(driver->mdm_ch);

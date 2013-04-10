@@ -34,7 +34,7 @@ struct ram_console_buffer {
 	uint8_t     data[0];
 };
 
-#define RAM_CONSOLE_SIG (0x43474244) /* DBGC */
+#define RAM_CONSOLE_SIG (0x43474244) 
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE_EARLY_INIT
 static char __initdata
@@ -61,7 +61,7 @@ static void ram_console_encode_rs8(uint8_t *data, size_t len, uint8_t *ecc)
 {
 	int i;
 	uint16_t par[ECC_SIZE];
-	/* Initialize the parity buffer */
+	
 	memset(par, 0, sizeof(par));
 	encode_rs8(ram_console_rs_decoder, data, len, par, 0);
 	for (i = 0; i < ECC_SIZE; i++)
@@ -330,9 +330,6 @@ static int __init ram_console_init(struct ram_console_buffer *buffer,
 	ram_console_par_buffer = buffer->data + ram_console_buffer_size;
 
 
-	/* first consecutive root is 0
-	 * primitive element to generate roots = 1
-	 */
 	ram_console_rs_decoder = init_rs(ECC_SYMSIZE, ECC_POLY, 0, 1, ECC_SIZE);
 	if (ram_console_rs_decoder == NULL) {
 		printk(KERN_INFO "[K] ram_console: init_rs failed\n");
@@ -422,7 +419,7 @@ static int ram_console_driver_probe(struct platform_device *pdev)
 	if (pdata)
 		bootinfo = pdata->bootinfo;
 
-	return ram_console_init(buffer, buffer_size, bootinfo, NULL/* allocate */);
+	return ram_console_init(buffer, buffer_size, bootinfo, NULL);
 }
 
 static struct platform_driver ram_console_driver = {

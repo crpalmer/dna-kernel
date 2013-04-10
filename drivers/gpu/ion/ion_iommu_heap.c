@@ -37,9 +37,7 @@ struct ion_iommu_priv_data {
 	unsigned long size;
 };
 
-//HTC_START
 atomic_t v = ATOMIC_INIT(0);
-//HTC_END
 
 static int ion_iommu_heap_allocate(struct ion_heap *heap,
 				      struct ion_buffer *buffer,
@@ -48,6 +46,8 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 {
 	int ret, i;
 	struct ion_iommu_priv_data *data = NULL;
+	pgprot_t page_prot = pgprot_writecombine(PAGE_KERNEL);
+	void *ptr = NULL;
 
 	if (msm_use_iommu()) {
 		struct scatterlist *sg;
@@ -79,17 +79,25 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 			goto err2;
 
 		for_each_sg(table->sgl, sg, table->nents, i) {
-			data->pages[i] = alloc_page(GFP_KERNEL | __GFP_ZERO);
+			data->pages[i] = alloc_page(GFP_KERNEL | __GFP_HIGHMEM);
 			if (!data->pages[i])
 				goto err3;
 
 			sg_set_page(sg, data->pages[i], PAGE_SIZE, 0);
 		}
 
+		ptr = vmap(data->pages, data->nrpages, VM_IOREMAP, page_prot);
+		if (ptr != NULL) {
+			memset(ptr, 0, data->size);
+			dmac_flush_range(ptr, ptr + data->size);
+			vunmap(ptr);
+		} else
+			pr_err("%s: vmap() failed\n", __func__);
+
 		buffer->priv_virt = data;
-		//HTC_START
+		
 		atomic_add(data->size, &v);
-		//HTC_END
+		
 		return 0;
 
 	} else {
@@ -124,20 +132,19 @@ static void ion_iommu_heap_free(struct ion_buffer *buffer)
 	for (i = 0; i < data->nrpages; i++)
 		__free_page(data->pages[i]);
 
+	
+	atomic_sub(data->size, &v);
+	
+
 	kfree(data->pages);
 	kfree(data);
-	//HTC_START
-	atomic_sub(data->size, &v);
-	//HTC_END
 }
 
-//HTC_START
 int ion_iommu_heap_dump_size(void)
 {
 	int ret = atomic_read(&v);
 	return ret;
 }
-//HTC_END
 
 void *ion_iommu_heap_map_kernel(struct ion_heap *heap,
 				struct ion_buffer *buffer)
@@ -181,10 +188,6 @@ int ion_iommu_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 	curr_addr = vma->vm_start;
 	for (i = 0; i < data->nrpages && curr_addr < vma->vm_end; i++) {
 		if (vm_insert_page(vma, curr_addr, data->pages[i])) {
-			/*
-			 * This will fail the mmap which will
-			 * clean up the vma space properly.
-			 */
 			return -EINVAL;
 		}
 		curr_addr += PAGE_SIZE;

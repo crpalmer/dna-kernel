@@ -18,7 +18,6 @@
 #include "kgsl_device.h"
 #include <mach/msm_rtb_enable.h>
 
-/*default log levels is error for everything*/
 #define KGSL_LOG_LEVEL_DEFAULT 3
 #define KGSL_LOG_LEVEL_MAX     7
 

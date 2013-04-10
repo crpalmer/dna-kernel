@@ -31,13 +31,13 @@ int renesas_display_off_cmds_count = 0;
 
 static int mipi_renesas_lcd_init(void);
 
-static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
-static char exit_sleep[2] = {0x11, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_off[2] = {0x28, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_on[2] = {0x29, 0x00}; /* DTYPE_DCS_WRITE */
+static char enter_sleep[2] = {0x10, 0x00}; 
+static char exit_sleep[2] = {0x11, 0x00}; 
+static char display_off[2] = {0x28, 0x00}; 
+static char display_on[2] = {0x29, 0x00}; 
 
 static char write_display_brightnes[3]= {0x51, 0x0F, 0xFF};
-static char write_control_display[2] = {0x53, 0x24}; /* DTYPE_DCS_WRITE1 */
+static char write_control_display[2] = {0x53, 0x24}; 
 static struct dsi_cmd_desc renesas_display_on_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 };
@@ -140,7 +140,6 @@ static char Panel_syncronous_output_4[13]= {
 	0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00,
 	0x00};
-//Reg2
 static char Backlght_Control_2[8]= {
 	0xB9, 0x0F, 0x18, 0x04,
 	0x40, 0x9F, 0x1F, 0x80};
@@ -168,7 +167,6 @@ static char Outline_Sharpening_Control[3]= {
 static char Test_Image_Generator[7]= {
 	0xDE, 0x00, 0xFF, 0x07,
 	0x10, 0x00, 0x77};
-//gamma
 static char gamma_setting_red[25]= {
 	0xC7, 0x01, 0x0A, 0x11,
 	0x1A, 0x29, 0x45, 0x3B,
@@ -252,11 +250,11 @@ static struct dsi_cmd_desc sharp_video_on_cmds[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(nop), nop},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(BackLight_Control_6), BackLight_Control_6},
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(Manufacture_Command_setting), Manufacture_Command_setting},
-	//{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(write_display_brightnes), write_display_brightnes},
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_control_display), write_control_display},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(CABC), CABC},
 
-        //{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
+        
         {DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(exit_sleep), exit_sleep},
 
 };
@@ -291,7 +289,7 @@ static struct dsi_cmd_desc sony_display_off_cmds[] = {
 	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(deep_standby_off), deep_standby_off},
 };
 #if 0
-static char manufacture_id[2] = {0x04, 0x00}; /* DTYPE_DCS_READ */
+static char manufacture_id[2] = {0x04, 0x00}; 
 
 static struct dsi_cmd_desc renesas_manufacture_id_cmd = {
 	DTYPE_DCS_READ, 1, 0, 1, 5, sizeof(manufacture_id), manufacture_id};
@@ -336,7 +334,7 @@ static int mipi_renesas_lcd_on(struct platform_device *pdev)
 		}
 	}
 
-	//mipi_renesas_manufacture_id(mfd);
+	
 	PR_DISP_INFO("mipi_renesas_lcd_on\n");
 	return 0;
 }
@@ -371,7 +369,7 @@ static int __devinit mipi_renesas_lcd_probe(struct platform_device *pdev)
 
 static void renesas_display_on(struct msm_fb_data_type *mfd)
 {
-	/* It needs 120ms when LP to HS for renesas */
+	
 	msleep(120);
 
 	mutex_lock(&mfd->dma->ov_mutex);

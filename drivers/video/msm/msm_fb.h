@@ -76,9 +76,7 @@ struct msm_fb_data_type {
 
 	panel_id_type panel;
 	struct msm_panel_info panel_info;
-// HTC:
 	int init_mipi_lcd;
-// :HTC
 
 	DISP_TARGET dest;
 	struct fb_info *fbi;
@@ -100,7 +98,7 @@ struct msm_fb_data_type {
 	boolean pan_waiting;
 	struct completion pan_comp;
 
-	/* vsync */
+	
 	boolean use_mdp_vsync;
 	__u32 vsync_gpio;
 	__u32 total_lcd_lines;
@@ -152,10 +150,10 @@ struct msm_fb_data_type {
 	__u32 var_xres;
 	__u32 var_yres;
 	__u32 var_pixclock;
-#if 1 /* HTC_CSP_START */
+#if 1 
         uint32_t width;
         uint32_t height;
-#endif /* HTC_CSP_END */
+#endif 
 	__u32 var_frame_rate;
 
 #ifdef MSM_FB_ENABLE_DBGFS
@@ -229,4 +227,4 @@ int load_565rle_image(char *filename, bool bf_supported);
 #endif
 
 #define DEFAULT_BRIGHTNESS 143
-#endif /* MSM_FB_H */
+#endif 

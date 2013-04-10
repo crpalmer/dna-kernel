@@ -28,7 +28,7 @@ void diag_smux_event(void *priv, int event_type, const void *metadata)
 	case SMUX_CONNECTED:
 		pr_debug("diag: SMUX_CONNECTED received\n");
 		driver->in_busy_smux = 0;
-		/* read data from USB MDM channel & Initiate first write */
+		
 		queue_work(driver->diag_bridge_wq,
 				 &(driver->diag_read_mdm_work));
 		break;
@@ -114,7 +114,7 @@ int diagfwd_connect_smux(void)
 			pr_err("diag: failed to open SMUX ch, r = %d\n", ret);
 		}
 	}
-	/* Poll USB channel to check for data*/
+	
 	queue_work(driver->diag_bridge_wq, &(driver->diag_read_mdm_work));
 	return ret;
 }
@@ -131,12 +131,6 @@ static int diagfwd_smux_probe(struct platform_device *pdev)
 		if (driver->buf_in_smux == NULL)
 			goto err;
 	}
-	/* Only required for Local loopback test
-	 * ret = msm_smux_set_ch_option(LCID_VALID,
-				 SMUX_CH_OPTION_LOCAL_LOOPBACK, 0);
-	 * if (ret)
-	 *	pr_err("diag: error setting SMUX ch option, r = %d\n", ret);
-	 */
 	ret = diagfwd_connect_smux();
 	return ret;
 

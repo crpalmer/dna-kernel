@@ -205,7 +205,6 @@ alloc_fail:
 	return rc;
 }
 
-/* Doesn't do iommu unmap */
 static int wfd_free_ion_buffer(struct ion_client *client,
 		struct mem_region *mregion)
 {
@@ -277,7 +276,7 @@ int wfd_allocate_input_buffers(struct wfd_device *wfd_dev,
 		rc = v4l2_subdev_call(&wfd_dev->enc_sdev, core, ioctl,
 				SET_INPUT_BUFFER, (void *)enc_mregion);
 
-		/* map the buffer from encoder to mdp */
+		
 		mdp_mregion->kvaddr = enc_mregion->kvaddr;
 		mdp_mregion->size = enc_mregion->size;
 		mdp_mregion->offset = enc_mregion->offset;
@@ -466,16 +465,16 @@ int wfd_vidbuf_buf_init(struct vb2_buffer *vb)
 		(struct wfd_device *)video_drvdata(priv_data);
 	struct mem_info *minfo = vb2_plane_cookie(vb, 0);
 	struct mem_region mregion;
-	/* HTC_START (klockwork issue)*/
+	
 	if(!inst || !minfo){
 		WFD_MSG_ERR("Invalid Value\n");
 		return -ENOIOCTLCMD;
 	}
-	/* HTC_END */
+	
 	mregion.fd = minfo->fd;
 	mregion.offset = minfo->offset;
 	mregion.cookie = (u32)vb;
-	/*TODO: should be fixed in kernel 3.2*/
+	
 	mregion.size =  inst->out_buf_size;
 
 	if (inst && !inst->vid_bufq.streaming) {
@@ -870,12 +869,12 @@ static int wfdioc_qbuf(struct file *filp, void *fh,
 {
 	int rc = 0;
 	struct wfd_inst *inst = filp->private_data;
-	/* HTC_START (klockwork issue)*/
+	
 	if (!inst || !b ||b->index >= inst->buf_count) {
 		WFD_MSG_ERR("Invalid input parameters to QBUF IOCTL\n");
 		return -EINVAL;
 	}
-	/* HTC_END */
+	
 	rc = wfd_register_out_buf(inst, b);
 	if (rc) {
 		WFD_MSG_ERR("Failed to register buffer\n");
@@ -988,7 +987,7 @@ static int wfdioc_g_parm(struct file *filp, void *fh,
 	struct wfd_device *wfd_dev = video_drvdata(filp);
 	struct wfd_inst *inst = filp->private_data;
 	int64_t frame_interval = 0,
-		max_frame_interval = 0; /* both in nsecs*/
+		max_frame_interval = 0; 
 	struct v4l2_qcom_frameskip frameskip, *usr_frameskip;
 
 	usr_frameskip = (struct v4l2_qcom_frameskip *)
@@ -1253,7 +1252,7 @@ void *wfd_vb2_mem_ops_get_userptr(void *alloc_ctx, unsigned long vaddr,
 
 void wfd_vb2_mem_ops_put_userptr(void *buf_priv)
 {
-	/*TODO: Free the list*/
+	
 }
 
 void *wfd_vb2_mem_ops_cookie(void *buf_priv)
@@ -1475,7 +1474,7 @@ err_v4l2_registration:
 static int __devinit __wfd_probe(struct platform_device *pdev)
 {
 	int rc = 0, c = 0;
-	struct wfd_device *wfd_dev; /* Should be taken as an array*/
+	struct wfd_device *wfd_dev; 
 	struct ion_client *ion_client = NULL;
 	struct msm_wfd_platform_data *wfd_priv;
 
@@ -1501,7 +1500,7 @@ static int __devinit __wfd_probe(struct platform_device *pdev)
 	rc = wfd_stats_setup();
 	if (rc) {
 		WFD_MSG_ERR("No debugfs support: %d\n", rc);
-		/* Don't treat this as a fatal err */
+		
 		rc = 0;
 	}
 
@@ -1516,7 +1515,7 @@ static int __devinit __wfd_probe(struct platform_device *pdev)
 			WFD_DEVICE_NUMBER_BASE + c, pdev);
 
 		if (rc) {
-			/* Clear out old devices */
+			
 			for (--c; c >= 0; --c) {
 				v4l2_device_unregister_subdev(
 						&wfd_dev[c].vsg_sdev);
@@ -1532,7 +1531,7 @@ static int __devinit __wfd_probe(struct platform_device *pdev)
 			goto err_v4l2_probe;
 		}
 
-		/* Other device specific stuff */
+		
 		wfd_dev[c].ion_client = ion_client;
 		switch (WFD_DEVICE_NUMBER_BASE + c) {
 		case WFD_DEVICE_SECURE:

@@ -23,24 +23,18 @@
 #include <asm/setup.h>
 #include <linux/mfd/pm8xxx/pm8921.h>
 
-/* CXO workaround for DLX_XC start*/
 #include <mach/msm_xo.h>
-/* CXO workaround for DLX_XC end */
 
 #include "board-monarudo.h"
 
 static struct rfkill *bt_rfk;
 static const char bt_name[] = "bcm4334";
 
-/* Add PMIC define for control 8921 start*/
 struct pm8xxx_gpio_init {
 	unsigned			gpio;
 	struct pm_gpio			config;
 };
-/* CXO workaround for DLX_XC start*/
-/* add xo handle for DLX_XC workaround */
-struct msm_xo_voter *xo_handle; /*handle to vote for TCXO D1 buffer \kernel\include\linux\usb\msm_hsusb.h */
-/* CXO workaround for DLX_XC end*/
+struct msm_xo_voter *xo_handle; 
 
 #define PM8XXX_GPIO_INIT(_gpio, _dir, _buf, _val, _pull, _vin, _out_strength, \
 			_func, _inv, _disable) \
@@ -74,30 +68,28 @@ struct pm8xxx_gpio_init monarudo_bt_pmic_gpio_xc[] = {
 				PM_GPIO_FUNC_NORMAL, 0, 0),
 };
 
-/* Add PMIC define for control 8921 end */
 
-/* bt on configuration */
 static uint32_t monarudo_GPIO_bt_on_table[] = {
 
-	/* BT_RTS */
+	
 	GPIO_CFG(BT_UART_RTSz_XC,
 				2,
 				GPIO_CFG_OUTPUT,
 				GPIO_CFG_NO_PULL,
 				GPIO_CFG_8MA),
-	/* BT_CTS */
+	
 	GPIO_CFG(BT_UART_CTSz_XC,
 				2,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_UP,
 				GPIO_CFG_8MA),
-	/* BT_RX */
+	
 	GPIO_CFG(BT_UART_RX_XC,
 				2,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_UP,
 				GPIO_CFG_8MA),
-	/* BT_TX */
+	
 	GPIO_CFG(BT_UART_TX_XC,
 				2,
 				GPIO_CFG_OUTPUT,
@@ -105,28 +97,27 @@ static uint32_t monarudo_GPIO_bt_on_table[] = {
 				GPIO_CFG_8MA),
 };
 
-/* bt off configuration */
 static uint32_t monarudo_GPIO_bt_off_table[] = {
 
-	/* BT_RTS */
+	
 	GPIO_CFG(BT_UART_RTSz_XC,
 				0,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_DOWN,
 				GPIO_CFG_8MA),
-	/* BT_CTS */
+	
 	GPIO_CFG(BT_UART_CTSz_XC,
 				0,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_DOWN,
 				GPIO_CFG_8MA),
-	/* BT_RX */
+	
 	GPIO_CFG(BT_UART_RX_XC,
 				0,
 				GPIO_CFG_INPUT,
 				GPIO_CFG_PULL_DOWN,
 				GPIO_CFG_8MA),
-	/* BT_TX */
+	
 	GPIO_CFG(BT_UART_TX_XC,
 				0,
 				GPIO_CFG_INPUT,
@@ -151,28 +142,26 @@ static void monarudo_GPIO_config_bt_on(void)
 {
 	printk(KERN_INFO "[BT]== R ON ==\n");
 
-/* CXO workaround for DLX_XC start*/
 	if(system_rev == XC)
 	{
 		msm_xo_mode_vote(xo_handle, MSM_XO_MODE_ON);
 		pr_info("[BT] %s: msm_xo_mode_vote MSM_XO_MODE_ON\n", __func__);
 	}
-/* CXO workaround for DLX_XC end*/
-	/* set bt on configuration*/
+	
 	config_bt_table(monarudo_GPIO_bt_on_table,
 				ARRAY_SIZE(monarudo_GPIO_bt_on_table));
 	mdelay(2);
 
 
-	/* BT_REG_ON */
+	
 	gpio_set_value(PM8921_GPIO_PM_TO_SYS(BT_REG_ON_XC), 0);
 	mdelay(5);
 
-	/* BT_WAKE and HOST_WAKE */
-	gpio_set_value(PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC), 0); //BT wake
+	
+	gpio_set_value(PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC), 0); 
 
 	mdelay(5);
-	/* BT_REG_ON */
+	
 	gpio_set_value(PM8921_GPIO_PM_TO_SYS(BT_REG_ON_XC), 1);
 
 	mdelay(1);
@@ -182,39 +171,37 @@ static void monarudo_GPIO_config_bt_on(void)
 static void monarudo_GPIO_config_bt_off(void)
 {
 
-	/* BT_REG_ON */
+	
 	gpio_set_value(PM8921_GPIO_PM_TO_SYS(BT_REG_ON_XC), 0);
 	mdelay(1);
 
-	/* set bt off configuration*/
+	
 	config_bt_table(monarudo_GPIO_bt_off_table,
 				ARRAY_SIZE(monarudo_GPIO_bt_off_table));
 	mdelay(2);
 
-	/* BT_RTS */
-	//gpio_set_value(BT_UART_RTSz_XC, 1);
+	
+	
 
-	/* BT_CTS */
+	
 
-	/* BT_TX */
-	//gpio_set_value(BT_UART_TX_XC, 1);
+	
+	
 
-	/* BT_RX */
+	
 
 
-	/* BT_HOST_WAKE */
+	
 
-	/* BT_CHIP_WAKE */
-	gpio_set_value(PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC), 0); //BT wake
+	
+	gpio_set_value(PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC), 0); 
 
 	printk(KERN_INFO "[BT]== R OFF ==\n");
-/* CXO workaround for DLX_XC start*/
 	if(system_rev == XC)
 	{
 		msm_xo_mode_vote(xo_handle, MSM_XO_MODE_OFF);
 		pr_info("[BT] %s: msm_xo_mode_vote MSM_XO_MODE_OFF\n",	__func__);
 	}
-/* CXO workaround for DLX_XC end*/
 }
 
 static int bluetooth_set_power(void *data, bool blocked)
@@ -234,11 +221,11 @@ static struct rfkill_ops monarudo_rfkill_ops = {
 static int monarudo_rfkill_probe(struct platform_device *pdev)
 {
 	int rc = 0;
-	bool default_state = true;  /* off */
+	bool default_state = true;  
 	int i=0;
 
-	/* always turn on clock? */
-	/* htc_wifi_bt_sleep_clk_ctl(CLK_ON, ID_BT); */
+	
+	
 	mdelay(2);
 
 	for( i = 0; i < ARRAY_SIZE(monarudo_bt_pmic_gpio_xc); i++) {
@@ -260,7 +247,7 @@ static int monarudo_rfkill_probe(struct platform_device *pdev)
 
 	rfkill_set_states(bt_rfk, default_state, false);
 
-	/* userspace cannot take exclusive control */
+	
 
 	rc = rfkill_register(bt_rfk);
 	if (rc)
@@ -296,23 +283,19 @@ static int __init monarudo_rfkill_init(void)
 		pr_err("[BT]%s: cannot run BT under DLX XA and XB \n", __func__);
 		return 0;
 	}
-/* CXO workaround for DLX_XC start*/
 	if(system_rev == XC) {
 		xo_handle = msm_xo_get(MSM_XO_TCXO_D0, "bt");
 		if (IS_ERR(xo_handle)) {
 			pr_err("[BT] %s not able to get the handle to vote for TCXO D0 buffer\n", __func__);
 		}
 	}
-/* CXO workaround for DLX_XC end*/
 	return platform_driver_register(&monarudo_rfkill_driver);
 }
 
 static void __exit monarudo_rfkill_exit(void)
 {
-/* CXO workaround for DLX_XC start*/
 	if(system_rev == XC)
 		 msm_xo_put(xo_handle);
-/* CXO workaround for DLX_XC end*/
 	platform_driver_unregister(&monarudo_rfkill_driver);
 }
 

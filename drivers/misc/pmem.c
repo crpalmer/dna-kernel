@@ -57,45 +57,30 @@
 
 #define SYSTEM_ALLOC_RETRY 10
 
-/* indicates that a refernce to this file has been taken via get_pmem_file,
- * the file should not be released until put_pmem_file is called */
 #define PMEM_FLAGS_BUSY 0x1
-/* indicates that this is a suballocation of a larger master range */
 #define PMEM_FLAGS_CONNECTED 0x1 << 1
-/* indicates this is a master and not a sub allocation and that it is mmaped */
 #define PMEM_FLAGS_MASTERMAP 0x1 << 2
-/* submap and unsubmap flags indicate:
- * 00: subregion has never been mmaped
- * 10: subregion has been mmaped, reference to the mm was taken
- * 11: subretion has ben released, refernece to the mm still held
- * 01: subretion has been released, reference to the mm has been released
- */
 #define PMEM_FLAGS_SUBMAP 0x1 << 3
 #define PMEM_FLAGS_UNSUBMAP 0x1 << 4
 
 struct pmem_data {
-	/* in alloc mode: an index into the bitmap
-	 * in no_alloc mode: the size of the allocation */
 	int index;
-	/* see flags above for descriptions */
+	
 	unsigned int flags;
-	/* protects this data field, if the mm_mmap sem will be held at the
-	 * same time as this sem, the mm sem must be taken first (as this is
-	 * the order for vma_open and vma_close ops */
 	struct rw_semaphore sem;
-	/* info about the mmaping process */
+	
 	struct vm_area_struct *vma;
-	/* task struct of the mapping process */
+	
 	struct task_struct *task;
-	/* process id of teh mapping process */
+	
 	pid_t pid;
-	/* file descriptor of the master */
+	
 	int master_fd;
-	/* file struct of the master */
+	
 	struct file *master_file;
-	/* a list of currently available regions if this is a suballocation */
+	
 	struct list_head region_list;
-	/* a linked list of data so we can access them for debugging */
+	
 	struct list_head list;
 #if PMEM_DEBUG
 	int ref;
@@ -103,8 +88,8 @@ struct pmem_data {
 };
 
 struct pmem_bits {
-	unsigned allocated:1;		/* 1 if allocated, 0 if free */
-	unsigned order:7;		/* size of the region in pmem space */
+	unsigned allocated:1;		
+	unsigned order:7;		
 };
 
 struct pmem_region_node {
@@ -130,33 +115,33 @@ enum pmem_align {
 #define PMEM_NAME_SIZE 16
 
 struct alloc_list {
-	void *addr;                  /* physical addr of allocation */
-	void *aaddr;                 /* aligned physical addr       */
-	unsigned int size;           /* total size of allocation    */
-	unsigned char __iomem *vaddr; /* Virtual addr                */
+	void *addr;                  
+	void *aaddr;                 
+	unsigned int size;           
+	unsigned char __iomem *vaddr; 
 	struct list_head allocs;
 };
 
 struct pmem_info {
 	struct miscdevice dev;
-	/* physical start address of the remaped pmem space */
+	
 	unsigned long base;
-	/* vitual start address of the remaped pmem space */
+	
 	unsigned char __iomem *vbase;
-	/* total size of the pmem space */
+	
 	unsigned long size;
-	/* number of entries in the pmem space */
+	
 	unsigned long num_entries;
-	/* pfn of the garbage page in memory */
+	
 	unsigned long garbage_pfn;
-	/* which memory type (i.e. SMI, EBI1) this PMEM device is backed by */
+	
 	unsigned memory_type;
 
 	char name[PMEM_NAME_SIZE];
 
-	/* index of the garbage page in the pmem space */
+	
 	int garbage_index;
-	/* reserved virtual address range */
+	
 	struct vm_struct *area;
 
 	enum pmem_allocator_type allocator_type;
@@ -169,32 +154,23 @@ struct pmem_info {
 	unsigned long (*len)(int, struct pmem_data *);
 	unsigned long (*start_addr)(int, struct pmem_data *);
 
-	/* actual size of memory element, e.g.: (4 << 10) is 4K */
+	
 	unsigned int quantum;
 
-	/* indicates maps of this region should be cached, if a mix of
-	 * cached and uncached is desired, set this and open the device with
-	 * O_SYNC to get an uncached region */
 	unsigned cached;
 	unsigned buffered;
 	union {
 		struct {
-			/* in all_or_nothing allocator mode the first mapper
-			 * gets the whole space and sets this flag */
 			unsigned allocated;
 		} all_or_nothing;
 
 		struct {
-			/* the buddy allocator bitmap for the region
-			 * indicating which entries are allocated and which
-			 * are free.
-			 */
 
 			struct pmem_bits *buddy_bitmap;
 		} buddy_bestfit;
 
 		struct {
-			unsigned int bitmap_free; /* # of zero bits/quanta */
+			unsigned int bitmap_free; 
 			uint32_t *bitmap;
 			int32_t bitmap_allocs;
 			struct {
@@ -204,51 +180,26 @@ struct pmem_info {
 		} bitmap;
 
 		struct {
-			unsigned long used;      /* Bytes currently allocated */
-			struct list_head alist;  /* List of allocations       */
+			unsigned long used;      
+			struct list_head alist;  
 		} system_mem;
 	} allocator;
 
 	int id;
 	struct kobject kobj;
 
-	/* for debugging, creates a list of pmem file structs, the
-	 * data_list_mutex should be taken before pmem_data->sem if both are
-	 * needed */
 	struct mutex data_list_mutex;
 	struct list_head data_list;
-	/* arena_mutex protects the global allocation arena
-	 *
-	 * IF YOU TAKE BOTH LOCKS TAKE THEM IN THIS ORDER:
-	 * down(pmem_data->sem) => mutex_lock(arena_mutex)
-	 */
 	struct mutex arena_mutex;
 
 	long (*ioctl)(struct file *, unsigned int, unsigned long);
 	int (*release)(struct inode *, struct file *);
-	/* reference count of allocations */
+	
 	atomic_t allocation_cnt;
-	/*
-	 * request function for a region when the allocation count goes
-	 * from 0 -> 1
-	 */
 	int (*mem_request)(void *);
-	/*
-	 * release function for a region when the allocation count goes
-	 * from 1 -> 0
-	 */
 	int (*mem_release)(void *);
-	/*
-	 * private data for the request/release callback
-	 */
 	void *region_data;
-	/*
-	 * map and unmap as needed
-	 */
 	int map_on_demand;
-	/*
-	 * memory will be reused through fmem
-	 */
 	int reusable;
 };
 #define to_pmem_info_id(a) (container_of(a, struct pmem_info, kobj)->id)
@@ -260,7 +211,7 @@ static int pmem_get_region(int id);
 static struct pmem_info pmem[PMEM_MAX_DEVICES];
 static int id_count;
 
-#define PMEM_SYSFS_DIR_NAME "pmem_regions" /* under /sys/kernel/ */
+#define PMEM_SYSFS_DIR_NAME "pmem_regions" 
 static struct kset *pmem_kset;
 
 #define PMEM_IS_FREE_BUDDY(id, index) \
@@ -585,7 +536,7 @@ static int pmem_free_from_id(const int id, const int index)
 
 static int pmem_get_region(int id)
 {
-	/* Must be called with arena mutex locked */
+	
 	atomic_inc(&pmem[id].allocation_cnt);
 	if (!pmem[id].vbase) {
 		DLOG("PMEMDEBUG: mapping for %s", pmem[id].name);
@@ -611,14 +562,11 @@ static int pmem_get_region(int id)
 
 static void pmem_put_region(int id)
 {
-	/* Must be called with arena mutex locked */
+	
 	if (atomic_dec_and_test(&pmem[id].allocation_cnt)) {
 		DLOG("PMEMDEBUG: unmapping for %s", pmem[id].name);
 		BUG_ON(!pmem[id].vbase);
 		if (pmem[id].map_on_demand) {
-			/* unmap_kernel_range() flushes the caches
-			 * and removes the page table entries
-			 */
 			unmap_kernel_range((unsigned long)pmem[id].vbase,
 				 pmem[id].size);
 			pmem[id].vbase = NULL;
@@ -658,10 +606,6 @@ static int is_pmem_file(struct file *file)
 
 static int has_allocation(struct file *file)
 {
-	/* must be called with at least read lock held on
-	 * ((struct pmem_data *)(file->private_data))->sem which
-	 * means that file is guaranteed not to be NULL upon entry!!
-	 * check is_pmem_file first if not accessed via pmem_file_ops */
 	struct pmem_data *pdata = file->private_data;
 	return pdata && pdata->index != -1;
 }
@@ -686,7 +630,7 @@ static int is_master_owner(struct file *file)
 
 static int pmem_free_all_or_nothing(int id, int index)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	DLOG("index %d\n", index);
 
 	pmem[id].allocator.all_or_nothing.allocated =  0;
@@ -696,7 +640,7 @@ static int pmem_free_all_or_nothing(int id, int index)
 static int pmem_free_space_all_or_nothing(int id,
 		struct pmem_freespace *fs)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	fs->total = (unsigned long)
 		pmem[id].allocator.all_or_nothing.allocated == 0 ?
 		pmem[id].size : 0;
@@ -708,17 +652,13 @@ static int pmem_free_space_all_or_nothing(int id,
 
 static int pmem_free_buddy_bestfit(int id, int index)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	int curr = index;
 	DLOG("index %d\n", index);
 
 
-	/* clean up the bitmap, merging any buddies */
+	
 	pmem[id].allocator.buddy_bestfit.buddy_bitmap[curr].allocated = 0;
-	/* find a slots buddy Buddy# = Slot# ^ (1 << order)
-	 * if the buddy is also free merge them
-	 * repeat until the buddy is not free or end of the bitmap is reached
-	 */
 	do {
 		int buddy = PMEM_BUDDY_INDEX(id, curr);
 		if (buddy < pmem[id].num_entries &&
@@ -740,7 +680,7 @@ static int pmem_free_buddy_bestfit(int id, int index)
 static int pmem_free_space_buddy_bestfit(int id,
 		struct pmem_freespace *fs)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	int curr;
 	unsigned long size;
 	fs->total = 0;
@@ -803,7 +743,7 @@ static void bitmap_bits_clear_all(uint32_t *bitp, int bit_start, int bit_end)
 
 static int pmem_free_bitmap(int id, int bitnum)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	int i;
 	char currtask_name[FIELD_SIZEOF(struct task_struct, comm) + 1];
 
@@ -834,7 +774,7 @@ static int pmem_free_bitmap(int id, int bitnum)
 
 static int pmem_free_system(int id, int index)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	struct alloc_list *item;
 
 	DLOG("index %d\n", index);
@@ -870,7 +810,7 @@ static int pmem_free_space_bitmap(int id, struct pmem_freespace *fs)
 		int alloc_idx = 0;
 		next_alloc = pmem[id].num_entries;
 
-		/* Look for the lowest bit where next allocation starts */
+		
 		for (j = 0; j < max_allocs; j++) {
 			const int curr_alloc = pmem[id].allocator.
 						bitmap.bitm_alloc[j].bit;
@@ -925,8 +865,6 @@ static int pmem_release(struct inode *inode, struct file *file)
 		current->pid, get_task_comm(currtask_name, current),
 		file, file_count(file), get_name(file), id);
 	mutex_lock(&pmem[id].data_list_mutex);
-	/* if this file is a master, revoke all the memory in the connected
-	 *  files */
 	if (PMEM_FLAGS_MASTERMAP & data->flags) {
 		list_for_each(elt, &pmem[id].data_list) {
 			struct pmem_data *sub_data =
@@ -947,15 +885,13 @@ static int pmem_release(struct inode *inode, struct file *file)
 
 	down_write(&data->sem);
 
-	/* if it is not a connected file and it has an allocation, free it */
+	
 	if (!(PMEM_FLAGS_CONNECTED & data->flags) && has_allocation(file)) {
 		mutex_lock(&pmem[id].arena_mutex);
 		ret = pmem_free_from_id(id, data->index);
 		mutex_unlock(&pmem[id].arena_mutex);
 	}
 
-	/* if this file is a submap (mapped, connected file), downref the
-	 * task struct */
 	if (PMEM_FLAGS_SUBMAP & data->flags)
 		if (data->task) {
 			put_task_struct(data->task);
@@ -1034,7 +970,7 @@ static int pmem_allocator_all_or_nothing(const int id,
 		const unsigned long len,
 		const unsigned int align)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	DLOG("all or nothing\n");
 	if ((len > pmem[id].size) ||
 		pmem[id].allocator.all_or_nothing.allocated)
@@ -1047,7 +983,7 @@ static int pmem_allocator_buddy_bestfit(const int id,
 		const unsigned long len,
 		unsigned int align)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	int curr;
 	int best_fit = -1;
 	unsigned long order;
@@ -1059,17 +995,13 @@ static int pmem_allocator_buddy_bestfit(const int id,
 
 	DLOG("order %lx\n", order);
 
-	/* Look through the bitmap.
-	 * 	If a free slot of the correct order is found, use it.
-	 * 	Otherwise, use the best fit (smallest with size > order) slot.
-	 */
 	for (curr = 0;
 	     curr < pmem[id].num_entries;
 	     curr = PMEM_BUDDY_NEXT_INDEX(id, curr))
 		if (PMEM_IS_FREE_BUDDY(id, curr)) {
 			if (PMEM_BUDDY_ORDER(id, curr) ==
 					(unsigned char)order) {
-				/* set the not free bit and clear others */
+				
 				best_fit = curr;
 				break;
 			}
@@ -1081,7 +1013,7 @@ static int pmem_allocator_buddy_bestfit(const int id,
 				best_fit = curr;
 		}
 
-	/* if best_fit < 0, there are no suitable slots; return an error */
+	
 	if (best_fit < 0) {
 #if PMEM_DEBUG
 		printk(KERN_ALERT "pmem: %s: no space left to allocate!\n",
@@ -1090,10 +1022,6 @@ static int pmem_allocator_buddy_bestfit(const int id,
 		goto out;
 	}
 
-	/* now partition the best fit:
-	 * 	split the slot into 2 buddies of order - 1
-	 * 	repeat until the slot is of the correct order
-	 */
 	while (PMEM_BUDDY_ORDER(id, best_fit) > (unsigned char)order) {
 		int buddy;
 		PMEM_BUDDY_ORDER(id, best_fit) -= 1;
@@ -1158,7 +1086,7 @@ bitmap_allocate_contiguous(uint32_t *bitp, int num_bits_to_alloc,
 		int bit_end = bit_start + num_bits_to_alloc, total_words;
 
 		if (bit_end > total_bits)
-			return -1; /* out of contiguous memory */
+			return -1; 
 
 		word_index = bit_start >> PMEM_32BIT_WORD_ORDER;
 		total_words = compute_total_words(bit_end, word_index);
@@ -1203,10 +1131,10 @@ static int reserve_quanta(const unsigned int quanta_needed,
 		const int id,
 		unsigned int align)
 {
-	/* alignment should be a valid power of 2 */
+	
 	int ret = -1, start_bit = 0, spacing = 1;
 
-	/* Sanity check */
+	
 	if (quanta_needed > pmem[id].allocator.bitmap.bitmap_free) {
 #if PMEM_DEBUG
 		printk(KERN_ALERT "pmem: %s: request (%d) too big for"
@@ -1250,7 +1178,7 @@ static int pmem_allocator_bitmap(const int id,
 		const unsigned long len,
 		const unsigned int align)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	int bitnum, i;
 	unsigned int quanta_needed;
 
@@ -1293,7 +1221,7 @@ static int pmem_allocator_bitmap(const int id,
 			pmem[id].allocator.bitmap.bitmap_allocs << 1;
 		int j;
 
-		if (!new_bitmap_allocs) { /* failed sanity check!! */
+		if (!new_bitmap_allocs) { 
 #if PMEM_DEBUG
 			pr_alert("pmem: bitmap_allocs number"
 				" wrapped around to zero! Something "
@@ -1303,7 +1231,7 @@ static int pmem_allocator_bitmap(const int id,
 		}
 
 		if (new_bitmap_allocs > pmem[id].num_entries) {
-			/* failed sanity check!! */
+			
 #if PMEM_DEBUG
 			pr_alert("pmem: required bitmap_allocs"
 				" number exceeds maximum entries possible"
@@ -1349,7 +1277,7 @@ static int pmem_allocator_system(const int id,
 		const unsigned long len,
 		const unsigned int align)
 {
-	/* caller should hold the lock on arena_mutex! */
+	
 	struct alloc_list *list;
 	unsigned long aligned_len;
 	int count = SYSTEM_ALLOC_RETRY;
@@ -1362,10 +1290,10 @@ static int pmem_allocator_system(const int id,
 		return -1;
 	}
 
-	/* Handle alignment */
+	
 	aligned_len = len + align;
 
-	/* Attempt allocation */
+	
 	list = kmalloc(sizeof(struct alloc_list), GFP_KERNEL);
 	if (list == NULL) {
 		printk(KERN_ERR "pmem: failed to allocate system metadata\n");
@@ -1408,7 +1336,7 @@ static pgprot_t pmem_phys_mem_access_prot(struct file *file, pgprot_t vma_prot)
 	int id = get_id(file);
 #ifdef pgprot_writecombine
 	if (pmem[id].cached == 0 || file->f_flags & O_SYNC)
-		/* on ARMv6 and ARMv7 this expands to Normal Noncached */
+		
 		return pgprot_writecombine(vma_prot);
 #endif
 #ifdef pgprot_ext_buffered
@@ -1553,7 +1481,7 @@ static int pmem_remap_pfn_range(int id, struct vm_area_struct *vma,
 			      struct pmem_data *data, unsigned long offset,
 			      unsigned long len)
 {
-	/* hold the mm semp for the vma you are modifying when you call this */
+	
 	BUG_ON(!vma);
 	zap_page_range(vma, vma->vm_start + offset, len, NULL);
 	return pmem_map_pfn_range(id, vma, data, offset, len);
@@ -1572,11 +1500,9 @@ static void pmem_vma_open(struct vm_area_struct *vma)
 		get_name(file), id, current->pid,
 		get_task_comm(currtask_name, current),
 		current->parent->pid, file, file_count(file));
-	/* this should never be called as we don't support copying pmem
-	 * ranges via fork */
 	down_read(&data->sem);
 	BUG_ON(!has_allocation(file));
-	/* remap the garbage pages, forkers don't get access to the data */
+	
 	pmem_unmap_pfn_range(id, vma, data, 0, vma->vm_start - vma->vm_end);
 	up_read(&data->sem);
 }
@@ -1615,7 +1541,7 @@ static void pmem_vma_close(struct vm_area_struct *vma)
 		    (data->flags & PMEM_FLAGS_SUBMAP))
 			data->flags |= PMEM_FLAGS_UNSUBMAP;
 	}
-	/* the kernel is going to free this vma now anyway */
+	
 	up_write(&data->sem);
 }
 
@@ -1650,8 +1576,6 @@ static int pmem_mmap(struct file *file, struct vm_area_struct *vma)
 	}
 
 	down_write(&data->sem);
-	/* check this file isn't already mmaped, for submaps check this file
-	 * has never been mmaped */
 	if ((data->flags & PMEM_FLAGS_SUBMAP) ||
 	    (data->flags & PMEM_FLAGS_UNSUBMAP)) {
 #if PMEM_DEBUG
@@ -1661,21 +1585,21 @@ static int pmem_mmap(struct file *file, struct vm_area_struct *vma)
 		ret = -EINVAL;
 		goto error;
 	}
-	/* if file->private_data == unalloced, alloc*/
+	
 	if (data->index == -1) {
 		mutex_lock(&pmem[id].arena_mutex);
 		index = pmem_allocate_from_id(id,
 				vma->vm_end - vma->vm_start,
 				SZ_4K);
 		mutex_unlock(&pmem[id].arena_mutex);
-		/* either no space was available or an error occured */
+		
 		if (index == -1) {
 			pr_err("pmem: mmap unable to allocate memory"
 				"on %s\n", get_name(file));
 			ret = -ENOMEM;
 			goto error;
 		}
-		/* store the index of a successful allocation */
+		
 		data->index = index;
 	}
 
@@ -1738,8 +1662,6 @@ error:
 	return ret;
 }
 
-/* the following are the api for accessing pmem regions by other drivers
- * from inside the kernel */
 int get_pmem_user_addr(struct file *file, unsigned long *start,
 		   unsigned long *len)
 {
@@ -1912,7 +1834,7 @@ void flush_pmem_file(struct file *file, unsigned long offset, unsigned long len)
 	if (!pmem[id].cached)
 		return;
 
-	/* is_pmem_file fails if !file */
+	
 	data = file->private_data;
 
 	down_read(&data->sem);
@@ -1935,7 +1857,7 @@ void flush_pmem_file(struct file *file, unsigned long offset, unsigned long len)
 #endif
 		goto end;
 	}
-	/* if this isn't a submmapped file, flush the whole thing */
+	
 	if (unlikely(!(data->flags & PMEM_FLAGS_CONNECTED))) {
 		dmac_flush_range(vaddr, vaddr + pmem[id].len(id, data));
 #ifdef CONFIG_OUTER_CACHE
@@ -1948,7 +1870,7 @@ void flush_pmem_file(struct file *file, unsigned long offset, unsigned long len)
 #endif
 		goto end;
 	}
-	/* otherwise, flush the region of the file we are drawing */
+	
 	list_for_each(elt, &data->region_list) {
 		region_node = list_entry(elt, struct pmem_region_node, list);
 		if ((offset >= region_node->region.offset) &&
@@ -1981,14 +1903,10 @@ int pmem_cache_maint(struct file *file, unsigned int cmd,
 	unsigned long vaddr, paddr, length, offset,
 		      pmem_len, pmem_start_addr;
 
-	/* Called from kernel-space so file may be NULL */
+	
 	if (!file)
 		return -EBADF;
 
-	/*
-	 * check that the vaddr passed for flushing is valid
-	 * so that you don't crash the kernel
-	 */
 	if (!pmem_addr->vaddr)
 		return -EINVAL;
 
@@ -2051,7 +1969,7 @@ static int pmem_connect(unsigned long connect, struct file *file)
 		goto leave;
 	}
 
-	if (src_file == file) { /* degenerative case, operator error */
+	if (src_file == file) { 
 		pr_err("pmem: %s: src_file and passed in file are "
 			"the same; refusing to connect to self!\n", __func__);
 		ret = -EINVAL;
@@ -2163,22 +2081,17 @@ lock_mm:
 		down_write(&mm->mmap_sem);
 
 	down_write(&data->sem);
-	/* check that the file didn't get mmaped before we could take the
-	 * data sem, this should be safe b/c you can only submap each file
-	 * once */
 	if (PMEM_IS_SUBMAP(data) && !mm) {
 		pmem_unlock_data_and_mm(data, mm);
 		DLOG("mapping contention, repeating mmap op\n");
 		goto lock_mm;
 	}
-	/* now check that vma.mm is still there, it could have been
-	 * deleted by vma_close before we could get the data->sem */
 	if ((data->flags & PMEM_FLAGS_UNSUBMAP) && (mm != NULL)) {
-		/* might as well release this */
+		
 		if (data->flags & PMEM_FLAGS_SUBMAP) {
 			put_task_struct(data->task);
 			data->task = NULL;
-			/* lower the submap flag to show the mm is gone */
+			
 			data->flags &= ~(PMEM_FLAGS_SUBMAP);
 		}
 		pmem_unlock_data_and_mm(data, mm);
@@ -2211,10 +2124,10 @@ int pmem_remap(struct pmem_region *region, struct file *file,
 		return -EINVAL;
 	}
 
-	/* is_pmem_file fails if !file */
+	
 	data = file->private_data;
 
-	/* pmem region must be aligned on a page boundry */
+	
 	if (unlikely(!PMEM_IS_PAGE_ALIGNED(region->offset) ||
 		 !PMEM_IS_PAGE_ALIGNED(region->len))) {
 #if PMEM_DEBUG
@@ -2225,17 +2138,15 @@ int pmem_remap(struct pmem_region *region, struct file *file,
 		return -EINVAL;
 	}
 
-	/* if userspace requests a region of len 0, there's nothing to do */
+	
 	if (region->len == 0)
 		return 0;
 
-	/* lock the mm and data */
+	
 	ret = pmem_lock_data_and_mm(file, data, &mm);
 	if (ret)
 		return 0;
 
-	/* only the owner of the master file can remap the client fds
-	 * that back in it */
 	if (!is_master_owner(file)) {
 #if PMEM_DEBUG
 		pr_err("pmem: remap requested from non-master process\n");
@@ -2244,7 +2155,7 @@ int pmem_remap(struct pmem_region *region, struct file *file,
 		goto err;
 	}
 
-	/* check that the requested range is within the src allocation */
+	
 	if (unlikely((region->offset > pmem[id].len(id, data)) ||
 		     (region->len > pmem[id].len(id, data)) ||
 		     (region->offset + region->len > pmem[id].len(id, data)))) {
@@ -2314,13 +2225,10 @@ static void pmem_revoke(struct file *file, struct pmem_data *data)
 
 	data->master_file = NULL;
 	ret = pmem_lock_data_and_mm(file, data, &mm);
-	/* if lock_data_and_mm fails either the task that mapped the fd, or
-	 * the vma that mapped it have already gone away, nothing more
-	 * needs to be done */
 	if (ret)
 		return;
-	/* unmap everything */
-	/* delete the regions and region list nothing is mapped any more */
+	
+	
 	if (data->vma)
 		list_for_each_safe(elt, elt2, &data->region_list) {
 			region_node = list_entry(elt, struct pmem_region_node,
@@ -2331,13 +2239,13 @@ static void pmem_revoke(struct file *file, struct pmem_data *data)
 			list_del(elt);
 			kfree(region_node);
 	}
-	/* delete the master file */
+	
 	pmem_unlock_data_and_mm(data, mm);
 }
 
 static void pmem_get_size(struct pmem_region *region, struct file *file)
 {
-	/* called via ioctl file op, so file guaranteed to be not NULL */
+	
 	struct pmem_data *data = file->private_data;
 	int id = get_id(file);
 
@@ -2356,9 +2264,6 @@ static void pmem_get_size(struct pmem_region *region, struct file *file)
 
 static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	/* called from user space as file op, so file guaranteed to be not
-	 * NULL
-	 */
 	struct pmem_data *data = file->private_data;
 	int id = get_id(file);
 #if PMEM_DEBUG_MSGS
@@ -2571,9 +2476,6 @@ static void ioremap_pmem(int id)
 				BUG();
 		}
 		pmem[id].vbase = pmem[id].area->addr;
-		/* Flush the cache after installing page table entries to avoid
-		 * aliasing when these pages are remapped to user space.
-		 */
 		flush_cache_vmap(addr, addr + pmem[id].size);
 	} else {
 		if (pmem[id].cached)
@@ -2622,8 +2524,6 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 
 	pmem[id].allocator_type = pdata->allocator_type;
 
-	/* 'quantum' is a "hidden" variable that defaults to 0 in the board
-	 * files */
 	pmem[id].quantum = pdata->quantum ?: PMEM_MIN_ALLOC;
 	if (pmem[id].quantum < PMEM_MIN_ALLOC ||
 		!is_power_of_2(pmem[id].quantum)) {
@@ -2634,7 +2534,7 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 	}
 
 	if (pdata->size % pmem[id].quantum) {
-		/* bad alignment for size! */
+		
 		pr_alert("pmem: %s: Unable to register driver %s - "
 			"memory region size (%#lx) is not a multiple of "
 			"quantum size(%#x)!\n", __func__, pdata->name,
@@ -2698,7 +2598,7 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 
 		break;
 
-	case PMEM_ALLOCATORTYPE_BITMAP: /* 0, default if not explicit */
+	case PMEM_ALLOCATORTYPE_BITMAP: 
 		pmem[id].allocator.bitmap.bitm_alloc = kmalloc(
 			PMEM_INITIAL_NUM_BITMAP_ALLOCATIONS *
 				sizeof(*pmem[id].allocator.bitmap.bitm_alloc),
@@ -2805,7 +2705,7 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 		}
 	}
 
-	/* reusable pmem requires map on demand */
+	
 	pmem[id].map_on_demand = pdata->map_on_demand || pdata->reusable;
 	if (pmem[id].map_on_demand) {
 		if (pmem[id].reusable) {
@@ -2940,7 +2840,7 @@ static struct platform_driver pmem_driver = {
 
 static int __init pmem_init(void)
 {
-	/* create /sys/kernel/<PMEM_SYSFS_DIR_NAME> directory */
+	
 	pmem_kset = kset_create_and_add(PMEM_SYSFS_DIR_NAME,
 		NULL, kernel_kobj);
 	if (!pmem_kset) {

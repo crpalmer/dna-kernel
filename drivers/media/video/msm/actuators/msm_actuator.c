@@ -27,7 +27,7 @@ int32_t msm_actuator_write_focus(
 	damping_code_step = damping_params->damping_step;
 	wait_time = damping_params->damping_delay;
 
-	/* Write code based on damping_code_step in a loop */
+	
 	for (next_lens_pos =
 		curr_lens_pos + (sign_direction * damping_code_step);
 		(sign_direction * next_lens_pos) <=
@@ -72,7 +72,7 @@ int32_t msm_actuator_move_focus(
 		dir,
 		num_steps);
 
-	/* Determine sign direction */
+	
 	if (dir == MOVE_NEAR)
 		sign_dir = 1;
 	else if (dir == MOVE_FAR)
@@ -83,7 +83,7 @@ int32_t msm_actuator_move_focus(
 		return rc;
 	}
 
-	/* Determine destination step position */
+	
 	dest_step_pos = a_ctrl->curr_step_pos +
 		(sign_dir * num_steps);
 
@@ -95,7 +95,7 @@ int32_t msm_actuator_move_focus(
 	if (dest_step_pos == a_ctrl->curr_step_pos)
 		return rc;
 
-	/* Determine scenario */
+	
 	scenario_size = a_ctrl->scenario_size[dir];
 	for (index = 0; index < scenario_size; index++) {
 		if (num_steps <= a_ctrl->ringing_scenario[dir][index]) {
@@ -163,7 +163,7 @@ int32_t msm_actuator_init_table(
 	if (a_ctrl->func_tbl.actuator_set_params)
 		a_ctrl->func_tbl.actuator_set_params(a_ctrl);
 
-	/* Fill step position table */
+	
 	a_ctrl->step_position_table =
 		kmalloc(sizeof(uint16_t) * (a_ctrl->set_info.total_steps + 1),
 			GFP_KERNEL);
@@ -231,7 +231,7 @@ int32_t msm_actuator_af_power_down(struct msm_actuator_ctrl_t *a_ctrl)
 int32_t msm_actuator_config(
 	struct msm_actuator_ctrl_t *a_ctrl,
 	struct msm_actuator_info *board_info,
-	void __user *argp) /* HTC Angie 20111212 - Rawchip */
+	void __user *argp) 
 {
 	struct msm_actuator_cfg_data cdata;
 	int32_t rc = 0;
@@ -274,7 +274,6 @@ int32_t msm_actuator_config(
 			LERROR("%s move focus failed %d\n", __func__, rc);
 		break;
 
-/* HTC_START Angie 20111212 - Rawchip */
 	case CFG_GET_ACTUATOR_CURR_STEP_POS:
 		LINFO("%s current step: %d\n", __func__, a_ctrl->curr_step_pos);
 		cdata.cfg.curr_step_pos = a_ctrl->curr_step_pos;
@@ -283,7 +282,6 @@ int32_t msm_actuator_config(
 				 sizeof(struct msm_actuator_cfg_data)))
 			rc = -EFAULT;
 		break;
-/* HTC_END */
 
 	default:
 		break;
@@ -316,7 +314,7 @@ int32_t msm_actuator_i2c_probe(
 		act_ctrl_t->i2c_client.client->addr =
 			act_ctrl_t->i2c_addr;
 
-	/* act_ctrl_t->func_tbl.actuator_init_table(act_ctrl_t); */
+	
 	LINFO("%s succeeded\n", __func__);
 	return rc;
 
@@ -333,13 +331,13 @@ int32_t msm_actuator_create_subdevice(struct msm_actuator_ctrl_t *a_ctrl,
 
 	LINFO("%s called\n", __func__);
 
-	/* Store the sub device in actuator structure */
+	
 	a_ctrl->sdev = sdev;
 
-	/* Assign name for sub device */
+	
 	snprintf(sdev->name, sizeof(sdev->name), "%s", board_info->type);
 
-	/* Initialize sub device */
+	
 	v4l2_i2c_subdev_init(sdev,
 		a_ctrl->i2c_client.client,
 		a_ctrl->act_v4l2_subdev_ops);

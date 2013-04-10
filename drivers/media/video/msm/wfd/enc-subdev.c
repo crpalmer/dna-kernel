@@ -199,11 +199,6 @@ static void venc_cb(u32 event, u32 status, void *info, u32 size, void *handle,
 				(int)vbuf->v4l2_buf.timestamp.tv_usec,
 				frame_data->frame);
 
-		/*
-		 * Output buffers are enc-subdev and vcd's problem, so
-		 * if buffer is cached, need to flush before giving to
-		 * client. So doing the dirty stuff in this little context
-		 */
 		{
 			unsigned long kvaddr, phys_addr;
 			s32 buffer_index = -1, ion_flags = 0;
@@ -238,7 +233,7 @@ static void venc_cb(u32 event, u32 status, void *info, u32 size, void *handle,
 	case VCD_EVT_RESP_START:
 		WFD_MSG_DBG("EVENT: start done = %d\n", event);
 		venc_start_done(client_ctx, status);
-		/*TODO: should wait for this event*/
+		
 		break;
 	case VCD_EVT_RESP_STOP:
 		WFD_MSG_DBG("EVENT: not expected = %d\n", event);
@@ -262,9 +257,9 @@ static void venc_cb(u32 event, u32 status, void *info, u32 size, void *handle,
 
 static long venc_open(struct v4l2_subdev *sd, void *arg)
 {
-	/* HTC_START (klockwork issue)*/
+	
 	s32 client_index;
-	/* HTC_END */
+	
 	int rc = 0;
 	struct venc_inst *inst;
 	struct video_client_ctx *client_ctx;
@@ -481,7 +476,7 @@ static long venc_set_codec_level(struct video_client_ctx *client_ctx,
 	int mpeg4_base = VCD_LEVEL_MPEG4_0;
 	int h264_base = VCD_LEVEL_H264_1;
 
-	/* Validate params */
+	
 	vcd_property_hdr.prop_id = VCD_I_CODEC;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_codec);
 	rc = vcd_get_property(client_ctx->vcd_handle,
@@ -503,7 +498,7 @@ static long venc_set_codec_level(struct video_client_ctx *client_ctx,
 		goto err;
 	}
 
-	/* Set property */
+	
 	vcd_property_hdr.prop_id = VCD_I_LEVEL;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_level);
 
@@ -553,7 +548,7 @@ static long venc_get_codec_level(struct video_client_ctx *client_ctx,
 	int mpeg4_base = VCD_LEVEL_MPEG4_0;
 	int h264_base = VCD_LEVEL_H264_1;
 
-	/* Validate params */
+	
 	vcd_property_hdr.prop_id = VCD_I_CODEC;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_codec);
 	rc = vcd_get_property(client_ctx->vcd_handle,
@@ -607,7 +602,7 @@ static long venc_set_codec_profile(struct video_client_ctx *client_ctx,
 	struct vcd_property_codec vcd_property_codec;
 	int rc = 0;
 
-	/* Validate params */
+	
 	vcd_property_hdr.prop_id = VCD_I_CODEC;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_codec);
 	rc = vcd_get_property(client_ctx->vcd_handle,
@@ -629,7 +624,7 @@ static long venc_set_codec_profile(struct video_client_ctx *client_ctx,
 		goto err;
 	}
 
-	/* Set property */
+	
 	vcd_property_hdr.prop_id = VCD_I_PROFILE;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_profile);
 
@@ -690,7 +685,7 @@ static long venc_get_codec_profile(struct video_client_ctx *client_ctx,
 	struct vcd_property_codec vcd_property_codec;
 	int rc = 0;
 
-	/* Validate params */
+	
 	vcd_property_hdr.prop_id = VCD_I_CODEC;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_codec);
 	rc = vcd_get_property(client_ctx->vcd_handle,
@@ -712,7 +707,7 @@ static long venc_get_codec_profile(struct video_client_ctx *client_ctx,
 		goto err;
 	}
 
-	/* Set property */
+	
 	vcd_property_hdr.prop_id = VCD_I_PROFILE;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_profile);
 
@@ -843,7 +838,7 @@ static long venc_request_frame(struct video_client_ctx *client_ctx, __s32 type)
 	int rc = 0;
 	switch (type) {
 	case V4L2_MPEG_MFC51_VIDEO_FORCE_FRAME_TYPE_DISABLED:
-		/*So...nothing to do?*/
+		
 		break;
 	case V4L2_MPEG_MFC51_VIDEO_FORCE_FRAME_TYPE_I_FRAME:
 		vcd_property_hdr.prop_id = VCD_I_REQ_IFRAME;
@@ -916,10 +911,6 @@ static long venc_set_bitrate_mode(struct video_client_ctx *client_ctx,
 
 	vcd_property_hdr.prop_id = VCD_I_RATE_CONTROL;
 	vcd_property_hdr.sz = sizeof(struct vcd_property_rate_control);
-	/*
-	 * XXX: V4L doesn't seem have a control to toggle between CFR
-	 * and VFR, so assuming worse case VFR.
-	 */
 	switch (mode) {
 	case V4L2_MPEG_VIDEO_BITRATE_MODE_VBR:
 		rate_control.rate_control = VCD_RATE_CONTROL_VBR_VFR;
@@ -1036,7 +1027,7 @@ static long venc_set_framerate(struct v4l2_subdev *sd,
 	vcd_property_hdr.prop_id = VCD_I_FRAME_RATE;
 	vcd_property_hdr.sz =
 				sizeof(struct vcd_property_frame_rate);
-	/* v4l2 passes in "fps" as "spf", so take reciprocal*/
+	
 	vcd_frame_rate.fps_denominator = frate->numerator;
 	vcd_frame_rate.fps_numerator = frate->denominator;
 	rc = vcd_set_property(client_ctx->vcd_handle,
@@ -1420,16 +1411,12 @@ static long venc_set_multislicing_mode(struct video_client_ctx *client_ctx,
 			break;
 		case V4L2_MPEG_VIDEO_MULTI_SICE_MODE_MAX_MB:
 			vcd_multi_slice.m_slice_sel = VCD_MSLICE_BY_MB_COUNT;
-			/* Just a temporary size until client calls
-			 * V4L2_CID_MPEG_VIDEO_MULTI_SLICE_MAX_MB */
 			vcd_multi_slice.m_slice_size =
 				(vcd_frame_size.stride / 16) *
 				(vcd_frame_size.scan_lines / 16);
 			break;
 		case V4L2_MPEG_VIDEO_MULTI_SICE_MODE_MAX_BYTES:
 			vcd_multi_slice.m_slice_sel = VCD_MSLICE_BY_BYTE_COUNT;
-			/* Just a temporary size until client calls
-			 * V4L2_CID_MPEG_VIDEO_MULTI_SLICE_MAX_BYTES */
 			vcd_multi_slice.m_slice_size = vcd_buf_req.sz;
 			break;
 		default:
@@ -1572,14 +1559,6 @@ static long venc_set_input_buffer(struct v4l2_subdev *sd, void *arg)
 		goto ins_table_fail;
 	}
 
-	/*
-	 * Just a note: the third arg of vidc_insert_\
-	 * addr_table_kernel is supposed to be a userspace
-	 * address that is used as a key in the table. As
-	 * these bufs never leave the kernel, we need to have
-	 * an unique value to use as a key.  So re-using kernel
-	 * virtual addr for this purpose
-	 */
 	rc = vidc_insert_addr_table_kernel(client_ctx,
 		BUFFER_TYPE_INPUT, kvaddr, kvaddr,
 		paddr, 32, mregion->size);
@@ -1815,10 +1794,6 @@ static long venc_free_input_buffer(struct v4l2_subdev *sd, void *arg)
 	del_rc = vidc_delete_addr_table(client_ctx, BUFFER_TYPE_INPUT,
 				(unsigned long)mregion->kvaddr,
 				&vidc_kvaddr);
-	/*
-	 * Even if something went wrong in when
-	 * deleting from table, call vcd_free_buf
-	 */
 	if (del_rc == (u32)false) {
 		WFD_MSG_ERR("Failed to delete buf from address table\n");
 		del_rc = -ENOKEY;

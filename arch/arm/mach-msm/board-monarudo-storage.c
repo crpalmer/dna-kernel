@@ -29,7 +29,6 @@
 #include "board-storage-common-a.h"
 
 
-/* APQ8064 has 4 SDCC controllers */
 enum sdcc_controllers {
 	SDCC1,
 	SDCC2,
@@ -38,9 +37,8 @@ enum sdcc_controllers {
 	MAX_SDCC_CONTROLLER
 };
 
-/* All SDCC controllers require VDD/VCC voltage */
 static struct msm_mmc_reg_data mmc_vdd_reg_data[MAX_SDCC_CONTROLLER] = {
-	/* SDCC1 : eMMC card connected */
+	
 	[SDCC1] = {
 		.name = "sdc_vdd",
 		.high_vol_level = 2950000,
@@ -48,59 +46,52 @@ static struct msm_mmc_reg_data mmc_vdd_reg_data[MAX_SDCC_CONTROLLER] = {
 		.always_on = 1,
 		.lpm_sup = 1,
 		.lpm_uA = 9000,
-		.hpm_uA = 200000, /* 200mA */
+		.hpm_uA = 200000, 
 	},
-	/* SDCC3 : External card slot connected */
+	
 	[SDCC3] = {
 		.name = "sdc_vdd",
 		.high_vol_level = 2950000,
 		.low_vol_level = 2950000,
-		.hpm_uA = 600000, /* 600mA */
+		.hpm_uA = 600000, 
 	}
 };
 
-/* SDCC controllers may require voting for VDD IO voltage */
 static struct msm_mmc_reg_data mmc_vdd_io_reg_data[MAX_SDCC_CONTROLLER] = {
-	/* SDCC1 : eMMC card connected */
+	
 	[SDCC1] = {
 		.name = "sdc_vdd_io",
 		.always_on = 1,
 		.high_vol_level = 1800000,
 		.low_vol_level = 1800000,
-		.hpm_uA = 200000, /* 200mA */
+		.hpm_uA = 200000, 
 	},
-	/* SDCC3 : External card slot connected */
+	
 	[SDCC3] = {
 		.name = "sdc_vdd_io",
 		.high_vol_level = 2950000,
 		.low_vol_level = 1850000,
 		.always_on = 1,
 		.lpm_sup = 1,
-		/* Max. Active current required is 16 mA */
+		
 		.hpm_uA = 16000,
-		/*
-		 * Sleep current required is ~300 uA. But min. vote can be
-		 * in terms of mA (min. 1 mA). So let's vote for 2 mA
-		 * during sleep.
-		 */
 		.lpm_uA = 2000,
 	}
 };
 
 static struct msm_mmc_slot_reg_data mmc_slot_vreg_data[MAX_SDCC_CONTROLLER] = {
-	/* SDCC1 : eMMC card connected */
+	
 	[SDCC1] = {
 		.vdd_data = &mmc_vdd_reg_data[SDCC1],
 		.vdd_io_data = &mmc_vdd_io_reg_data[SDCC1],
 	},
-	/* SDCC3 : External card slot connected */
+	
 	[SDCC3] = {
 		.vdd_data = &mmc_vdd_reg_data[SDCC3],
 		.vdd_io_data = &mmc_vdd_io_reg_data[SDCC3],
 	}
 };
 
-/* SDC1 pad data */
 static struct msm_mmc_pad_drv sdc1_pad_drv_on_cfg[] = {
 	{TLMM_HDRV_SDC1_CLK, GPIO_CFG_4MA},
 	{TLMM_HDRV_SDC1_CMD, GPIO_CFG_10MA},
@@ -125,7 +116,6 @@ static struct msm_mmc_pad_pull sdc1_pad_pull_off_cfg[] = {
 	{TLMM_PULL_SDC1_DATA, GPIO_CFG_PULL_UP}
 };
 
-/* SDC3 pad data */
 static struct msm_mmc_pad_drv sdc3_pad_drv_on_cfg[] = {
 	{TLMM_HDRV_SDC3_CLK, GPIO_CFG_8MA},
 	{TLMM_HDRV_SDC3_CMD, GPIO_CFG_8MA},
@@ -258,7 +248,6 @@ static struct mmc_platform_data *monarudo_sdc3_pdata;
 #endif
 #endif
 
-/* ---- WIFI ---- */
 #define PM8XXX_GPIO_INIT(_gpio, _dir, _buf, _val, _pull, _vin, _out_strength, \
 			_func, _inv, _disable) \
 { \
@@ -319,9 +308,6 @@ static void config_gpio_table(struct pm8xxx_gpio_init *table, int len)
 	}
 }
 
-/* BCM4329 returns wrong sdio_vsn(1) when we read cccr,
- * we use predefined value (sdio_vsn=2) here to initial sdio driver well
- */
 static struct embedded_sdio_data monarudo_wifi_emb_data = {
 	.cccr	= {
 		.sdio_vsn	= 2,
@@ -348,7 +334,7 @@ monarudo_wifi_status_register(void (*callback)(int card_present, void *dev_id),
 	return 0;
 }
 
-static int monarudo_wifi_cd;	/* WiFi virtual 'card detect' status */
+static int monarudo_wifi_cd;	
 
 static unsigned int monarudo_wifi_status(struct device *dev)
 {
@@ -387,7 +373,6 @@ int monarudo_wifi_set_carddetect(int val)
 }
 EXPORT_SYMBOL(monarudo_wifi_set_carddetect);
 
-/* SDCC definition */
 #define BIT_HDRIV_PULL_NO      0
 #define BIT_HDRIV_PULL_DOWN    1
 #define BIT_HDRIV_PULL_KEEP    2
@@ -447,11 +432,11 @@ int monarudo_wifi_power(int on)
 				  ARRAY_SIZE(wifi_off_gpio_table));
 	}
 
-	mdelay(1); /* delay 1 ms, recommanded by hardware */
+	mdelay(1); 
 	wl_reg_on_gpio.config.output_value = on? 1: 0;
 	pm8xxx_gpio_config(wl_reg_on_gpio.gpio, &wl_reg_on_gpio.config);
 
-	mdelay(1); /* delay 1 ms, recommanded by hardware */
+	mdelay(1); 
 	wl_dev_wake_gpio.config.output_value = on? 1: 0;
 	pm8xxx_gpio_config(wl_dev_wake_gpio.gpio, &wl_dev_wake_gpio.config);
 
@@ -505,17 +490,17 @@ void __init monarudo_init_mmc(void)
 
 	printk(KERN_INFO "monarudo: %s\n", __func__);
 
-	/* initial WL_REG_ON */
+	
 	wl_reg_on_gpio.config.output_value = 0;
 	pm8xxx_gpio_config(wl_reg_on_gpio.gpio, &wl_reg_on_gpio.config);
 
 	wl_dev_wake_gpio.config.output_value = 0;
 	pm8xxx_gpio_config(wl_dev_wake_gpio.gpio, &wl_dev_wake_gpio.config);
 
-	/* PM QoS for wifi*/
+	
 	monarudo_wifi_data.cpu_dma_latency = msm_rpm_get_swfi_latency();
 
 	apq8064_add_sdcc(1, monarudo_sdc1_pdata);
 	apq8064_add_sdcc(3, &monarudo_wifi_data);
-	//reg_set_l7_optimum_mode();
+	
 }

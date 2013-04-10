@@ -1,4 +1,3 @@
-/*for P/L sensor common header file for each vender chip*/
 #ifndef __LINUX_PL_SENSOR_H
 #define __LINUX_PL_SENSOR_H
 

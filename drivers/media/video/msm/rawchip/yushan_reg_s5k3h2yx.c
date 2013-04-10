@@ -18,7 +18,6 @@
 
 #include <linux/kernel.h>
 #include "Yushan_HTC_Functions.h"
-/* #define AFSU_DEBUG */
 
 uint8_t pdpclib_u_s5k3h2yx[] =
 {
@@ -1057,8 +1056,7 @@ uint8_t dppclib_u_s5k3h2yx[] =
 };
 
 uint8_t dopclib_u_s5k3h2yx[] =
-// default to use lib v1.1
-#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
+#if 1 
 {
 	0x03,
 	0x00,
@@ -3229,8 +3227,7 @@ struct yushan_reg_clib_t yushan_regs_clib_s5k3h2yx = {
 	.dppclib = &dppclib_u_s5k3h2yx[0],
 	.dppclib_size = ARRAY_SIZE(dppclib_u_s5k3h2yx),
 
-// default to use lib v1.1
-#if 1 //#ifdef CONFIG_USEDXOAF //lib v1.1
+#if 1 
 	.dopclib_first_addr = 0x3bcc,
 #else
 	.dopclib_first_addr = 0x3bcc,

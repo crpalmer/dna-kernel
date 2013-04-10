@@ -24,6 +24,7 @@
 #define SYNAPTICS_3K_INCELL_NAME "synaptics-3k-incell"
 #define SYNAPTICS_3200_NAME "synaptics-3200"
 #define SYNAPTICS_FW_3_2_PACKRAT 1115999
+#define SYNAPTICS_FW_NOCAL_PACKRAT 1293981
 
 
 #define SYN_CONFIG_SIZE 32 * 16
@@ -63,38 +64,43 @@ enum {
 };
 
 struct synaptics_virtual_key {
+	int index;
 	int keycode;
-	int range_min;
-	int range_max;
+	int x_range_min;
+	int x_range_max;
+	int y_range_min;
+	int y_range_max;
 };
 
 struct synaptics_i2c_rmi_platform_data {
-	uint32_t version;	/* Use this entry for panels with */
-				/* (major << 8 | minor) version or above. */
-				/* If non-zero another array entry follows */
-	int (*power)(int on);	/* Only valid in first array entry */
+	uint32_t version;	
+				
+				
+	int (*power)(int on);	
 	struct synaptics_virtual_key *virtual_key;
 	uint8_t virtual_key_num;
+	struct kobject *vk_obj;
+	struct kobj_attribute *vk2Use;
 	uint8_t sensitivity;
 	uint8_t finger_support;
 	uint32_t gap_area;
 	uint32_t key_area;
 	uint32_t flags;
 	unsigned long irqflags;
-	uint32_t inactive_left; /* 0x10000 = screen width */
-	uint32_t inactive_right; /* 0x10000 = screen width */
-	uint32_t inactive_top; /* 0x10000 = screen height */
-	uint32_t inactive_bottom; /* 0x10000 = screen height */
-	uint32_t snap_left_on; /* 0x10000 = screen width */
-	uint32_t snap_left_off; /* 0x10000 = screen width */
-	uint32_t snap_right_on; /* 0x10000 = screen width */
-	uint32_t snap_right_off; /* 0x10000 = screen width */
-	uint32_t snap_top_on; /* 0x10000 = screen height */
-	uint32_t snap_top_off; /* 0x10000 = screen height */
-	uint32_t snap_bottom_on; /* 0x10000 = screen height */
-	uint32_t snap_bottom_off; /* 0x10000 = screen height */
-	uint32_t fuzz_x; /* 0x10000 = screen width */
-	uint32_t fuzz_y; /* 0x10000 = screen height */
+	uint32_t inactive_left; 
+	uint32_t inactive_right; 
+	uint32_t inactive_top; 
+	uint32_t inactive_bottom; 
+	uint32_t snap_left_on; 
+	uint32_t snap_left_off; 
+	uint32_t snap_right_on; 
+	uint32_t snap_right_off; 
+	uint32_t snap_top_on; 
+	uint32_t snap_top_off; 
+	uint32_t snap_bottom_on; 
+	uint32_t snap_bottom_off; 
+	uint32_t fuzz_x; 
+	uint32_t fuzz_y; 
 	int abs_x_min;
 	int abs_x_max;
 	int abs_y_min;
@@ -130,6 +136,7 @@ struct synaptics_i2c_rmi_platform_data {
 	uint8_t energy_ratio_relaxation;
 	uint8_t multitouch_calibration;
 	uint8_t psensor_detection;
+	uint8_t PixelTouchThreshold_bef_unlock;
 };
 
 struct page_description {
@@ -162,4 +169,4 @@ enum {
 };
 
 extern uint8_t getPowerKeyState(void);
-#endif /* _LINUX_SYNAPTICS_I2C_RMI_H */
+#endif 

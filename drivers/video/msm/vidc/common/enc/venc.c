@@ -37,20 +37,15 @@
 #define VID_ENC_NAME	"msm_vidc_enc"
 
 extern u32 vidc_msg_debug;
-/*HTC_START*/
 #define DBG(x...)				\
 	if (vidc_msg_debug) {			\
 		printk(KERN_DEBUG "[VID] " x);	\
 	}
-/*HTC_END*/
 
 #define INFO(x...) printk(KERN_INFO "[VID] " x)
 #define ERR(x...) printk(KERN_ERR "[VID] " x)
 
-/*HTC_START*/
-/* XXX: workaround for sleep hung caused by entering vddmin during encoding/deconding */
 void keep_dig_voltage_low_in_idle(bool on);
-/*HTC_END*/
 static struct vid_enc_dev *vid_enc_device_p;
 static dev_t vid_enc_dev_num;
 static struct class *vid_enc_class;
@@ -245,23 +240,23 @@ static void vid_enc_output_frame_done(struct video_client_ctx *client_ctx,
 		&phy_addr, &pmem_fd, &file,
 		&buffer_index)) {
 
-		/* Buffer address in user space */
+		
 		venc_msg->venc_msg_info.buf.ptrbuffer =	(u8 *) user_vaddr;
-		/* Buffer address in user space */
+		
 		venc_msg->venc_msg_info.buf.clientdata = (void *)
 		vcd_frame_data->frm_clnt_data;
-		/* Data length */
+		
 		venc_msg->venc_msg_info.buf.len =
 			vcd_frame_data->data_len;
 		venc_msg->venc_msg_info.buf.flags =
 			vcd_frame_data->flags;
-		/* Timestamp pass-through from input frame */
+		
 		venc_msg->venc_msg_info.buf.timestamp =
 			vcd_frame_data->time_stamp;
 		venc_msg->venc_msg_info.buf.sz =
 			vcd_frame_data->alloc_len;
 
-		/* Decoded picture width and height */
+		
 		venc_msg->venc_msg_info.msgdata_size =
 			sizeof(struct venc_buffer);
 	} else {
@@ -536,9 +531,7 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 	INFO(" msm_vidc_enc: Inside %s()", __func__);
 
 	mutex_lock(&vid_enc_device_p->lock);
-/*HTC_START*/
 	keep_dig_voltage_low_in_idle(true);
-/*HTC_END*/
 	stop_cmd = 0;
 	client_count = vcd_get_num_of_clients();
 	if (client_count == VIDC_MAX_NUM_CLIENTS) {
@@ -562,10 +555,10 @@ static int vid_enc_open(struct inode *inode, struct file *file)
 		return -ENODEV;
 	}
 
-	/* HTC_START (klockwork issue) */
+	
 	if (client_index == -ENOMEM)
 		return -ENOMEM;
-	/* HTC_END */
+	
 
 	client_ctx =
 		&vid_enc_device_p->venc_clients[client_index];
@@ -609,9 +602,7 @@ static int vid_enc_release(struct inode *inode, struct file *file)
 {
 	struct video_client_ctx *client_ctx = file->private_data;
 	INFO(" msm_vidc_enc: Inside %s()", __func__);
-/*HTC_START*/
 	keep_dig_voltage_low_in_idle(false);
-/*HTC_END*/
 	vid_enc_close_client(client_ctx);
 	vidc_release_firmware();
 #ifndef USE_RES_TRACKER

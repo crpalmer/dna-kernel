@@ -32,12 +32,10 @@
 #include "msm-pcm-q6.h"
 #include "msm-pcm-routing.h"
 
-//htc audio ++
 #undef pr_info
 #undef pr_err
 #define pr_info(fmt, ...) pr_aud_info(fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...) pr_aud_err(fmt, ##__VA_ARGS__)
-//htc audio --
 
 static struct audio_locks the_locks;
 
@@ -91,7 +89,6 @@ static struct snd_pcm_hardware msm_pcm_hardware_playback = {
 	.fifo_size =            0,
 };
 
-/* Conventional and unconventional sample rate supported */
 static unsigned int supported_sample_rates[] = {
 	8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000
 };
@@ -216,7 +213,7 @@ static int msm_pcm_playback_prepare(struct snd_pcm_substream *substream)
 	prtd->pcm_size = snd_pcm_lib_buffer_bytes(substream);
 	prtd->pcm_count = snd_pcm_lib_period_bytes(substream);
 	prtd->pcm_irq_pos = 0;
-	/* rate and channels are sent to audio driver */
+	
 	prtd->samp_rate = runtime->rate;
 	prtd->channel_mode = runtime->channels;
 	if (prtd->enabled)
@@ -246,7 +243,7 @@ static int msm_pcm_capture_prepare(struct snd_pcm_substream *substream)
 	prtd->pcm_count = snd_pcm_lib_period_bytes(substream);
 	prtd->pcm_irq_pos = 0;
 
-	/* rate and channels are sent to audio driver */
+	
 	prtd->samp_rate = runtime->rate;
 	prtd->channel_mode = runtime->channels;
 
@@ -280,9 +277,7 @@ static int msm_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	int ret = 0;
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct msm_audio *prtd = runtime->private_data;
-//HTC AUD++
 	struct snd_soc_pcm_runtime *soc_prtd = substream->private_data;
-//HTC AUD--
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
@@ -295,7 +290,6 @@ static int msm_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		atomic_set(&prtd->start, 0);
 		if (substream->stream != SNDRV_PCM_STREAM_PLAYBACK)
 			break;
-//HTC AUD, send EOS if beckend is opened
 		if(msm_routing_check_backend_enabled(soc_prtd->dai_link->be_id)) {
                     pr_info("%s:end eos\n",__func__);
 		    prtd->cmd_ack = 0;
@@ -355,7 +349,7 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 		prtd->cmd_ack = 1;
 
 	}
-	/* Capture path */
+	
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
 		runtime->hw = msm_pcm_hardware_capture;
 	}
@@ -365,7 +359,7 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 				&constraints_sample_rates);
 	if (ret < 0)
 		pr_info("snd_pcm_hw_constraint_list failed\n");
-	/* Ensure that buffer size is a multiple of period size */
+	
 	ret = snd_pcm_hw_constraint_integer(runtime,
 					    SNDRV_PCM_HW_PARAM_PERIODS);
 	if (ret < 0)
@@ -647,7 +641,7 @@ static int msm_pcm_hw_params(struct snd_pcm_substream *substream,
 	else
 		dir = OUT;
 
-	/*capture path*/
+	
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
 		if (params_channels(params) > 2)
 			format = FORMAT_MULTI_CHANNEL_LINEAR_PCM;

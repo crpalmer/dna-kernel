@@ -15,7 +15,6 @@
 
 #include <mach/msm_iomap.h>
 #include "external_common.h"
-/* #define PORT_DEBUG */
 
 #ifdef PORT_DEBUG
 const char *hdmi_msm_name(uint32 offset);
@@ -34,10 +33,6 @@ uint32 hdmi_inp(uint32 offset);
 #endif
 
 
-/*
- * Ref. HDMI 1.4a
- * Supplement-1 CEC Section 6, 7
- */
 struct hdmi_msm_cec_msg {
 	uint8 sender_id;
 	uint8 recvr_id;
@@ -71,7 +66,7 @@ struct hdmi_msm_state_type {
 	struct work_struct hdcp_reauth_work, hdcp_work;
 	struct completion hdcp_success_done;
 	struct timer_list hdcp_timer;
-#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT */
+#endif 
 
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT
 	boolean cec_enabled;
@@ -90,16 +85,13 @@ struct hdmi_msm_state_type {
 	boolean cec_queue_full;
 	boolean fsm_reset_done;
 
-	/*
-	 * CECT 9-5-1
-	 */
 	struct completion cec_line_latch_wait;
 	struct work_struct cec_latch_detect_work;
 
 #define CEC_QUEUE_SIZE		16
 #define CEC_QUEUE_END	 (hdmi_msm_state->cec_queue_start + CEC_QUEUE_SIZE)
 #define RETRANSMIT_MAX_NUM	5
-#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT */
+#endif 
 
 	int irq;
 	struct msm_hdmi_platform_data *pd;
@@ -133,6 +125,6 @@ void hdmi_msm_cec_write_logical_addr(int addr);
 void hdmi_msm_cec_msg_recv(void);
 void hdmi_msm_cec_one_touch_play(void);
 void hdmi_msm_cec_msg_send(struct hdmi_msm_cec_msg *msg);
-#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT */
+#endif 
 
-#endif /* __HDMI_MSM_H__ */
+#endif 

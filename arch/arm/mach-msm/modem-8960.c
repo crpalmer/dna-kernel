@@ -99,7 +99,7 @@ static DECLARE_DELAYED_WORK(modem_wdog_check_work, modem_wdog_check);
 
 static void smsm_state_cb(void *data, uint32_t old_state, uint32_t new_state)
 {
-	/* Ignore if we're the one that set SMSM_RESET */
+	
 	if (crash_shutdown)
 		return;
 
@@ -114,16 +114,8 @@ static int modem_shutdown(const struct subsys_data *subsys)
 	void __iomem *q6_fw_wdog_addr;
 	void __iomem *q6_sw_wdog_addr;
 
-	/*
-	 * Cancel any pending wdog_check work items, since we're shutting
-	 * down anyway.
-	 */
 	cancel_delayed_work(&modem_wdog_check_work);
 
-	/*
-	 * Disable the modem watchdog since it keeps running even after the
-	 * modem is shutdown.
-	 */
 	q6_fw_wdog_addr = ioremap_nocache(Q6_FW_WDOG_ENABLE, 4);
 	if (!q6_fw_wdog_addr)
 		return -ENOMEM;
@@ -167,7 +159,6 @@ void modem_crash_shutdown(const struct subsys_data *subsys)
 	smsm_reset_modem(SMSM_RESET);
 }
 
-/* FIXME: Get address, size from PIL */
 static struct ramdump_segment modemsw_segments[] = {
 	{0x89000000, 0x8D400000 - 0x89000000},
 };

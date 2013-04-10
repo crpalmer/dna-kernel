@@ -38,7 +38,6 @@ enum {
 			pr_info(x); \
 } while (0)
 
-/*echo dbg_mask > /sys/class/net/rmnet_usbx/dbg_mask*/
 static ssize_t dbg_mask_store(struct device *d,
 		struct device_attribute *attr,
 		const char *buf, size_t n)
@@ -51,13 +50,13 @@ static ssize_t dbg_mask_store(struct device *d,
 		return -ENODEV;
 
 	sscanf(buf, "%u", &dbg_mask);
-	/*enable dbg msgs for data driver*/
+	
 	data_msg_dbg_mask = dbg_mask;
 
-	/*set default msg level*/
+	
 	unet->msg_enable = NETIF_MSG_DRV | NETIF_MSG_PROBE | NETIF_MSG_LINK;
 
-	/*enable netif_xxx msgs*/
+	
 	if (dbg_mask & DEBUG_MASK_LVL0)
 		unet->msg_enable |= NETIF_MSG_IFUP | NETIF_MSG_IFDOWN;
 	if (dbg_mask & DEBUG_MASK_LVL1)
@@ -116,7 +115,7 @@ static int rmnet_usb_suspend(struct usb_interface *iface, pm_message_t message)
 			retval = rmnet_usb_ctrl_stop_rx(dev);
 			iface->dev.power.power_state.event = message.event;
 		}
-		/*  TBD : do we need to set/clear usbnet->udev->reset_resume*/
+		
 		} else
 		dev_info(&iface->dev,
 			"%s: device is busy can not suspend\n", __func__);
@@ -151,10 +150,10 @@ static int rmnet_usb_resume(struct usb_interface *iface)
 	retval = usbnet_resume(iface);
 	if (!retval) {
 		if (oldstate & PM_EVENT_SUSPEND)
-			/* ++SSD_RIL */
-			/*retval = rmnet_usb_ctrl_start(dev);*/
+			
+			
 			 retval = rmnet_usb_ctrl_start_rx(dev);
-			/* --SSD_RIL */
+			
 	}
 fail:
 	return retval;
@@ -198,10 +197,10 @@ static int rmnet_usb_bind(struct usbnet *usbnet, struct usb_interface *iface)
 		bulk_out->desc.bEndpointAddress & USB_ENDPOINT_NUMBER_MASK);
 	usbnet->status = int_in;
 
-	/*change name of net device to rmnet_usbx here*/
+	
 	strlcpy(usbnet->net->name, "rmnet_usb%d", IFNAMSIZ);
 
-	/*TBD: update rx_urb_size, curently set to eth frame len by usbnet*/
+	
 out:
 	return status;
 }
@@ -253,7 +252,7 @@ static int rmnet_usb_rx_fixup(struct usbnet *dev,
 
 	if (test_bit(RMNET_MODE_LLP_IP, &dev->data[0]))
 		skb->protocol = rmnet_ip_type_trans(skb, dev->net);
-	else /*set zero for eth mode*/
+	else 
 		skb->protocol = 0;
 
 	DBG1("[%s] Rx packet #%lu len=%d\n",
@@ -290,7 +289,7 @@ static const struct net_device_ops rmnet_usb_ops_ether = {
 	.ndo_stop = usbnet_stop,
 	.ndo_start_xmit = usbnet_start_xmit,
 	.ndo_get_stats = rmnet_get_stats,
-	/*.ndo_set_multicast_list = rmnet_set_multicast_list,*/
+	
 	.ndo_tx_timeout = usbnet_tx_timeout,
 	.ndo_do_ioctl = rmnet_ioctl,
 	.ndo_change_mtu = usbnet_change_mtu,
@@ -303,7 +302,7 @@ static const struct net_device_ops rmnet_usb_ops_ip = {
 	.ndo_stop = usbnet_stop,
 	.ndo_start_xmit = usbnet_start_xmit,
 	.ndo_get_stats = rmnet_get_stats,
-	/*.ndo_set_multicast_list = rmnet_set_multicast_list,*/
+	
 	.ndo_tx_timeout = usbnet_tx_timeout,
 	.ndo_do_ioctl = rmnet_ioctl,
 	.ndo_change_mtu = rmnet_change_mtu,
@@ -319,11 +318,11 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 	int		prev_mtu = dev->mtu;
 	int		rc = 0;
 
-	old_opmode = unet->data[0]; /*data[0] saves operation mode*/
-	/* Process IOCTL command */
+	old_opmode = unet->data[0]; 
+	
 	switch (cmd) {
-	case RMNET_IOCTL_SET_LLP_ETHERNET:	/*Set Ethernet protocol*/
-		/* Perform Ethernet config only if in IP mode currently*/
+	case RMNET_IOCTL_SET_LLP_ETHERNET:	
+		
 		if (test_bit(RMNET_MODE_LLP_IP, &unet->data[0])) {
 			ether_setup(dev);
 			random_ether_addr(dev->dev_addr);
@@ -336,12 +335,12 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		}
 		break;
 
-	case RMNET_IOCTL_SET_LLP_IP:		/* Set RAWIP protocol*/
-		/* Perform IP config only if in Ethernet mode currently*/
+	case RMNET_IOCTL_SET_LLP_IP:		
+		
 		if (test_bit(RMNET_MODE_LLP_ETH, &unet->data[0])) {
 
-			/* Undo config done in ether_setup() */
-			dev->header_ops = 0;  /* No header */
+			
+			dev->header_ops = 0;  
 			dev->type = ARPHRD_RAWIP;
 			dev->hard_header_len = 0;
 			dev->mtu = prev_mtu;
@@ -356,39 +355,39 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		}
 		break;
 
-	case RMNET_IOCTL_GET_LLP:	/* Get link protocol state */
+	case RMNET_IOCTL_GET_LLP:	
 		ifr->ifr_ifru.ifru_data = (void *)(unet->data[0]
 						& (RMNET_MODE_LLP_ETH
 						| RMNET_MODE_LLP_IP));
 		break;
 
-	case RMNET_IOCTL_SET_QOS_ENABLE:	/* Set QoS header enabled*/
+	case RMNET_IOCTL_SET_QOS_ENABLE:	
 		set_bit(RMNET_MODE_QOS, &unet->data[0]);
 		DBG0("[%s] rmnet_ioctl(): set QMI QOS header enable\n",
 				dev->name);
 		break;
 
-	case RMNET_IOCTL_SET_QOS_DISABLE:	/* Set QoS header disabled */
+	case RMNET_IOCTL_SET_QOS_DISABLE:	
 		clear_bit(RMNET_MODE_QOS, &unet->data[0]);
 		DBG0("[%s] rmnet_ioctl(): set QMI QOS header disable\n",
 				dev->name);
 		break;
 
-	case RMNET_IOCTL_GET_QOS:		/* Get QoS header state */
+	case RMNET_IOCTL_GET_QOS:		
 		ifr->ifr_ifru.ifru_data = (void *)(unet->data[0]
 						& RMNET_MODE_QOS);
 		break;
 
-	case RMNET_IOCTL_GET_OPMODE:		/* Get operation mode*/
+	case RMNET_IOCTL_GET_OPMODE:		
 		ifr->ifr_ifru.ifru_data = (void *)unet->data[0];
 		break;
 
-	case RMNET_IOCTL_OPEN:			/* Open transport port */
+	case RMNET_IOCTL_OPEN:			
 		rc = usbnet_open(dev);
 		DBG0("[%s] rmnet_ioctl(): open transport port\n", dev->name);
 		break;
 
-	case RMNET_IOCTL_CLOSE:			/* Close transport port*/
+	case RMNET_IOCTL_CLOSE:			
 		rc = usbnet_stop(dev);
 		DBG0("[%s] rmnet_ioctl(): close transport port\n", dev->name);
 		break;
@@ -408,15 +407,15 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
 static void rmnet_usb_setup(struct net_device *dev)
 {
-	/* Using Ethernet mode by default */
+	
 	dev->netdev_ops = &rmnet_usb_ops_ether;
 
-	/* set this after calling ether_setup */
+	
 	dev->mtu = RMNET_DATA_LEN;
 
 	dev->needed_headroom = HEADROOM_FOR_QOS;
 	random_ether_addr(dev->dev_addr);
-	dev->watchdog_timeo = 1000; /* 10 seconds? */
+	dev->watchdog_timeo = 1000; 
 }
 
 static int rmnet_usb_data_status(struct seq_file *s, void *unused)
@@ -532,13 +531,13 @@ static int rmnet_usb_probe(struct usb_interface *iface,
 	}
 	unet = usb_get_intfdata(iface);
 
-	/*set rmnet operation mode to eth by default*/
+	
 	set_bit(RMNET_MODE_LLP_ETH, &unet->data[0]);
 
-	/*update net device*/
+	
 	rmnet_usb_setup(unet->net);
 
-	/*create /sys/class/net/rmnet_usbx/dbg_mask*/
+	
 	status = device_create_file(&unet->net->dev, &dev_attr_dbg_mask);
 	if (status)
 		goto out;
@@ -546,7 +545,7 @@ static int rmnet_usb_probe(struct usb_interface *iface,
 	if (first_rmnet_iface_num == -EINVAL)
 		first_rmnet_iface_num = iface_num;
 
-	/*save control device intstance */
+	
 	unet->data[1] = (unsigned long)ctrl_dev	\
 			[iface_num - first_rmnet_iface_num];
 
@@ -562,11 +561,11 @@ static int rmnet_usb_probe(struct usb_interface *iface,
 	udev = unet->udev;
 
 	if (udev->parent && !udev->parent->parent) {
-		/* allow modem and roothub to wake up suspended system */
+		
 		device_set_wakeup_enable(&udev->dev, 1);
 		device_set_wakeup_enable(&udev->parent->dev, 1);
 
-		/* set default autosuspend timeout for modem and roothub */
+		
 		pm_runtime_set_autosuspend_delay(&udev->dev, 1000);
 		pm_runtime_set_autosuspend_delay(&udev->parent->dev, 200);
 	}
@@ -601,7 +600,6 @@ static void rmnet_usb_disconnect(struct usb_interface *intf)
 	usbnet_disconnect(intf);
 }
 
-/*bit position represents interface number*/
 #define PID9034_IFACE_MASK	0xF0
 #define PID9048_IFACE_MASK	0x1E0
 #define PID904C_IFACE_MASK	0x1C0
@@ -635,19 +633,19 @@ static const struct driver_info rmnet_info_pid904c = {
 
 static const struct usb_device_id vidpids[] = {
 	{
-		USB_DEVICE(0x05c6, 0x9034), /* MDM9x15*/
+		USB_DEVICE(0x05c6, 0x9034), 
 		.driver_info = (unsigned long)&rmnet_info_pid9034,
 	},
 	{
-		USB_DEVICE(0x05c6, 0x9048), /* MDM9x15*/
+		USB_DEVICE(0x05c6, 0x9048), 
 		.driver_info = (unsigned long)&rmnet_info_pid9048,
 	},
 	{
-		USB_DEVICE(0x05c6, 0x904c), /* MDM9x15*/
+		USB_DEVICE(0x05c6, 0x904c), 
 		.driver_info = (unsigned long)&rmnet_info_pid904c,
 	},
 
-	{ }, /* Terminating entry */
+	{ }, 
 };
 
 MODULE_DEVICE_TABLE(usb, vidpids);
@@ -671,7 +669,7 @@ static int __init rmnet_usb_init(void)
 		err("usb_register failed: %d", retval);
 		return retval;
 	}
-	/* initialize rmnet ctrl device here*/
+	
 	retval = rmnet_usb_ctrl_init();
 	if (retval) {
 		usb_deregister(&rmnet_usb);

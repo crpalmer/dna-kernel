@@ -114,24 +114,22 @@ struct pm8xxx_mpp_init {
 			PM_GPIO_STRENGTH_HIGH, \
 			PM_GPIO_FUNC_NORMAL, 0, 0)
 
-/* Initial PM8921 GPIO configurations. Modify the structure need to inform kernel team*/
 static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
-	PM8921_GPIO_OUTPUT(14, 0, HIGH),	/* default uart path*/
+	PM8921_GPIO_OUTPUT(14, 0, HIGH),	
 	PM8921_GPIO_OUTPUT(15, 0, HIGH),
 };
 
 static struct pm8xxx_gpio_init pm8921_cdp_kp_gpios[] __initdata = {
-	//PM8921_GPIO_INPUT(37, PM_GPIO_PULL_UP_1P5),
+	
 };
 
 static struct pm8xxx_gpio_init pm8921_amp_gpios[] __initdata = {
 	PM8921_GPIO_OUTPUT(4, 1, MED),
 };
 
-/* Initial PM8XXX MPP configurations */
 static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
 	PM8921_MPP_INIT(3, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
-	/* External 5V regulator enable; shared by HDMI and USB_OTG switches. */
+	
 	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
 	PM8921_MPP_INIT(PM8XXX_AMUX_MPP_8, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5, AOUT_CTRL_DISABLE),
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
@@ -143,22 +141,22 @@ static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
 };
 
 static struct pm8xxx_gpio_init pm8921_gpios_uart_path[]  = {
-	PM8921_GPIO_OUTPUT(14, 0, HIGH),	/* output low*/
-	PM8921_GPIO_OUTPUT(15, 0, HIGH),	/* output low*/
+	PM8921_GPIO_OUTPUT(14, 0, HIGH),	
+	PM8921_GPIO_OUTPUT(15, 0, HIGH),	
 };
 
 static struct pm8xxx_gpio_init pm8921_gpios_usb_path[]  = {
-	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* output high*/
-	PM8921_GPIO_OUTPUT(15, 0, HIGH),	/* output low*/
+	PM8921_GPIO_OUTPUT(14, 1, HIGH),	
+	PM8921_GPIO_OUTPUT(15, 0, HIGH),	
 };
 
 void monarudo_usb_uart_switch(int nvbus)
 {
 	printk(KERN_INFO "%s: %s, rev=%d\n", __func__, nvbus ? "uart" : "usb", system_rev);
-	if(nvbus == 1) { /* vbus gone */
+	if(nvbus == 1) { 
 		pm8xxx_gpio_config(pm8921_gpios_uart_path[0].gpio, &pm8921_gpios_uart_path[0].config);
 		pm8xxx_gpio_config(pm8921_gpios_uart_path[1].gpio, &pm8921_gpios_uart_path[1].config);
-	} else {	/* vbus present, pin pull low */
+	} else {	
 		pm8xxx_gpio_config(pm8921_gpios_usb_path[0].gpio, &pm8921_gpios_usb_path[0].config);
 		pm8xxx_gpio_config(pm8921_gpios_usb_path[1].gpio, &pm8921_gpios_usb_path[1].config);
 	}
@@ -210,14 +208,10 @@ static struct pm8xxx_misc_platform_data monarudo_pm8921_misc_pdata = {
 	.priority		= 0,
 };
 
-#define PM8921_LC_LED_MAX_CURRENT	4	/* I = 4mA */
-#define PM8921_LC_LED_LOW_CURRENT	1	/* I = 1mA */
+#define PM8921_LC_LED_MAX_CURRENT	4	
+#define PM8921_LC_LED_LOW_CURRENT	1	
 #define PM8XXX_LED_PWM_PERIOD		1000
 #define PM8XXX_LED_PWM_DUTY_MS		20
-/**
- * PM8XXX_PWM_CHANNEL_NONE shall be used when LED shall not be
- * driven using PWM feature.
- */
 #define PM8XXX_PWM_CHANNEL_NONE		-1
 
 static struct pm8xxx_gpio_init green_gpios[] = {
@@ -348,7 +342,7 @@ static struct pm8xxx_adc_amux monarudo_pm8921_adc_channels_data[] = {
 };
 
 static struct pm8xxx_adc_properties monarudo_pm8921_adc_data = {
-	.adc_vdd_reference	= 1800, /* milli-voltage for this adc */
+	.adc_vdd_reference	= 1800, 
 	.bitresolution		= 15,
 	.bipolar                = 0,
 };
@@ -518,10 +512,10 @@ pm8921_chg_pdata __devinitdata = {
 	.warm_bat_chg_current	= 1025,
 	.cool_bat_voltage	= 4200,
 	.warm_bat_voltage	= 4000,
-	.mbat_in_gpio		= 0, /* No MBAT_IN*/
-	.wlc_tx_gpio		= 0, /* Used to detect if WLC pad is existed */
+	.mbat_in_gpio		= 0, 
+	.wlc_tx_gpio		= 0, 
 	.is_embeded_batt	= 1,
-	.vin_min_wlc		= 4800, /* only for WLC in DLX_WL */
+	.vin_min_wlc		= 4800, 
 	.thermal_mitigation	= monarudo_pm8921_therm_mitigation,
 	.thermal_levels		= ARRAY_SIZE(monarudo_pm8921_therm_mitigation),
 	.cold_thr = PM_SMBC_BATT_TEMP_COLD_THR__HIGH,
@@ -619,9 +613,6 @@ void __init monarudo_init_pmic(void)
 	pmic_reset_irq = PM8921_IRQ_BASE + PM8921_RESOUT_IRQ;
 
 	if (system_rev <= XC) {
-		/* Adjust r_sense to get correct value of current &
-		 * Magnify ibat_max & ibat_safe (bootloader) to
-		 * cover wrong higher current than real one */
 		pm8921_bms_pdata.r_sense = 10/0.754;
 		monarudo_pm8xxx_ccadc_pdata.r_sense = 10/0.754;
 		pm8921_chg_pdata.max_bat_chg_current = 1400;

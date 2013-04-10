@@ -22,7 +22,6 @@
 #define V4L2_IDENT_ISPIF			50001
 #define CSID_VERSION_V2                      0x2000011
 
-/* ISPIF registers */
 
 #define ISPIF_RST_CMD_ADDR                        0X00
 #define ISPIF_INTF_CMD_ADDR                       0X04
@@ -43,7 +42,6 @@
 #define ISPIF_IRQ_STATUS_1_ADDR                 0X0114
 #define ISPIF_IRQ_GLOBAL_CLEAR_CMD_ADDR         0x0124
 
-/*ISPIF RESET BITS*/
 
 #define VFE_CLK_DOMAIN_RST           31
 #define RDI_CLK_DOMAIN_RST           30
@@ -117,7 +115,7 @@ static int msm_ispif_intf_reset(uint8_t intfmask)
 		}
 		mask >>= 1;
 		intfnum++;
-	}	/*end while */
+	}	
 	if (rc >= 0) {
 		msm_io_w(data, ispif->base + ISPIF_RST_CMD_ADDR);
 		rc = wait_for_completion_interruptible(&ispif->reset_complete);
@@ -526,16 +524,16 @@ static void msm_ispif_release(struct v4l2_subdev *sd)
 	struct ispif_device *ispif =
 			(struct ispif_device *)v4l2_get_subdevdata(sd);
 
+	CDBG("%s, free_irq\n", __func__);
+	free_irq(ispif->irq->start, 0);
+	tasklet_kill(&ispif_tasklet);
+
 	if (ispif->csid_version == CSID_VERSION_V2)
 		msm_cam_clk_enable(&ispif->pdev->dev, ispif_clk_info,
 			ispif->ispif_clk, ARRAY_SIZE(ispif_clk_info), 0);
 	else
 		msm_cam_clk_enable(&ispif->pdev->dev, ispif_clk_info,
 			ispif->ispif_clk, 2, 0);
-
-	CDBG("%s, free_irq\n", __func__);
-	free_irq(ispif->irq->start, 0);
-	tasklet_kill(&ispif_tasklet);
 }
 
 void msm_ispif_vfe_get_cid(uint8_t intftype, char *cids, int *num)

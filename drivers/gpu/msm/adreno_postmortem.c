@@ -137,7 +137,7 @@ static void adreno_dump_regs(struct kgsl_device *device,
 	int range = 0, offset = 0;
 
 	for (range = 0; range < size; range++) {
-		/* start and end are in dword offsets */
+		
 		int start = registers[range * 2];
 		int end = registers[range * 2 + 1];
 
@@ -195,7 +195,7 @@ static void dump_ib1(struct kgsl_device *device, uint32_t pt_base,
 	dump_ib(device, "IB1:", pt_base, base_offset, ib1_base,
 		ib1_size, dump);
 
-	/* fetch virtual address for given IB base */
+	
 	ib1_addr = (uint32_t *)adreno_convertaddr(device, pt_base,
 		ib1_base, ib1_size*sizeof(uint32_t));
 	if (!ib1_addr)
@@ -207,7 +207,7 @@ static void dump_ib1(struct kgsl_device *device, uint32_t pt_base,
 			uint32_t ib2_base = ib1_addr[i++];
 			uint32_t ib2_size = ib1_addr[i++];
 
-			/* find previous match */
+			
 			for (j = 0; j < ib_list->count; ++j)
 				if (ib_list->sizes[j] == ib2_size
 					&& ib_list->bases[j] == ib2_base)
@@ -217,7 +217,7 @@ static void dump_ib1(struct kgsl_device *device, uint32_t pt_base,
 				>= IB_LIST_SIZE)
 				continue;
 
-			/* store match */
+			
 			ib_list->sizes[ib_list->count] = ib2_size;
 			ib_list->bases[ib_list->count] = ib2_base;
 			ib_list->offsets[ib_list->count] = i<<2;
@@ -782,10 +782,10 @@ static int adreno_dump(struct kgsl_device *device)
 		memcpy(rb_copy+part1_c, rb_vaddr, (num_item-part1_c)<<2);
 	}
 
-	/* extract the latest ib commands from the buffer */
+	
 	ib_list.count = 0;
 	i = 0;
-	/* get the register mapped array in case we are using IOMMU */
+	
 	num_iommu_units = kgsl_mmu_get_reg_map_desc(&device->mmu,
 							&reg_map_array);
 	reg_map = reg_map_array;
@@ -811,7 +811,7 @@ static int adreno_dump(struct kgsl_device *device)
 				kgsl_mmu_get_ptname_from_ptbase(cur_pt_base),
 				cur_pt_base);
 
-			/* Set cur_pt_base to the new pagetable base */
+			
 			cur_pt_base = rb_copy[read_idx++];
 
 			KGSL_LOG_DUMP(device, "New pagetable: %x\t"
@@ -823,8 +823,6 @@ static int adreno_dump(struct kgsl_device *device)
 	if (num_iommu_units)
 		kfree(reg_map_array);
 
-	/* Restore cur_pt_base back to the pt_base of
-	   the process in whose context the GPU hung */
 	cur_pt_base = pt_base;
 
 	read_idx = (int)cp_rb_rptr - NUM_DWORDS_OF_RINGBUFFER_HISTORY;
@@ -865,7 +863,7 @@ static int adreno_dump(struct kgsl_device *device)
 		}
 	}
 
-	/* Dump the registers if the user asked for it */
+	
 	if (is_adreno_pm_regs_enabled()) {
 		if (adreno_is_a20x(adreno_dev))
 			adreno_dump_regs(device, a200_registers,
@@ -887,13 +885,6 @@ end:
 	return result;
 }
 
-/**
- * adreno_postmortem_dump - Dump the current GPU state
- * @device - A pointer to the KGSL device to dump
- * @manual - A flag that indicates if this was a manually triggered
- *           dump (from debugfs).  If zero, then this is assumed to be a
- *           dump automaticlaly triggered from a hang
-*/
 
 int adreno_postmortem_dump(struct kgsl_device *device, int manual)
 {
@@ -904,7 +895,7 @@ int adreno_postmortem_dump(struct kgsl_device *device, int manual)
 
 	kgsl_cffdump_hang(device->id);
 
-	/* For a manual dump, make sure that the system is idle */
+	
 
 	if (manual) {
 		if (device->active_cnt != 0) {
@@ -914,7 +905,7 @@ int adreno_postmortem_dump(struct kgsl_device *device, int manual)
 		}
 
 		if (device->state == KGSL_STATE_ACTIVE)
-			kgsl_idle(device,  KGSL_TIMEOUT_DEFAULT);
+			kgsl_idle(device);
 
 	}
 	KGSL_LOG_DUMP(device, "POWER: FLAGS = %08lX | ACTIVE POWERLEVEL = %08X",
@@ -929,37 +920,31 @@ int adreno_postmortem_dump(struct kgsl_device *device, int manual)
 	KGSL_LOG_DUMP(device, "BUS CLK = %lu ",
 		kgsl_get_clkrate(pwr->ebi1_clk));
 
-	/* Disable the idle timer so we don't get interrupted */
+	
 	del_timer_sync(&device->idle_timer);
 	mutex_unlock(&device->mutex);
 	flush_workqueue(device->work_queue);
 	mutex_lock(&device->mutex);
 
-	/* Turn off napping to make sure we have the clocks full
-	   attention through the following process */
 	saved_nap = device->pwrctrl.nap_allowed;
 	device->pwrctrl.nap_allowed = false;
 
-	/* Force on the clocks */
+	
 	kgsl_pwrctrl_wake(device);
 
-	/* Disable the irq */
+	
 	kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_OFF);
 
 	adreno_dump(device);
 
-	/* Restore nap mode */
+	
 	device->pwrctrl.nap_allowed = saved_nap;
 
-	/* On a manual trigger, turn on the interrupts and put
-	   the clocks to sleep.  They will recover themselves
-	   on the next event.  For a hang, leave things as they
-	   are until recovery kicks in. */
 
 	if (manual) {
 		kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_ON);
 
-		/* try to go into a sleep mode until the next event */
+		
 		kgsl_pwrctrl_request_state(device, KGSL_STATE_SLEEP);
 		kgsl_pwrctrl_sleep(device);
 	}

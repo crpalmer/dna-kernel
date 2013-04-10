@@ -68,12 +68,12 @@ static void diag_smd_dci_send_req(int proc_num)
 			pr_debug("\t %x \t", *(((unsigned char *)buf)+i));
 
 		if (*(uint8_t *)(buf+4) != DCI_CMD_CODE)
-			cmd_code_len = 4; /* delayed response */
+			cmd_code_len = 4; 
 		driver->write_ptr_dci->length =
 			 (int)(*(uint16_t *)(buf+2)) - (4+cmd_code_len);
 		pr_debug("diag: len = %d\n", (int)(*(uint16_t *)(buf+2))
 							 - (4+cmd_code_len));
-		/* look up DCI client with tag */
+		
 		for (i = 0; i < dci_max_reg; i++) {
 			if (driver->dci_tbl[i].tag ==
 			    *(int *)(buf+(4+cmd_code_len))) {
@@ -87,14 +87,14 @@ static void diag_smd_dci_send_req(int proc_num)
 		if (driver->dci_tbl[i].pid == 0)
 			pr_alert("diag: Receiving DCI process deleted\n");
 		*(int *)(buf+4+cmd_code_len) = driver->dci_tbl[i].uid;
-		/* update len after adding UID */
+		
 		driver->write_ptr_dci->length =
 			driver->write_ptr_dci->length + 4;
 		pr_debug("diag: data receivd, wake process\n");
 		driver->in_busy_dci = 1;
 		diag_update_sleeping_process(driver->dci_tbl[i].pid,
 							DCI_DATA_TYPE);
-		/* delete immediate response entry */
+		
 		if (driver->buf_in_dci[8+cmd_code_len] != 0x80)
 			driver->dci_tbl[i].pid = 0;
 		for (i = 0; i < dci_max_reg; i++)
@@ -120,7 +120,7 @@ void diag_dci_notify_client(int peripheral_mask)
 {
 	int i, stat;
 
-	/* Notify the DCI process that the peripheral DCI Channel is up */
+	
 	for (i = 0; i < MAX_DCI_CLIENT; i++) {
 		if (driver->dci_notify_tbl[i].list & peripheral_mask) {
 			pr_debug("diag: sending signal now\n");
@@ -130,7 +130,7 @@ void diag_dci_notify_client(int peripheral_mask)
 				pr_err("diag: Err send sig stat: %d\n", stat);
 			break;
 		}
-	} /* end of loop for all DCI clients */
+	} 
 }
 
 static int diag_dci_probe(struct platform_device *pdev)
@@ -155,19 +155,19 @@ int diag_send_dci_pkt(struct diag_master_table entry, unsigned char *buf,
 {
 	int i;
 
-	/* remove UID from user space pkt before sending to peripheral */
+	
 	buf = buf + 4;
 	len = len - 4;
 	mutex_lock(&driver->dci_mutex);
-	/* prepare DCI packet */
-	driver->apps_dci_buf[0] = CONTROL_CHAR; /* start */
-	driver->apps_dci_buf[1] = 1; /* version */
-	*(uint16_t *)(driver->apps_dci_buf + 2) = len + 4 + 1; /* length */
-	driver->apps_dci_buf[4] = DCI_CMD_CODE; /* DCI ID */
+	
+	driver->apps_dci_buf[0] = CONTROL_CHAR; 
+	driver->apps_dci_buf[1] = 1; 
+	*(uint16_t *)(driver->apps_dci_buf + 2) = len + 4 + 1; 
+	driver->apps_dci_buf[4] = DCI_CMD_CODE; 
 	*(int *)(driver->apps_dci_buf + 5) = driver->dci_tbl[index].tag;
 	for (i = 0; i < len; i++)
 		driver->apps_dci_buf[i+9] = *(buf+i);
-	driver->apps_dci_buf[9+len] = CONTROL_CHAR; /* end */
+	driver->apps_dci_buf[9+len] = CONTROL_CHAR; 
 
 	if (entry.client_id == MODEM_PROC && driver->ch_dci) {
 		smd_write(driver->ch_dci, driver->apps_dci_buf, len + 10);
@@ -199,7 +199,7 @@ int diag_register_dci_transaction(int uid)
 		mutex_unlock(&driver->dci_mutex);
 		return ret;
 	}
-	/* Make an entry in kernel DCI table */
+	
 	driver->dci_tag++;
 	for (i = 0; i < dci_max_reg; i++) {
 		if (driver->dci_tbl[i].pid == 0) {
@@ -221,14 +221,14 @@ int diag_process_dci_client(unsigned char *buf, int len)
 	int subsys_id, cmd_code, i, ret = -1, index = -1;
 	struct diag_master_table entry;
 
-	/* enter this UID into kernel table and return index */
+	
 	index = diag_register_dci_transaction(*(int *)temp);
 	if (index < 0) {
 		pr_alert("diag: registering new DCI transaction failed\n");
 		return DIAG_DCI_NO_REG;
 	}
 	temp += 4;
-	/* Check for registered peripheral and fwd pkt to apropriate proc */
+	
 	cmd_code = (int)(*(char *)buf);
 	temp++;
 	subsys_id = (int)(*(char *)temp);

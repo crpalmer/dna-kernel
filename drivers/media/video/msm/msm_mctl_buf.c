@@ -40,7 +40,7 @@ static int msm_vb2_ops_queue_setup(struct vb2_queue *vq,
 					unsigned long sizes[],
 					void *alloc_ctxs[])
 {
-	/* get the video device */
+	
 	struct msm_cam_v4l2_dev_inst *pcam_inst = vb2_get_drv_priv(vq);
 	struct msm_cam_v4l2_device *pcam = pcam_inst->pcam;
 	int i;
@@ -64,11 +64,11 @@ static int msm_vb2_ops_queue_setup(struct vb2_queue *vq,
 
 static void msm_vb2_ops_wait_prepare(struct vb2_queue *q)
 {
-	/* we use polling so do not use this fn now */
+	
 }
 static void msm_vb2_ops_wait_finish(struct vb2_queue *q)
 {
-	/* we use polling so do not use this fn now */
+	
 }
 
 static int msm_vb2_ops_buf_init(struct vb2_buffer *vb)
@@ -167,14 +167,12 @@ static int msm_vb2_ops_buf_prepare(struct vb2_buffer *vb)
 		pr_err("%s error : pointer is NULL\n", __func__);
 		return -EINVAL;
 	}
-	/* by this time vid_fmt should be already set.
-	 * return error if it is not. */
 	if ((pcam_inst->vid_fmt.fmt.pix.width == 0) ||
 		(pcam_inst->vid_fmt.fmt.pix.height == 0)) {
 		pr_err("%s error : pcam vid_fmt is not set\n", __func__);
 		return -EINVAL;
 	}
-	/* prefill in the byteused field */
+	
 	for (i = 0; i < vb->num_planes; i++) {
 		len = vb2_plane_size(vb, i);
 		vb2_set_plane_payload(vb, i, len);
@@ -284,10 +282,10 @@ static void msm_vb2_ops_buf_queue(struct vb2_buffer *vb)
 	struct msm_cam_v4l2_dev_inst *pcam_inst = NULL;
 	struct msm_cam_v4l2_device *pcam = NULL;
 	unsigned long flags = 0;
-	struct vb2_queue *vq = NULL; /* vb->vb2_queue; HTC_START sungfeng 20120807 klocwork */
+	struct vb2_queue *vq = NULL; 
 	struct msm_frame_buffer *buf;
 	D("%s\n", __func__);
-	if (vb) vq = vb->vb2_queue; /* HTC_START sungfeng 20120807 klocwork */
+	if (vb) vq = vb->vb2_queue; 
 	if (!vb || !vq) {
 		pr_err("%s error : input is NULL\n", __func__);
 		return ;
@@ -301,7 +299,7 @@ static void msm_vb2_ops_buf_queue(struct vb2_buffer *vb)
 		vb->v4l2_buf.index);
 	buf = container_of(vb, struct msm_frame_buffer, vidbuf);
 	spin_lock_irqsave(&pcam_inst->vq_irqlock, flags);
-	/* we are returning a buffer to the queue */
+	
 	list_add_tail(&buf->list, &pcam_inst->free_vq);
 	spin_unlock_irqrestore(&pcam_inst->vq_irqlock, flags);
 	buf->state = MSM_BUFFER_STATE_QUEUED;
@@ -321,7 +319,6 @@ static struct vb2_ops msm_vb2_ops = {
 };
 
 
-/* prepare a video buffer queue for a vl42 device*/
 static int msm_vbqueue_init(struct msm_cam_v4l2_dev_inst *pcam_inst,
 			struct vb2_queue *q, enum v4l2_buf_type type)
 {
@@ -376,7 +373,7 @@ struct msm_frame_buffer *msm_mctl_buf_find(
 	uint32_t buf_idx, offset = 0;
 	struct videobuf2_contig_pmem *mem;
 
-	/* we actually need a list, not a queue */
+	
 	spin_lock_irqsave(&pcam_inst->vq_irqlock, flags);
 	list_for_each_entry_safe(buf, tmp,
 			&pcam_inst->free_vq, list) {
@@ -451,7 +448,7 @@ int msm_mctl_buf_done(struct msm_cam_media_controller *p_mctl,
 		idx = msm_mctl_img_mode_to_inst_index(
 				p_mctl, image_mode, 0);
 		if (idx < 0) {
-			/* check mctl node */
+			
 			if ((image_mode >= 0) &&
 				p_mctl->pcam_ptr->mctl_node.
 					dev_inst_map[image_mode]) {
@@ -513,17 +510,14 @@ struct msm_cam_v4l2_dev_inst *msm_mctl_get_pcam_inst(
 	struct msm_cam_v4l2_device *pcam = pmctl->pcam_ptr;
 	int idx;
 
-	/* HTC_START add protection for pcam */
+	
 	if (!pcam) {
 		pr_err("%s pcam is null\n", __func__);
 		return pcam_inst;
 	}
-	/* HTC_END add protection for pcam */
+	
 
 	if (image_mode >= 0) {
-		/* Valid image mode. Search the mctl node first.
-		 * If mctl node doesnt have the instance, then
-		 * search in the user's video node */
 		if (pmctl->vfe_output_mode == VFE_OUTPUTS_MAIN_AND_THUMB
 		|| pmctl->vfe_output_mode == VFE_OUTPUTS_THUMB_AND_MAIN) {
 			if (pcam->mctl_node.dev_inst_map[image_mode]
@@ -578,10 +572,6 @@ int msm_mctl_reserve_free_buf(
 	}
 	memset(free_buf, 0, sizeof(struct msm_free_buf));
 
-	/* If the caller wants to reserve a buffer from a particular
-	 * camera instance, he would send the preferred camera instance.
-	 * If the preferred camera instance is NULL, get the
-	 * camera instance using the image mode passed */
 	if (!pcam_inst)
 		pcam_inst = msm_mctl_get_pcam_inst(pmctl, image_mode);
 
@@ -650,10 +640,6 @@ int msm_mctl_reserve_free_buf(
 	return rc;
 }
 
-/* HTC_START */
-/*
- * This function returns buffer to free_vq directly
- */
 int msm_mctl_return_free_buf(struct msm_cam_media_controller *pmctl,
                 int image_node, struct msm_free_buf *free_buf)
 {
@@ -699,7 +685,6 @@ int msm_mctl_return_free_buf(struct msm_cam_media_controller *pmctl,
     spin_unlock_irqrestore(&pcam_inst->vq_irqlock, flags);
     return rc;
 }
-/* HTC_END */
 
 int msm_mctl_release_free_buf(struct msm_cam_media_controller *pmctl,
 				struct msm_cam_v4l2_dev_inst *pcam_inst,
@@ -762,7 +747,7 @@ int msm_mctl_buf_done_pp(struct msm_cam_media_controller *pmctl,
 	D("%s:inst=0x%p, paddr=0x%x, dirty=%d",
 		__func__, pcam_inst, frame->ch_paddr[0], dirty);
 	if (dirty)
-		/* the frame is dirty, not going to disptach to app */
+		
 		rc = msm_mctl_release_free_buf(pmctl, pcam_inst,
 						image_mode, frame);
 	else

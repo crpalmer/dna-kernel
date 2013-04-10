@@ -25,7 +25,6 @@
 
 #include <net/sock.h>
 
-/* definitions for the R2R wire protcol */
 #define IPC_ROUTER_VERSION			1
 #define IPC_ROUTER_PROCESSORS_MAX		4
 
@@ -92,7 +91,6 @@ struct rr_header {
 
 #define IPC_ROUTER_HDR_SIZE sizeof(struct rr_header)
 #define MAX_IPC_PKT_SIZE 66000
-/* internals */
 
 #define IPC_ROUTER_MAX_REMOTE_SERVERS		100
 #define MAX_WAKELOCK_NAME_SZ 32
@@ -195,7 +193,7 @@ int msm_ipc_router_lookup_server_name(struct msm_ipc_port_name *srv_name,
 				      struct msm_ipc_server_info *srv_info,
 				      int num_entries_in_array,
 				      uint32_t lookup_mask);
-#endif //CONFIG_MSM8960_ONLY
+#endif 
 int msm_ipc_router_close_port(struct msm_ipc_port *port_ptr);
 
 struct msm_ipc_port *msm_ipc_router_create_port(

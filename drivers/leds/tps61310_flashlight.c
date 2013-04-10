@@ -43,6 +43,7 @@ struct tps61310_data {
 	uint32_t			strb1;
 	uint8_t 			led_count;
 	uint8_t 			mode_pin_suspend_state_low;
+	uint8_t				disable_tx_mask;
 };
 
 static struct i2c_client *this_client;
@@ -404,25 +405,25 @@ static void fl_lcdev_brightness_set(struct led_classdev *led_cdev,
 			mode = FL_MODE_TORCH;
 	} else if (brightness > LED_HALF && brightness <= LED_FULL) {
 		if (brightness == (LED_HALF + 1))
-			mode = FL_MODE_PRE_FLASH; /* pre-flash mode */
+			mode = FL_MODE_PRE_FLASH; 
 		else if (brightness == (LED_HALF + 3))
-			mode = FL_MODE_FLASH_LEVEL1; /* Flashlight mode LEVEL1*/
+			mode = FL_MODE_FLASH_LEVEL1; 
 		else if (brightness == (LED_HALF + 4))
-			mode = FL_MODE_FLASH_LEVEL2; /* Flashlight mode LEVEL2*/
+			mode = FL_MODE_FLASH_LEVEL2; 
 		else if (brightness == (LED_HALF + 5))
-			mode = FL_MODE_FLASH_LEVEL3; /* Flashlight mode LEVEL3*/
+			mode = FL_MODE_FLASH_LEVEL3; 
 		else if (brightness == (LED_HALF + 6))
-			mode = FL_MODE_FLASH_LEVEL4; /* Flashlight mode LEVEL4*/
+			mode = FL_MODE_FLASH_LEVEL4; 
 		else if (brightness == (LED_HALF + 7))
-			mode = FL_MODE_FLASH_LEVEL5; /* Flashlight mode LEVEL5*/
+			mode = FL_MODE_FLASH_LEVEL5; 
 		else if (brightness == (LED_HALF + 8))
-			mode = FL_MODE_FLASH_LEVEL6; /* Flashlight mode LEVEL6*/
+			mode = FL_MODE_FLASH_LEVEL6; 
 		else if (brightness == (LED_HALF + 9))
-			mode = FL_MODE_FLASH_LEVEL7; /* Flashlight mode LEVEL7*/
+			mode = FL_MODE_FLASH_LEVEL7; 
 		else
-			mode = FL_MODE_FLASH; /* Flashlight mode */
+			mode = FL_MODE_FLASH; 
 	} else
-		/* off and else */
+		
 		mode = FL_MODE_OFF;
 
 	if ((mode != FL_MODE_OFF) && switch_state == 0){
@@ -491,7 +492,7 @@ static int tps61310_probe(struct i2c_client *client,
 	if (!tps61310_work_queue)
 		goto err_create_tps61310_work_queue;
 
-	/* Register led class device */
+	
 	tps61310->fl_lcdev.name           = FLASHLIGHT_NAME;
 	tps61310->fl_lcdev.brightness_set = fl_lcdev_brightness_set;
 	tps61310->strb0                   = pdata->tps61310_strb0;
@@ -499,6 +500,7 @@ static int tps61310_probe(struct i2c_client *client,
 	tps61310->flash_sw_timeout	  = pdata->flash_duration_ms;
 	tps61310->led_count = (pdata->led_count) ? pdata->led_count : 1;
 	tps61310->mode_pin_suspend_state_low = pdata->mode_pin_suspend_state_low;
+	tps61310->disable_tx_mask			= pdata->disable_tx_mask;
 
 	if (tps61310->flash_sw_timeout <= 0)
 		tps61310->flash_sw_timeout = 600;
@@ -521,11 +523,13 @@ static int tps61310_probe(struct i2c_client *client,
 	if (err < 0) {
 		FLT_ERR_LOG("%s, create function_switch sysfs fail\n", __func__);
 	}
-	/* initial register set as shutdown mode */
+	
 	tps61310_i2c_command(0x01, 0x00);
-	/* voltage drop monitor*/
+	
 	tps61310_i2c_command(0x07, 0xF6);
 
+	if (this_tps61310->disable_tx_mask)
+		tps61310_i2c_command(0x03,0xC0);
 	FLT_INFO_LOG("%s -\n", __func__);
 	return 0;
 

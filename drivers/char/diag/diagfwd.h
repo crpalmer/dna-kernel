@@ -36,7 +36,6 @@ void diag_send_msg_mask_update(smd_channel_t *, int ssid_first,
 					 int ssid_last, int proc);
 void diag_send_log_mask_update(smd_channel_t *, int);
 void diag_update_sleeping_process(int process_id, int data_type);
-/* State for diag forwarding */
 #ifdef CONFIG_DIAG_OVER_USB
 int diagfwd_connect(void);
 int diagfwd_disconnect(void);

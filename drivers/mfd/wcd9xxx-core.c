@@ -198,9 +198,6 @@ static int wcd9xxx_slim_read_device(struct wcd9xxx *wcd9xxx, unsigned short reg,
 
 	return ret;
 }
-/* Interface specifies whether the write is to the interface or general
- * registers.
- */
 static int wcd9xxx_slim_write_device(struct wcd9xxx *wcd9xxx,
 		unsigned short reg, int bytes, void *src, bool interface)
 {
@@ -347,10 +344,6 @@ static int wcd9xxx_device_init(struct wcd9xxx *wcd9xxx, int irq)
 			wcd9xxx_dev_size = ARRAY_SIZE(sitar_devs);
 		}
 	} else {
-		/* Need to add here check for Tabla.
-		 * For now the read of version takes
-		 * care of now only tabla.
-		 */
 		pr_debug("%s : Read codec version using I2C\n",	__func__);
 		if (!strncmp(wcd9xxx_modules[0].client->name, "sitar", 5)) {
 			wcd9xxx_dev = sitar_devs;
@@ -466,7 +459,7 @@ static ssize_t codec_debug_write(struct file *filp,
 	lbuf[cnt] = '\0';
 
 	if (!strncmp(access_str, "poke", 6)) {
-		/* write */
+		
 		rc = get_parameters(lbuf, param, 2);
 		if ((param[0] <= 0x3FF) && (param[1] <= 0xFF) &&
 			(rc == 0))
@@ -475,7 +468,7 @@ static ssize_t codec_debug_write(struct file *filp,
 		else
 			rc = -EINVAL;
 	} else if (!strncmp(access_str, "peek", 6)) {
-		/* read */
+		
 		rc = get_parameters(lbuf, param, 1);
 		if ((param[0] <= 0x3FF) && (rc == 0))
 			read_data = wcd9xxx_interface_reg_read(debugCodec,
@@ -637,7 +630,7 @@ int wcd9xxx_i2c_write_device(u16 reg, u8 *value,
 	data[1] = *value;
 	msg->buf = data;
 	ret = i2c_transfer(wcd9xxx->client->adapter, wcd9xxx->xfer_msg, 1);
-	/* Try again if the write fails */
+	
 	if (ret != 1) {
 		ret = i2c_transfer(wcd9xxx->client->adapter,
 						wcd9xxx->xfer_msg, 1);
@@ -681,7 +674,7 @@ int wcd9xxx_i2c_read_device(unsigned short reg,
 		ret = i2c_transfer(wcd9xxx->client->adapter,
 				wcd9xxx->xfer_msg, 2);
 
-		/* Try again if read fails first time */
+		
 		if (ret != 2) {
 			ret = i2c_transfer(wcd9xxx->client->adapter,
 							wcd9xxx->xfer_msg, 2);
@@ -766,7 +759,7 @@ static int __devinit wcd9xxx_i2c_probe(struct i2c_client *client,
 	wcd9xxx->irq = pdata->irq;
 	wcd9xxx->irq_base = pdata->irq_base;
 
-	/*read the tabla status before initializing the device type*/
+	
 	ret = wcd9xxx_read(wcd9xxx, WCD9XXX_A_CHIP_STATUS, 1, &val, 0);
 	if (!strncmp(wcd9xxx_modules[0].client->name, "sitar", 5))
 		i2c_mode = SITAR_I2C_MODE;
@@ -883,9 +876,6 @@ static int wcd9xxx_slim_probe(struct slim_device *slim)
 			&wcd9xxx->slim_slave->laddr);
 		if (ret) {
 			if (sgla_retry_cnt++ < WCD9XXX_SLIM_GLA_MAX_RETRIES) {
-				/* Give SLIMBUS slave time to report present
-				   and be ready.
-				 */
 				usleep_range(1000, 1000);
 				pr_debug("%s: retry slim_get_logical_addr()\n",
 					__func__);
@@ -993,18 +983,12 @@ static int wcd9xxx_suspend(struct wcd9xxx *wcd9xxx, pm_message_t pmesg)
 	int ret = 0;
 
 	pr_debug("%s: enter\n", __func__);
-	/*
-	 * pm_qos_update_request() can be called after this suspend chain call
-	 * started. thus suspend can be called while lock is being held
-	 */
 	mutex_lock(&wcd9xxx->pm_lock);
 	if (wcd9xxx->pm_state == WCD9XXX_PM_SLEEPABLE) {
 		pr_debug("%s: suspending system, state %d, wlock %d\n",
 			 __func__, wcd9xxx->pm_state, wcd9xxx->wlock_holders);
 		wcd9xxx->pm_state = WCD9XXX_PM_ASLEEP;
 	} else if (wcd9xxx->pm_state == WCD9XXX_PM_AWAKE) {
-		/* unlock to wait for pm_state == WCD9XXX_PM_SLEEPABLE
-		 * then set to WCD9XXX_PM_ASLEEP */
 		pr_debug("%s: waiting to suspend system, state %d, wlock %d\n",
 			 __func__, wcd9xxx->pm_state, wcd9xxx->wlock_holders);
 		mutex_unlock(&wcd9xxx->pm_lock);

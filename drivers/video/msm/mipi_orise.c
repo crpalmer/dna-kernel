@@ -29,10 +29,10 @@ static int mipi_orise_lcd_init(void);
 static int wled_trigger_initialized;
 static atomic_t lcd_power_state;
 
-static char sony_orise_001[] ={0x00, 0x00}; /* DTYPE_DCS_WRITE1 : address shift*/
+static char sony_orise_001[] ={0x00, 0x00}; 
 static char sony_orise_002[] = {
-        0xFF, 0x96, 0x01, 0x01}; /* DTYPE_DCS_LWRITE : 0x9600:0x96, 0x9601:0x01, 0x9602:0x01*/
-static char sony_orise_003[] ={0x00, 0x80}; /* DTYPE_DCS_WRITE1 : address shift*/
+        0xFF, 0x96, 0x01, 0x01}; 
+static char sony_orise_003[] ={0x00, 0x80}; 
 static char sony_orise_004[] = {
         0xFF, 0x96, 0x01};
 static char sony_inv_01[] = {0x00, 0xB3};
@@ -50,88 +50,86 @@ static char sony_pwrctl3_02[] = {
 	0xC5, 0x04, 0x3A, 0x56,
 	0x44, 0x44, 0x44, 0x44};
 
-static char sony_gamma28_00[] ={0x00, 0x00}; /* DTYPE_DCS_WRITE1 :address shift*/
+static char sony_gamma28_00[] ={0x00, 0x00}; 
 static char sony_gamma28_01[] = {
 	0xe1, 0x07, 0x10, 0x16,
 	0x0F, 0x08, 0x0F, 0x0D,
 	0x0C, 0x02, 0x06, 0x0F,
 	0x0B, 0x11, 0x0D, 0x07,
 	0x00
-}; /* DTYPE_DCS_LWRITE :0xE100:0x11, 0xE101:0x19, 0xE102: 0x1e, ..., 0xff are padding for 4 bytes*/
+}; 
 
-static char sony_gamma28_02[] ={0x00, 0x00}; /* DTYPE_DCS_WRITE1 :address shift*/
+static char sony_gamma28_02[] ={0x00, 0x00}; 
 static char sony_gamma28_03[] = {
 	0xe2, 0x07, 0x10, 0x16,
 	0x0F, 0x08, 0x0F, 0x0D,
 	0x0C, 0x02, 0x06, 0x0F,
 	0x0B, 0x11, 0x0D, 0x07,
 	0x00
-}; /* DTYPE_DCS_LWRITE :0xE200:0x11, 0xE201:0x19, 0xE202: 0x1e, ..., 0xff are padding for 4 bytes*/
+}; 
 
-static char sony_gamma28_04[] ={0x00, 0x00}; /* DTYPE_DCS_WRITE1 :address shift*/
+static char sony_gamma28_04[] ={0x00, 0x00}; 
 static unsigned char sony_gamma28_05[] = {
 	0xe3, 0x19, 0x1D, 0x20,
 	0x0C, 0x04, 0x0B, 0x0B,
 	0x0A, 0x03, 0x07, 0x12,
 	0x0B, 0x11, 0x0D, 0x07,
 	0x00
-}; /* DTYPE_DCS_LWRITE :0xE200:0x11, 0xE201:0x19, 0xE202: 0x1e, ..., 0xff are padding for 4 bytes*/
+}; 
 
-static char sony_gamma28_06[] ={0x00, 0x00}; /* DTYPE_DCS_WRITE1 :address shift*/
+static char sony_gamma28_06[] ={0x00, 0x00}; 
 static char sony_gamma28_07[] = {
 	0xe4, 0x19, 0x1D, 0x20,
 	0x0C, 0x04, 0x0B, 0x0B,
 	0x0A, 0x03, 0x07, 0x12,
 	0x0B, 0x11, 0x0D, 0x07,
 	0x00
-}; /* DTYPE_DCS_LWRITE :0xE200:0x11, 0xE201:0x19, 0xE202: 0x1e, ..., 0xff are padding for 4 bytes*/
+}; 
 
-static char sony_gamma28_08[] ={0x00, 0x00}; /* DTYPE_DCS_WRITE1 :address shift*/
+static char sony_gamma28_08[] ={0x00, 0x00}; 
 static char sony_gamma28_09[] = {
 	0xe5, 0x07, 0x0F, 0x15,
 	0x0D, 0x06, 0x0E, 0x0D,
 	0x0C, 0x02, 0x06, 0x0F,
 	0x09, 0x0D, 0x0D, 0x06,
 	0x00
-}; /* DTYPE_DCS_LWRITE :0xE200:0x11, 0xE201:0x19, 0xE202: 0x1e, ..., 0xff are padding for 4 bytes*/
+}; 
 
-static char sony_gamma28_10[] ={0x00, 0x00}; /* DTYPE_DCS_WRITE1 :address shift*/
+static char sony_gamma28_10[] ={0x00, 0x00}; 
 static char sony_gamma28_11[] = {
 	0xe6, 0x07, 0x0F, 0x15,
 	0x0D, 0x06, 0x0E, 0x0D,
 	0x0C, 0x02, 0x06, 0x0F,
 	0x09, 0x0D, 0x0D, 0x06,
 	0x00
-}; /* DTYPE_DCS_LWRITE :0xE200:0x11, 0xE201:0x19, 0xE202: 0x1e, ..., 0xff are padding for 4 bytes*/
+}; 
 
-static char pwm_freq_sel_cmds1[] = {0x00, 0xB4}; /* address shift to pwm_freq_sel */
-static char pwm_freq_sel_cmds2[] = {0xC6, 0x00}; /* CABC command with parameter 0 */
+static char pwm_freq_sel_cmds1[] = {0x00, 0xB4}; 
+static char pwm_freq_sel_cmds2[] = {0xC6, 0x00}; 
 
-static char pwm_dbf_cmds1[] = {0x00, 0xB1}; /* address shift to PWM DBF */
-static char pwm_dbf_cmds2[] = {0xC6, 0x04}; /* CABC command-- DBF: [2:1], force duty: [0] */
+static char pwm_dbf_cmds1[] = {0x00, 0xB1}; 
+static char pwm_dbf_cmds2[] = {0xC6, 0x04}; 
 #if 0
 static char orise_panel_Set_TE_Line[] = {
-        0x44, 0x01, 0x68, 0xFF}; /* DTYPE_DCS_LWRITE */
-static char orise_panel_TE_Enable[] = {0x35, 0x00}; /* DTYPE_DCS_WRITE1 */
+        0x44, 0x01, 0x68, 0xFF}; 
+static char orise_panel_TE_Enable[] = {0x35, 0x00}; 
 
-static char max_pktsize[] = {0x04, 0x00}; /* DTYPE_SET, LSB tx first, 16 bytes */
+static char max_pktsize[] = {0x04, 0x00}; 
 
-/* disable video mode */
-static char no_video_mode1[] = {0x00, 0x93}; /* DTYPE_DCS_WRITE1 */
-static char no_video_mode2[] = {0xB0, 0xB7}; /* DTYPE_DCS_WRITE1 */
-/* disable TE wait VSYNC signal */
-static char no_wait_te1[] = {0x00, 0xA0}; /* DTYPE_DCS_WRITE1 */
-static char no_wait_te2[] = {0xC1, 0x00}; /* DTYPE_DCS_WRITE1 */
+static char no_video_mode1[] = {0x00, 0x93}; 
+static char no_video_mode2[] = {0xB0, 0xB7}; 
+static char no_wait_te1[] = {0x00, 0xA0}; 
+static char no_wait_te2[] = {0xC1, 0x00}; 
 #endif
-static char dsi_orise_pwm2[] = {0x53, 0x24};/* DTYPE_DCS_WRITE1 *///bkl on and no dim
-static char dsi_orise_pwm3[] = {0x55, 0x00};/* DTYPE_DCS_WRITE1 *///CABC off
+static char dsi_orise_pwm2[] = {0x53, 0x24};
+static char dsi_orise_pwm3[] = {0x55, 0x00};
 
-static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
-static char exit_sleep[2] = {0x11, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_off[2] = {0x28, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_on[2] = {0x29, 0x00}; /* DTYPE_DCS_WRITE */
+static char enter_sleep[2] = {0x10, 0x00}; 
+static char exit_sleep[2] = {0x11, 0x00}; 
+static char display_off[2] = {0x28, 0x00}; 
+static char display_on[2] = {0x29, 0x00}; 
 
-static char led_pwm1[] = {0x51, 0x00}; /* DTYPE_DCS_WRITE1 */
+static char led_pwm1[] = {0x51, 0x00}; 
 
 static struct dsi_cmd_desc orise_video_on_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 10,
@@ -193,7 +191,7 @@ static struct dsi_cmd_desc orise_display_off_cmds[] = {
 	{DTYPE_DCS_WRITE, 1, 0, 0, 120,
 		sizeof(enter_sleep), enter_sleep}
 };
-static struct dsi_cmd_desc orise_display_on_cmds[] = {  //brandon, check the value
+static struct dsi_cmd_desc orise_display_on_cmds[] = {  
 	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 };
 
@@ -262,12 +260,10 @@ DEFINE_LED_TRIGGER(bkl_led_trigger);
 static void mipi_orise_set_backlight(struct msm_fb_data_type *mfd)
 {
 	struct mipi_panel_info *mipi;
-///HTC:
 	if (mipi_orise_pdata && mipi_orise_pdata->shrink_pwm)
 		led_pwm1[1] = mipi_orise_pdata->shrink_pwm(mfd->bl_level);
 	else
 		led_pwm1[1] = (unsigned char)(mfd->bl_level);
-///:HTC
 
 	if (mipi_orise_pdata && (mipi_orise_pdata->enable_wled_bl_ctrl)
 	    && (wled_trigger_initialized)) {
@@ -277,7 +273,7 @@ static void mipi_orise_set_backlight(struct msm_fb_data_type *mfd)
 	mipi  = &mfd->panel_info.mipi;
 	pr_debug("%s+:bl=%d \n", __func__, mfd->bl_level);
 
-	/* Check LCD power state */
+	
 	if (atomic_read(&lcd_power_state) == 0) {
 		PR_DISP_DEBUG("%s: LCD is off. Skip backlight setting\n", __func__);
 		return;
@@ -286,7 +282,7 @@ static void mipi_orise_set_backlight(struct msm_fb_data_type *mfd)
 	if (mipi->mode == DSI_VIDEO_MODE && mdp4_overlay_dsi_state_get() <= ST_DSI_SUSPEND) {
 		return;
 	}
-	/* mdp4_dsi_cmd_busy_wait: will turn on dsi clock also */
+	
 
 	if (mipi->mode == DSI_CMD_MODE) {
 		mipi_dsi_op_mode_config(DSI_CMD_MODE);
@@ -299,21 +295,19 @@ static void mipi_orise_set_backlight(struct msm_fb_data_type *mfd)
 	cmdreq_orise.cb = NULL;
 	mipi_dsi_cmdlist_put(&cmdreq_orise);
 
-///HTC:
 #ifdef CONFIG_BACKLIGHT_WLED_CABC
-	/* For WLED CABC, To switch on/off WLED module */
+	
 	if (wled_trigger_initialized) {
 		led_trigger_event(bkl_led_trigger, mfd->bl_level);
 	}
 #endif
-///:HTC
 	return;
 }
 
 static void mipi_orise_display_on(struct msm_fb_data_type *mfd)
 {
 
-    /* The Orise-Sony panel need to set display on after first frame sent */
+    
     PR_DISP_DEBUG("%s\n",  __FUNCTION__);
 
 	mipi_dsi_op_mode_config(DSI_CMD_MODE);

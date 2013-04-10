@@ -21,40 +21,18 @@
 extern pgprot_t     pgprot_kernel;
 extern struct platform_device *msm_iommu_root_dev;
 
-/* Domain attributes */
 #define MSM_IOMMU_DOMAIN_PT_CACHEABLE	0x1
 
-/* Mask for the cache policy attribute */
 #define MSM_IOMMU_CP_MASK		0x03
 
-/* Maximum number of Machine IDs that we are allowing to be mapped to the same
- * context bank. The number of MIDs mapped to the same CB does not affect
- * performance, but there is a practical limit on how many distinct MIDs may
- * be present. These mappings are typically determined at design time and are
- * not expected to change at run time.
- */
 #define MAX_NUM_MIDS	32
 
-/**
- * struct msm_iommu_dev - a single IOMMU hardware instance
- * name		Human-readable name given to this IOMMU HW instance
- * ncb		Number of context banks present on this IOMMU HW instance
- */
 struct msm_iommu_dev {
 	const char *name;
 	int ncb;
 	int ttbr_split;
 };
 
-/**
- * struct msm_iommu_ctx_dev - an IOMMU context bank instance
- * name		Human-readable name given to this context bank
- * num		Index of this context bank within the hardware
- * mids		List of Machine IDs that are to be mapped into this context
- *		bank, terminated by -1. The MID is a set of signals on the
- *		AXI bus that identifies the function associated with a specific
- *		memory request. (See ARM spec).
- */
 struct msm_iommu_ctx_dev {
 	const char *name;
 	int num;
@@ -62,17 +40,6 @@ struct msm_iommu_ctx_dev {
 };
 
 
-/**
- * struct msm_iommu_drvdata - A single IOMMU hardware instance
- * @base:	IOMMU config port base address (VA)
- * @ncb		The number of contexts on this IOMMU
- * @irq:	Interrupt number
- * @clk:	The bus clock for this IOMMU hardware instance
- * @pclk:	The clock for the IOMMU bus interconnect
- *
- * A msm_iommu_drvdata holds the global driver data about a single piece
- * of an IOMMU hardware instance.
- */
 struct msm_iommu_drvdata {
 	void __iomem *base;
 	int ncb;
@@ -83,16 +50,6 @@ struct msm_iommu_drvdata {
 	struct regulator *gdsc;
 };
 
-/**
- * struct msm_iommu_ctx_drvdata - an IOMMU context bank instance
- * @num:		Hardware context number of this context
- * @pdev:		Platform device associated wit this HW instance
- * @attached_elm:	List element for domains to track which devices are
- *			attached to them
- *
- * A msm_iommu_ctx_drvdata holds the driver data for a single context bank
- * within each IOMMU hardware instance
- */
 struct msm_iommu_ctx_drvdata {
 	int num;
 	struct platform_device *pdev;
@@ -101,20 +58,58 @@ struct msm_iommu_ctx_drvdata {
 	const char *name;
 };
 
-/*
- * Interrupt handler for the IOMMU context fault interrupt. Hooking the
- * interrupt is not supported in the API yet, but this will print an error
- * message and dump useful IOMMU registers.
- */
 irqreturn_t msm_iommu_fault_handler(int irq, void *dev_id);
 irqreturn_t msm_iommu_fault_handler_v2(int irq, void *dev_id);
 
+enum {
+PROC_APPS,
+PROC_GPU,
+PROC_MAX
+};
+
+struct remote_iommu_petersons_spinlock {
+	uint32_t flag[PROC_MAX];
+	uint32_t turn;
+};
+
 #ifdef CONFIG_MSM_IOMMU
-/*
- * Look up an IOMMU context device by its context name. NULL if none found.
- * Useful for testing and drivers that do not yet fully have IOMMU stuff in
- * their platform devices.
- */
+void *msm_iommu_lock_initialize(void);
+void msm_iommu_mutex_lock(void);
+void msm_iommu_mutex_unlock(void);
+#else
+static inline void *msm_iommu_lock_initialize(void)
+{
+	return NULL;
+}
+static inline void msm_iommu_mutex_lock(void) { }
+static inline void msm_iommu_mutex_unlock(void) { }
+#endif
+
+#ifdef CONFIG_MSM_IOMMU_GPU_SYNC
+void msm_iommu_remote_p0_spin_lock(void);
+void msm_iommu_remote_p0_spin_unlock(void);
+
+#define msm_iommu_remote_lock_init() _msm_iommu_remote_spin_lock_init()
+#define msm_iommu_remote_spin_lock() msm_iommu_remote_p0_spin_lock()
+#define msm_iommu_remote_spin_unlock() msm_iommu_remote_p0_spin_unlock()
+#else
+#define msm_iommu_remote_lock_init()
+#define msm_iommu_remote_spin_lock()
+#define msm_iommu_remote_spin_unlock()
+#endif
+#define msm_iommu_lock() \
+do { \
+	msm_iommu_mutex_lock(); \
+	msm_iommu_remote_spin_lock(); \
+} while (0)
+
+#define msm_iommu_unlock() \
+do { \
+	msm_iommu_remote_spin_unlock(); \
+	msm_iommu_mutex_unlock(); \
+} while (0)
+
+#ifdef CONFIG_MSM_IOMMU
 struct device *msm_iommu_get_ctx(const char *ctx_name);
 #else
 static inline struct device *msm_iommu_get_ctx(const char *ctx_name)

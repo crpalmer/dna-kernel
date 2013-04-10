@@ -53,11 +53,9 @@ unsigned short *test_frame;
 #endif
 
 
-/*16KB*/
 #define TXN_MAX 16384
 #define RXN_MAX 4096
 
-/* number of rx requests to allocate */
 #define PROJ_RX_REQ_MAX 4
 
 #ifdef DUMMY_DISPLAY_MODE_320_480
@@ -124,7 +122,7 @@ struct projector_dev {
 	struct work_struct send_fb_work;
 	int start_send_fb;
 
-	/* HTC Mode Protocol Info */
+	
 	struct htcmode_protocol *htcmode_proto;
 	u8 is_htcmode;
 	struct hsml_header header;
@@ -185,15 +183,14 @@ static struct usb_descriptor_header *hs_projector_descs[] = {
 	NULL,
 };
 
-/* string descriptors: */
 
 static struct usb_string projector_string_defs[] = {
 	[0].s = "HTC PROJECTOR",
-	{  } /* end of list */
+	{  } 
 };
 
 static struct usb_gadget_strings projector_string_table = {
-	.language =		0x0409,	/* en-us */
+	.language =		0x0409,	
 	.strings =		projector_string_defs,
 };
 
@@ -214,7 +211,6 @@ enum {
     DOCK_ON_AUTOBOT,
     HTC_MODE_RUNNING
 };
-/* the value of htc_mode_status should be one of above status */
 static atomic_t htc_mode_status = ATOMIC_INIT(0);
 
 static void usb_setup_android_projector(struct work_struct *work);
@@ -246,7 +242,7 @@ static struct usb_request *projector_request_new(struct usb_ep *ep, int buffer_s
 	if (!req)
 		return NULL;
 
-	/* now allocate buffers for the requests */
+	
 	req->buf = kmalloc(buffer_size, GFP_KERNEL);
 	if (!req->buf) {
 		usb_ep_free_request(ep, req);
@@ -264,7 +260,6 @@ static void projector_request_free(struct usb_request *req, struct usb_ep *ep)
 	}
 }
 
-/* add a request to the tail of a list */
 static void proj_req_put(struct projector_dev *dev, struct list_head *head,
 		struct usb_request *req)
 {
@@ -275,7 +270,6 @@ static void proj_req_put(struct projector_dev *dev, struct list_head *head,
 	spin_unlock_irqrestore(&dev->lock, flags);
 }
 
-/* remove a request from the head of a list */
 static struct usb_request *proj_req_get(struct projector_dev *dev, struct list_head *head)
 {
 	unsigned long flags;
@@ -297,7 +291,7 @@ static void projector_queue_out(struct projector_dev *dev)
 	int ret;
 	struct usb_request *req;
 
-	/* if we have idle read requests, get them queued */
+	
 	while ((req = proj_req_get(dev, &dev->rx_idle))) {
 		req->length = RXN_MAX;
 		VDBG("%s: queue %p\n", __func__, req);
@@ -343,14 +337,13 @@ static void projector_send_multitouch_event(struct projector_dev *dev,
 	if (event->num_touch == 0)
 		content = NULL;
 	else {
-		/* Move to point to touch data */
+		
 		content = (struct touch_content *)(data + sizeof(struct touch_event));
 	}
 	touch_event_func(dev, content, event->num_touch);
 }
 
 
-/* for mouse event type, 1 :move, 2:down, 3:up */
 static void projector_send_touch_event(struct projector_dev *dev,
 	int iPenType, int iX, int iY)
 {
@@ -371,10 +364,10 @@ static void projector_send_touch_event(struct projector_dev *dev,
 			input_report_key(tdev, BTN_2, 0);
 			input_sync(tdev);
 			b_firstPenDown = false;
-			b_prePenDown = true; /* For one pen-up only */
+			b_prePenDown = true; 
 			printk(KERN_INFO "projector: Pen down %d, %d\n", iX, iY);
 		} else {
-			/* don't report the same point */
+			
 			if (iX != iCal_LastX || iY != iCal_LastY) {
 				input_report_abs(tdev, ABS_X, iX);
 				input_report_abs(tdev, ABS_Y, iY);
@@ -405,18 +398,12 @@ static void projector_send_touch_event(struct projector_dev *dev,
 	iCal_LastY = iY;
 }
 
-/* key code: 4 -> home, 5-> menu, 6 -> back, 0 -> system wake */
 static void projector_send_Key_event(struct projector_dev *dev,
 	int iKeycode)
 {
 	struct input_dev *kdev = dev->keypad_input;
 	printk(KERN_INFO "%s keycode %d\n", __func__, iKeycode);
 
-	/* ics will use default Generic.kl to translate linux keycode WAKEUP
-	   to android keycode POWER. by this, device will suspend/resume as
-	   we press power key. Even in GB, default qwerty.kl will not do
-	   anything for linux keycode WAKEUP, i think we can just drop here.
-	*/
 	if (iKeycode <= 0 || iKeycode >= sizeof(keypad_code)/sizeof(keypad_code[0]))
 		return;
 
@@ -462,14 +449,18 @@ static void send_fb(struct projector_dev *dev)
 			xfer = count > TXN_MAX? TXN_MAX : count;
 			req->length = xfer;
 			memcpy(req->buf, frame, xfer);
+
+			count -= xfer;
+			frame += xfer;
+
+			if (count <= 0)
+				req->zero = 1;
 			if (usb_ep_queue(dev->ep_in, req, GFP_ATOMIC) < 0) {
 				proj_req_put(dev, &dev->tx_idle, req);
 				printk(KERN_WARNING "%s: failed to queue req %p\n",
 					__func__, req);
 				break;
 			}
-			count -= xfer;
-			frame += xfer;
 		} else {
 			printk(KERN_ERR "send_fb: no req to send\n");
 			break;
@@ -729,9 +720,6 @@ static void projector_enable_fb_work(struct projector_dev *dev, int enabled)
 }
 
 
-/*
- * Handle HTC Mode specific messages and return 1 if message has been handled
- */
 static int projector_handle_htcmode_msg(struct projector_dev *dev, struct usb_request *req)
 {
 	unsigned char *data = req->buf;
@@ -761,10 +749,6 @@ static int projector_handle_htcmode_msg(struct projector_dev *dev, struct usb_re
 	} else if (!strncmp("endfb", data, 5)) {
 		projector_enable_fb_work(dev, 0);
 	} else if (!strncmp("startcand", data, 9)) {
-		/*
-		 * Ignore this message because we already started the CAN daemon at
-		 * very beginning.
-		 */
 	} else if (!strncmp("endcand", data, 7)) {
 		atomic_set(&dev->cand_online, 0);
 		htc_mode_info("endcand %d\n", atomic_read(&dev->cand_online));
@@ -803,7 +787,7 @@ static void projector_complete_out(struct usb_ep *ep, struct usb_request *req)
 		handled = projector_handle_htcmode_msg(dev, req);
 
 	if (!handled) {
-		/* for mouse event type, 1 :move, 2:down, 3:up */
+		
 		mouse_data[0] = *((int *)(req->buf));
 
 		if (!strncmp("init", data, 4)) {
@@ -815,7 +799,7 @@ static void projector_complete_out(struct usb_ep *ep, struct usb_request *req)
 			dev->framesize = dev->width * dev->height * (BITSPIXEL / 8);
 
 			send_info(dev);
-			/* system wake code */
+			
 			projector_send_Key_event(dev, 0);
 
 			atomic_set(&htc_mode_status, HTC_MODE_RUNNING);
@@ -825,7 +809,7 @@ static void projector_complete_out(struct usb_ep *ep, struct usb_request *req)
 		} else if (*data == ' ') {
 			send_fb(dev);
 			dev->frame_count++;
-			/* 30s send system wake code */
+			
 			if (dev->frame_count == 30 * 30) {
 				projector_send_Key_event(dev, 0);
 				dev->frame_count = 0;
@@ -866,7 +850,7 @@ static int projector_create_bulk_endpoints(struct projector_dev *dev,
 		return -ENODEV;
 	}
 	DBG("usb_ep_autoconfig for ep_in got %s\n", ep->name);
-	ep->driver_data = dev;		/* claim the endpoint */
+	ep->driver_data = dev;		
 	dev->ep_in = ep;
 
 	ep = usb_ep_autoconfig(cdev->gadget, out_desc);
@@ -875,10 +859,10 @@ static int projector_create_bulk_endpoints(struct projector_dev *dev,
 		return -ENODEV;
 	}
 	DBG("usb_ep_autoconfig for projector ep_out got %s\n", ep->name);
-	ep->driver_data = dev;		/* claim the endpoint */
+	ep->driver_data = dev;		
 	dev->ep_out = ep;
 
-	/* now allocate requests for our endpoints */
+	
 	for (i = 0; i < dev->rx_req_count; i++) {
 		req = projector_request_new(dev->ep_out, RXN_MAX);
 		if (!req)
@@ -916,20 +900,20 @@ projector_function_bind(struct usb_configuration *c, struct usb_function *f)
 	dev->cdev = cdev;
 	DBG("%s\n", __func__);
 
-	/* allocate interface ID(s) */
+	
 	id = usb_interface_id(c, f);
 	if (id < 0)
 		return id;
 
 	projector_interface_desc.bInterfaceNumber = id;
 
-	/* allocate endpoints */
+	
 	ret = projector_create_bulk_endpoints(dev, &projector_fullspeed_in_desc,
 			&projector_fullspeed_out_desc);
 	if (ret)
 		return ret;
 
-	/* support high speed hardware */
+	
 	if (gadget_is_dualspeed(c->cdev->gadget)) {
 		projector_highspeed_in_desc.bEndpointAddress =
 			projector_fullspeed_in_desc.bEndpointAddress;
@@ -1011,7 +995,7 @@ static int projector_touch_init(struct projector_dev *dev)
 	set_bit(EV_ABS,    tdev->evbit);
 
 
-	/* Set input parameters boundary. */
+	
 	if (dev->htcmode_proto->version < 0x0006) {
 		pr_info("%s: single-touch support\n", __func__);
 
@@ -1045,7 +1029,7 @@ static int projector_touch_init(struct projector_dev *dev)
 static int projector_keypad_init(struct projector_dev *dev)
 {
 	struct input_dev *kdev;
-	/* Initialize input device info */
+	
 	dev->keypad_input = input_allocate_device();
 	if (dev->keypad_input == NULL) {
 		printk(KERN_ERR "%s: Failed to allocate input device\n",
@@ -1083,11 +1067,11 @@ static int projector_keypad_init(struct projector_dev *dev)
 	kdev->phys = "input2";
 	kdev->id.bustype = BUS_HOST;
 	kdev->id.vendor = 0x0123;
-	kdev->id.product = 0x5220 /*dummy value*/;
+	kdev->id.product = 0x5220 ;
 	kdev->id.version = 0x0100;
 	kdev->keycodesize = sizeof(unsigned int);
 
-	/* Register linux input device */
+	
 	if (input_register_device(kdev) < 0) {
 		printk(KERN_ERR "%s: Unable to register %s input device\n",
 			__func__, kdev->name);
@@ -1098,7 +1082,6 @@ static int projector_keypad_init(struct projector_dev *dev)
 	return 0;
 }
 
-/* TODO: It's the way tools to enable projector */
 #if 0
 static ssize_t store_enable(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
@@ -1153,9 +1136,6 @@ static void htcmode_status_notify(struct work_struct *w)
 		switch_set_state(&dev->htcmode_sdev, atomic_read(&htc_mode_status));
 }
 
-/*
- * 1: enable; 0: disable
- */
 void htc_mode_enable(int enable)
 {
 	htc_mode_info("%s = %d, current htc_mode_status = %d\n",
@@ -1439,9 +1419,6 @@ static int projector_ctrlrequest(struct usb_composite_dev *cdev,
 				if (projector_dev) {
 					projector_dev->htcmode_proto->vendor = w_index;
 					projector_dev->htcmode_proto->version = w_value;
-					/*
-					 * 0x0034 is for Autobot. It is not a correct HTC mode version.
-					 */
 					if (projector_dev->htcmode_proto->version == 0x0034)
 						projector_dev->htcmode_proto->version = 0x0003;
 					projector_dev->is_htcmode = 1;
@@ -1514,10 +1491,6 @@ static int projector_ctrlrequest(struct usb_composite_dev *cdev,
 			break;
 
 		case HSML_REQ_GET_SERVER_AUTH:
-			/*
-			 * Respond with STALL to tell the host that the authentication is
-			 * in progress.
-			 */
 			if (!projector_dev->htcmode_proto->auth_in_progress) {
 				memcpy(cdev->req->buf,
 						projector_dev->htcmode_proto->server_sig, w_length);

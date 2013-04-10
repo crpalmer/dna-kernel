@@ -38,30 +38,6 @@ module_param_named(simlock_code, simlock_code, charp, S_IRUGO | S_IWUSR | S_IWGR
 
 static DEFINE_MUTEX(scm_lock);
 
-/**
- * struct scm_command - one SCM command buffer
- * @len: total available memory for command and response
- * @buf_offset: start of command buffer
- * @resp_hdr_offset: start of response buffer
- * @id: command to be executed
- * @buf: buffer returned from scm_get_command_buffer()
- *
- * An SCM command is laid out in memory as follows:
- *
- *	------------------- <--- struct scm_command
- *	| command header  |
- *	------------------- <--- scm_get_command_buffer()
- *	| command buffer  |
- *	------------------- <--- struct scm_response and
- *	| response header |      scm_command_to_response()
- *	------------------- <--- scm_get_response_buffer()
- *	| response buffer |
- *	-------------------
- *
- * There can be arbitrary padding between the headers and buffers so
- * you should always use the appropriate scm_get_*_buffer() routines
- * to access the buffers in a safe manner.
- */
 struct scm_command {
 	u32	len;
 	u32	buf_offset;
@@ -70,12 +46,6 @@ struct scm_command {
 	u32	buf[0];
 };
 
-/**
- * struct scm_response - one SCM response buffer
- * @len: total available memory for response
- * @buf_offset: start of response data relative to start of scm_response
- * @is_complete: indicates if the command has finished processing
- */
 struct scm_response {
 	u32	len;
 	u32	buf_offset;
@@ -108,16 +78,6 @@ struct oem_3rd_party_syscall_req {
 	u32 len;
 };
 
-/**
- * alloc_scm_command() - Allocate an SCM command
- * @cmd_size: size of the command buffer
- * @resp_size: size of the response buffer
- *
- * Allocate an SCM command, including enough room for the command
- * and response headers as well as the command and response buffers.
- *
- * Returns a valid &scm_command on success or %NULL if the allocation fails.
- */
 static struct scm_command *alloc_scm_command(size_t cmd_size, size_t resp_size)
 {
 	struct scm_command *cmd;
@@ -133,46 +93,22 @@ static struct scm_command *alloc_scm_command(size_t cmd_size, size_t resp_size)
 	return cmd;
 }
 
-/**
- * free_scm_command() - Free an SCM command
- * @cmd: command to free
- *
- * Free an SCM command.
- */
 static inline void free_scm_command(struct scm_command *cmd)
 {
 	kfree(cmd);
 }
 
-/**
- * scm_command_to_response() - Get a pointer to a scm_response
- * @cmd: command
- *
- * Returns a pointer to a response for a command.
- */
 static inline struct scm_response *scm_command_to_response(
 		const struct scm_command *cmd)
 {
 	return (void *)cmd + cmd->resp_hdr_offset;
 }
 
-/**
- * scm_get_command_buffer() - Get a pointer to a command buffer
- * @cmd: command
- *
- * Returns a pointer to the command buffer of a command.
- */
 static inline void *scm_get_command_buffer(const struct scm_command *cmd)
 {
 	return (void *)cmd->buf;
 }
 
-/**
- * scm_get_response_buffer() - Get a pointer to a response buffer
- * @rsp: response
- *
- * Returns a pointer to a response buffer of a response.
- */
 static inline void *scm_get_response_buffer(const struct scm_response *rsp)
 {
 	return (void *)rsp + rsp->buf_offset;
@@ -223,11 +159,6 @@ static int __scm_call(const struct scm_command *cmd)
 	int ret;
 	u32 cmd_addr = virt_to_phys(cmd);
 
-	/*
-	 * Flush the entire cache here so callers don't have to remember
-	 * to flush the cache when passing physical addresses to the secure
-	 * side in the buffer.
-	 */
 	flush_cache_all();
 	ret = smc(cmd_addr);
 	if (ret < 0)
@@ -252,17 +183,6 @@ void scm_inv_range(unsigned long start, unsigned long end)
 }
 EXPORT_SYMBOL(scm_inv_range);
 
-/**
- * scm_call() - Send an SCM command
- * @svc_id: service identifier
- * @cmd_id: command identifier
- * @cmd_buf: command buffer
- * @cmd_len: length of the command buffer
- * @resp_buf: response buffer
- * @resp_len: length of the response buffer
- *
- * Sends a command to the SCM and waits for the command to finish processing.
- */
 int scm_call(u32 svc_id, u32 cmd_id, const void *cmd_buf, size_t cmd_len,
 		void *resp_buf, size_t resp_len)
 {
@@ -310,15 +230,6 @@ EXPORT_SYMBOL(scm_call);
 				SCM_MASK_IRQS | \
 				(n & 0xf))
 
-/**
- * scm_call_atomic1() - Send an atomic SCM command with one argument
- * @svc_id: service identifier
- * @cmd_id: command identifier
- * @arg1: first argument
- *
- * This shall only be used with commands that are guaranteed to be
- * uninterruptable, atomic and SMP safe.
- */
 s32 scm_call_atomic1(u32 svc, u32 cmd, u32 arg1)
 {
 	int context_id;
@@ -342,16 +253,6 @@ s32 scm_call_atomic1(u32 svc, u32 cmd, u32 arg1)
 }
 EXPORT_SYMBOL(scm_call_atomic1);
 
-/**
- * scm_call_atomic2() - Send an atomic SCM command with two arguments
- * @svc_id: service identifier
- * @cmd_id: command identifier
- * @arg1: first argument
- * @arg2: second argument
- *
- * This shall only be used with commands that are guaranteed to be
- * uninterruptable, atomic and SMP safe.
- */
 s32 scm_call_atomic2(u32 svc, u32 cmd, u32 arg1, u32 arg2)
 {
 	int context_id;

@@ -173,6 +173,7 @@ config ARCH_MSM8960
 	select MSM_RUN_QUEUE_STATS
 	select ARM_HAS_SG_CHAIN
 	select MSM_KRAIT_WFE_FIXUP
+	select MSM_IOMMU_GPU_SYNC
 
 config ARCH_MSM8930
 	bool "MSM8930"
@@ -205,6 +206,7 @@ config ARCH_MSM8930
 	select HOLES_IN_ZONE if SPARSEMEM
 	select ARM_HAS_SG_CHAIN
 	select MSM_KRAIT_WFE_FIXUP
+	select MSM_IOMMU_GPU_SYNC
 
 config ARCH_APQ8064
 	bool "APQ8064"
@@ -232,6 +234,7 @@ config ARCH_APQ8064
 	select ARCH_SUPPORTS_MSI
 	select ARM_HAS_SG_CHAIN
 	select MSM_KRAIT_WFE_FIXUP
+	select MSM_IOMMU_GPU_SYNC
 
 config ARCH_MSM8974
 	bool "MSM8974"
@@ -274,24 +277,6 @@ config MACH_JET
 	bool "Jet"
 	help
 	  Support for the HTC Jet
-
-config MACH_JEWEL_DD
-        depends on ARCH_MSM8960
-        bool "Jel_dd"
-        help
-          Support for the HTC Jewel_DD
-
-config MACH_TC2
-	depends on ARCH_MSM8930
-	bool "TC2"
-	help
-	  Support for the HTC TC2
-
-config MACH_OPERAUL
-	depends on ARCH_MSM8930
-	bool "OPERAUL"
-	help
-	  Support for the HTC OPERAUL
 
 config ARCH_FSM9XXX
 	bool "FSM9XXX"
@@ -2582,24 +2567,6 @@ config MACH_MONARUDO
 	bool "APQ8064 MONARUDO"
 	help
 	  Support for the HTC APQ8064 MONARUDO.
-
-config MACH_DELUXE_J
-        depends on ARCH_APQ8064
-        bool "APQ8064 DELUXE_J"
-        help
-          Support for the HTC APQ8064 DELUXE_J.
-
-config MACH_DELUXE_U
-        depends on ARCH_APQ8064
-        bool "APQ8064 DELUXE_U"
-        help
-          Support for the HTC APQ8064 DELUXE_U.
-
-config MACH_DELUXE_UL
-        depends on ARCH_APQ8064
-        bool "APQ8064 DELUXE_UL"
-        help
-          Support for the HTC APQ8064 DELUXE_UL.
 
 config HTC_HEADSET_ONE_WIRE
 	tristate "HTC 1-wire headset detection driver"

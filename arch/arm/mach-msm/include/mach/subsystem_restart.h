@@ -32,7 +32,7 @@ struct subsys_data {
 	void (*crash_shutdown) (const struct subsys_data *);
 	int (*ramdump) (int, const struct subsys_data *);
 
-	/* Internal use only */
+	
 	struct list_head list;
 	void *notif_handle;
 
@@ -72,6 +72,6 @@ static inline int ssr_register_subsystem(struct subsys_data *subsys)
 	return 0;
 }
 
-#endif /* CONFIG_MSM_SUBSYSTEM_RESTART */
+#endif 
 
 #endif

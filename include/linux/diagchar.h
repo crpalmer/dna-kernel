@@ -21,10 +21,6 @@
 #define USER_SPACE_LOG_TYPE		32
 #define DCI_DATA_TYPE			64
 
-/* We always use 64 for the logging mode: UART/QXDM2SD,
- * however, to not conflict with QCT definition, we shift
- * the USERMODE_DIAGFWD to 2048
- */
 #define USERMODE_DIAGFWD		2048
 #define USERMODE_DIAGFWD_LEGACY		64
 
@@ -33,13 +29,11 @@
 #define NO_LOGGING_MODE			3
 #define UART_MODE			4
 
-/* different values that go in for diag_data_type */
 #define DATA_TYPE_EVENT         	0
 #define DATA_TYPE_F3            	1
 #define DATA_TYPE_LOG           	2
 #define DATA_TYPE_RESPONSE      	3
 
-/* Different IOCTL values */
 #define DIAG_IOCTL_COMMAND_REG  	0
 #define DIAG_IOCTL_SWITCH_LOGGING	7
 #define DIAG_IOCTL_GET_DELAYED_RSP_ID 	8
@@ -49,10 +43,8 @@
 #define DIAG_IOCTL_DCI_SUPPORT		22
 #define DIAG_IOCTL_DCI_REG		23
 
-/* HTC: process request non-blocking IO */
 #define DIAG_IOCTL_NONBLOCKING_TIMEOUT 64
 
-/* PC Tools IDs */
 #define APQ8060_TOOLS_ID	4062
 #define AO8960_TOOLS_ID		4064
 #define APQ8064_TOOLS_ID	4072
@@ -98,16 +90,12 @@
 #define MSG_MASK_30			(0x40000000)
 #define MSG_MASK_31			(0x80000000)
 
-/*  These masks are to be used for support of all legacy messages in the sw.
-The user does not need to remember the names as they will be embedded in
-the appropriate macros. */
 #define MSG_LEGACY_LOW			MSG_MASK_0
 #define MSG_LEGACY_MED			MSG_MASK_1
 #define MSG_LEGACY_HIGH			MSG_MASK_2
 #define MSG_LEGACY_ERROR		MSG_MASK_3
 #define MSG_LEGACY_FATAL		MSG_MASK_4
 
-/* Legacy Message Priorities */
 #define MSG_LVL_FATAL			(MSG_LEGACY_FATAL)
 #define MSG_LVL_ERROR			(MSG_LEGACY_ERROR | MSG_LVL_FATAL)
 #define MSG_LVL_HIGH			(MSG_LEGACY_HIGH | MSG_LVL_ERROR)
@@ -116,8 +104,6 @@ the appropriate macros. */
 
 #define MSG_LVL_NONE			0
 
-/* This needs to be modified manually now, when we add
- a new RANGE of SSIDs to the msg_mask_tbl */
 #define MSG_MASK_TBL_CNT		23
 #define EVENT_LAST_ID			0x08AD
 
@@ -694,7 +680,6 @@ static const uint32_t msg_bld_masks_22[] = {
 	MSG_LVL_HIGH
 };
 
-/* LOG CODES */
 
 #define LOG_0	0x0
 #define LOG_1	0x15A7

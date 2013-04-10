@@ -67,10 +67,10 @@ struct msm_camera_device_platform_data {
 	uint8_t is_ispif;
 	uint8_t is_vpe;
 	struct msm_bus_scale_pdata *cam_bus_scale_table;
-#if 1	/* HTC_START */
+#if 1	
 	int (*camera_csi_on) (void);
 	int (*camera_csi_off) (void);
-#endif	/* HTC_END */
+#endif	
 };
 enum msm_camera_csi_data_format {
 	CSI_8BIT,
@@ -166,7 +166,6 @@ struct msm_camera_sensor_flash_data {
 	struct msm_camera_sensor_flash_src *flash_src;
 };
 
-/* Andrew_Cheng linear led 20111205 MB*/
 struct camera_led_info {
 	uint16_t enable;
 	uint16_t low_limit_led_state;
@@ -187,7 +186,6 @@ struct camera_flash_info {
 	struct camera_led_info *led_info;
 	struct camera_led_est *led_est_table;
 };
-/* Andrew_Cheng linear led 20111205 ME */
 
 struct camera_flash_cfg {
 	int num_flash_levels;
@@ -195,12 +193,12 @@ struct camera_flash_cfg {
 	uint16_t low_temp_limit;
 	uint16_t low_cap_limit;
 	uint8_t postpone_led_mode;
-	struct camera_flash_info *flash_info;	/* Andrew_Cheng linear led 20111205 */
+	struct camera_flash_info *flash_info;	
 };
 
 struct msm_camera_sensor_strobe_flash_data {
 	uint8_t flash_trigger;
-	uint8_t flash_charge; /* pin for charge */
+	uint8_t flash_charge; 
 	uint8_t flash_charge_done;
 	uint32_t flash_recharge_duration;
 	uint32_t irq;
@@ -220,14 +218,12 @@ struct msm_camera_rawchip_info {
 	int (*rawchip_use_ext_1v2)(void);
 };
 
-/* HTC_START_Simon.Ti_Liu_20120702_Enhance_bypass */
 enum rawchip_enable_type {
 	RAWCHIP_DISABLE,
 	RAWCHIP_ENABLE,
 	RAWCHIP_DXO_BYPASS,
 	RAWCHIP_MIPI_BYPASS,
 };
-/* HTC_END*/
 
 enum msm_camera_type {
 	BACK_CAMERA_2D,
@@ -287,10 +283,10 @@ struct msm_camera_gpio_conf {
 	uint8_t camera_off_table_size;
 	uint32_t *camera_on_table;
 	uint8_t camera_on_table_size;
-	/* HTC_START */
+	
 	uint16_t *cam_gpio_tbl;
 	uint8_t cam_gpio_tbl_size;
-	/* HTC_END */
+	
 };
 
 enum msm_camera_i2c_mux_mode {
@@ -314,7 +310,7 @@ struct msm_camera_sensor_platform_info {
 	struct msm_camera_gpio_conf *gpio_conf;
 	struct msm_camera_i2c_conf *i2c_conf;
 	struct msm_camera_csi_lane_params *csi_lane_params;
-	/* HTC_START */
+	
 	int sensor_reset_enable;
 	int sensor_pwd;
 	int vcm_pwd;
@@ -322,7 +318,7 @@ struct msm_camera_sensor_platform_info {
 	int privacy_light;
 	enum sensor_flip_mirror_info mirror_flip;
 	void *privacy_light_info;
-	/* HTC_END */
+	
 };
 
 enum msm_camera_actuator_name {
@@ -343,9 +339,9 @@ struct msm_actuator_info {
 	int bus_id;
 	int vcm_pwd;
 	int vcm_enable;
-	/* HTC_START */
+	
 	int use_rawchip_af;
-	/* HTC_END */
+	
 };
 
 struct msm_eeprom_info {
@@ -374,29 +370,27 @@ struct msm_camera_sensor_info {
 	enum msm_camera_type camera_type;
 	enum msm_sensor_type sensor_type;
 
-/* HTC_START steven multiple VCM 20120604 */
     uint16_t num_actuator_info_table;
 	struct msm_actuator_info **actuator_info_table;
-/* HTC_END steven multiple VCM 20120604 */
 
 	struct msm_actuator_info *actuator_info;
 	int pmic_gpio_enable;
 
-	/* HTC_START */
+	
 	struct msm_camera_gpio_conf *gpio_conf;
 	int (*camera_power_on)(void);
 	int (*camera_power_off)(void);
 	int use_rawchip;
-#if 1 /* HTC to be removed */
-	/* HTC++ */
+#if 1 
+	
 	void(*camera_clk_switch)(void);
-	int power_down_disable; /* if close power */
-	int full_size_preview; /* if use full-size preview */
-	int cam_select_pin; /* for two sensors */
-	int mirror_mode; /* for sensor upside down */
-	int(*camera_pm8058_power)(int); /* for express */
+	int power_down_disable; 
+	int full_size_preview; 
+	int cam_select_pin; 
+	int mirror_mode; 
+	int(*camera_pm8058_power)(int); 
 	struct camera_flash_cfg* flash_cfg;
-	int gpio_set_value_force; /*true: force to set gpio  */
+	int gpio_set_value_force; 
 	int dev_node;
 	int camera_platform;
 	uint8_t led_high_enabled;
@@ -404,7 +398,7 @@ struct msm_camera_sensor_info {
 	uint32_t kpi_sensor_end;
 	uint8_t (*preview_skip_frame)(void);
 #endif
-	/* HTC_END */
+	
 
 };
 
@@ -428,10 +422,6 @@ struct msm_snd_endpoints {
 };
 
 #define MSM_MAX_DEC_CNT 14
-/* 7k target ADSP information */
-/* Bit 23:0, for codec identification like mp3, wav etc *
- * Bit 27:24, for mode identification like tunnel, non tunnel*
- * bit 31:28, for operation support like DM, DMA */
 enum msm_adspdec_concurrency {
 	MSM_ADSP_CODEC_WAV = 0,
 	MSM_ADSP_CODEC_ADPCM = 1,
@@ -457,13 +447,10 @@ enum msm_adspdec_concurrency {
 struct msm_adspdec_info {
 	const char *module_name;
 	unsigned module_queueid;
-	int module_decid; /* objid */
+	int module_decid; 
 	unsigned nr_codec_support;
 };
 
-/* Carries information about number codec
- * supported if same codec or different codecs
- */
 struct dec_instance_table {
 	uint8_t max_instances_same_dec;
 	uint8_t max_instances_diff_dec;
@@ -472,8 +459,7 @@ struct dec_instance_table {
 struct msm_adspdec_database {
 	unsigned num_dec;
 	unsigned num_concurrency_support;
-	unsigned int *dec_concurrency_table; /* Bit masked entry to *
-					      *	represents codec, mode etc */
+	unsigned int *dec_concurrency_table; 
 	struct msm_adspdec_info  *dec_info_list;
 	struct dec_instance_table *dec_instance_list;
 };
@@ -512,8 +498,8 @@ struct msm_panel_common_pdata {
 	struct msm_bus_scale_pdata *mdp_bus_scale_table;
 #endif
 	int mdp_rev;
-	u32 ov0_wb_size;  /* overlay0 writeback size */
-	u32 ov1_wb_size;  /* overlay1 writeback size */
+	u32 ov0_wb_size;  
+	u32 ov1_wb_size;  
 	u32 mem_hid;
 	char cont_splash_enabled;
 	char mdp_iommu_split_domain;
@@ -561,7 +547,6 @@ enum mipi_dsi_3d_ctrl {
 	FPGA_SPI_INTF,
 };
 
-/* DSI PHY configuration */
 struct mipi_dsi_phy_ctrl {
 	uint32_t regulator[5];
 	uint32_t timing[12];
@@ -578,9 +563,7 @@ struct mipi_dsi_panel_platform_data {
 	char dlane_swap;
 	void (*dsi_pwm_cfg)(void);
 	char enable_wled_bl_ctrl;
-// HTC:
 	unsigned char (*shrink_pwm)(int val);
-// :HTC
 };
 
 struct lvds_panel_platform_data {
@@ -632,17 +615,13 @@ struct msm_hdmi_platform_data {
 
 struct msm_mhl_platform_data {
 	int irq;
-	/* GPIO no. for mhl intr */
+	
 	uint32_t gpio_mhl_int;
-	/* GPIO no. for mhl block reset */
+	
 	uint32_t gpio_mhl_reset;
-	/*
-	 * below gpios are specific to targets
-	 * that have the integrated MHL soln.
-	 */
-	/* GPIO no. for mhl block power */
+	
 	uint32_t gpio_mhl_power;
-	/* GPIO no. for hdmi-mhl mux */
+	
 	uint32_t gpio_hdmi_mhl_mux;
 };
 
@@ -693,7 +672,6 @@ struct isp1763_platform_data {
 	int (*setup_gpio)(int enable);
 };
 #endif
-/* common init routines for use by arch/arm/mach-msm/board-*.c */
 
 #define SHIP_BUILD	0
 #define MFG_BUILD	1
@@ -745,7 +723,7 @@ enum usb_connect_type {
 	CONNECT_TYPE_INTERNAL,
 	CONNECT_TYPE_UNSUPPORTED,
 #ifdef CONFIG_MACH_VERDI_LTE
-	/* Y cable with USB and 9V charger */
+	
 	CONNECT_TYPE_USB_9V_AC,
 #endif
 	CONNECT_TYPE_MHL_AC,
@@ -754,7 +732,6 @@ enum usb_connect_type {
 static inline void msm_hsusb_set_vbus_state(int online) {}
 #endif
 
-/* START: add USB connected notify function */
 struct t_usb_status_notifier{
 	struct list_head notifier_link;
 	const char *name;
@@ -764,9 +741,6 @@ int htc_usb_register_notifier(struct t_usb_status_notifier *notifer);
 int usb_get_connect_type(void);
 static LIST_HEAD(g_lh_usb_notifier_list);
 
-/***********************************
-Direction: cable detect drvier -> battery driver or other
-***********************************/
 struct t_cable_status_notifier{
 	struct list_head cable_notifier_link;
 	const char *name;
@@ -775,9 +749,6 @@ struct t_cable_status_notifier{
 int cable_detect_register_notifier(struct t_cable_status_notifier *);
 static LIST_HEAD(g_lh_calbe_detect_notifier_list);
 
-/***********************************
-Direction: 1-wire drvier -> battery driver or other
-***********************************/
 struct t_owe_charging_notifier{
 	struct list_head owe_charging_notifier_link;
 	const char *name;
@@ -786,9 +757,6 @@ struct t_owe_charging_notifier{
 int owe_charging_register_notifier(struct t_owe_charging_notifier *);
 static LIST_HEAD(g_lh_owe_charging_notifier_list);
 
-/***********************************
- Direction: sii9234 drvier -> cable detect driver
-***********************************/
 struct t_mhl_status_notifier{
 	struct list_head mhl_notifier_link;
 	const char *name;
@@ -798,9 +766,6 @@ int mhl_detect_register_notifier(struct t_mhl_status_notifier *);
 static LIST_HEAD(g_lh_mhl_detect_notifier_list);
 
 #if (defined(CONFIG_USB_OTG) && defined(CONFIG_USB_OTG_HOST))
-/***********************************
-Direction: cable detect drvier -> usb driver
- ***********************************/
 struct t_usb_host_status_notifier{
 	struct list_head usb_host_notifier_link;
 	const char *name;
@@ -809,7 +774,6 @@ struct t_usb_host_status_notifier{
 int usb_host_detect_register_notifier(struct t_usb_host_status_notifier *);
 static LIST_HEAD(g_lh_usb_host_detect_notifier_list);
 #endif
-/* END: add USB connected notify function */
 
 int board_mfg_mode(void);
 int board_fullramdump_flag(void);
@@ -823,8 +787,8 @@ void msm_snddev_hsed_voltage_off(void);
 void msm_snddev_tx_route_config(void);
 void msm_snddev_tx_route_deconfig(void);
 
-extern struct flash_platform_data msm_nand_data; /* defined in arch/arm/mach-msm/devices-xxxx.c */
-extern unsigned int msm_shared_ram_phys; /* defined in arch/arm/mach-msm/io.c */
+extern struct flash_platform_data msm_nand_data; 
+extern unsigned int msm_shared_ram_phys; 
 
 extern int emmc_partition_read_proc(char *page, char **start, off_t off,
 		int count, int *eof, void *data);

@@ -21,17 +21,19 @@
 
 #define Z180_DEFAULT_PWRSCALE_POLICY  NULL
 
+#define Z180_IDLE_TIMEOUT (10 * 1000)
+
 struct z180_ringbuffer {
 	unsigned int prevctx;
 	struct kgsl_memdesc      cmdbufdesc;
 };
 
 struct z180_device {
-	struct kgsl_device dev;    /* Must be first field in this struct */
+	struct kgsl_device dev;    
 	int current_timestamp;
 	int timestamp;
 	struct z180_ringbuffer ringbuffer;
 	spinlock_t cmdwin_lock;
 };
 
-#endif /* __Z180_H */
+#endif 

@@ -38,9 +38,9 @@ static inline int adreno_debugfs_init(struct kgsl_device *device)
 
 static inline int kgsl_pmregs_enabled(void)
 {
-	/* If debugfs is turned off, then always print registers */
+	
 	return 1;
 }
 #endif
 
-#endif /* __ADRENO_DEBUGFS_H */
+#endif 
