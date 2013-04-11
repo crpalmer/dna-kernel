@@ -17,18 +17,16 @@
 
 #include<linux/serial_core.h>
 
-/* Optional platform device data for msm_serial_hs driver.
- * Used to configure low power wakeup */
 struct msm_serial_hs_platform_data {
-	int wakeup_irq;  /* wakeup irq */
-	/* bool: inject char into rx tty on wakeup */
+	int wakeup_irq;  
+	
 	unsigned char inject_rx_on_wakeup;
 	char rx_to_inject;
 	int (*gpio_config)(int);
 
-	/* for brcm BT */
-	unsigned char bt_wakeup_pin;	/* Device to Chip */
-	unsigned char host_wakeup_pin;	/* Chip to Device */
+	
+	unsigned char bt_wakeup_pin;	
+	unsigned char host_wakeup_pin;	
 };
 
 unsigned int msm_hs_tx_empty(struct uart_port *uport);

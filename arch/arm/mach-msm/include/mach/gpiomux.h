@@ -111,21 +111,12 @@ struct msm_gpiomux_configs {
 
 #ifdef CONFIG_MSM_GPIOMUX
 
-/* Before using gpiomux, initialize the subsystem by telling it how many
- * gpios are going to be managed.  Calling any other gpiomux functions before
- * msm_gpiomux_init is unsupported.
- */
 int msm_gpiomux_init(size_t ngpio);
 
-/* Install a block of gpiomux configurations in gpiomux.  This is functionally
- * identical to calling msm_gpiomux_write many times.
- */
 void msm_gpiomux_install(struct msm_gpiomux_config *configs, unsigned nconfigs);
 
-/* Increment a gpio's reference count, possibly activating the line. */
 int __must_check msm_gpiomux_get(unsigned gpio);
 
-/* Decrement a gpio's reference count, possibly suspending the line. */
 int msm_gpiomux_put(unsigned gpio);
 
 /* Install a new setting in a gpio.  To erase a slot, use NULL.
@@ -139,14 +130,6 @@ int msm_gpiomux_put(unsigned gpio);
 int msm_gpiomux_write(unsigned gpio, enum msm_gpiomux_setting which,
 	struct gpiomux_setting *setting, struct gpiomux_setting *old_setting);
 
-/* Architecture-internal function for use by the framework only.
- * This function can assume the following:
- * - the gpio value has passed a bounds-check
- * - the gpiomux spinlock has been obtained
- *
- * This function is not for public consumption.  External users
- * should use msm_gpiomux_write.
- */
 void __msm_gpiomux_write(unsigned gpio, struct gpiomux_setting val);
 #else
 static inline int msm_gpiomux_init(size_t ngpio)

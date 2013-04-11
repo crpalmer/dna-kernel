@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * SMD Packet Driver -- Provides a binary SMD non-muxed packet port
- *                       interface.
- */
 
 #include <linux/slab.h>
 #include <linux/cdev.h>

@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  */
 
-/*
- * IPC ROUTER SMD XPRT module.
- */
 #define DEBUG
 
 #include <linux/module.h>

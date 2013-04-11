@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * Modem Restart Notifier -- Provides notification
- *			     of modem restart events.
- */
 
 #include <linux/notifier.h>
 #include <linux/init.h>

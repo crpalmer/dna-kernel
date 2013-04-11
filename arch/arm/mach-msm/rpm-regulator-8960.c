@@ -15,7 +15,6 @@
 
 #include "rpm-regulator-private.h"
 
-/* RPM regulator request formats */
 static struct rpm_vreg_parts ldo_parts = {
 	.request_len	= 2,
 	.uV		= REQUEST_MEMBER(0, 0x007FFFFF,  0),

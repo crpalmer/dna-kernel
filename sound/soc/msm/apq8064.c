@@ -80,24 +80,22 @@
 
 #define TABLA_MBHC_DEF_BUTTONS 8
 #define TABLA_MBHC_DEF_RLOADS 5
-/* HTC ++ */
 #define HAC_PAMP_GPIO	6
 #define RCV_PAMP_GPIO    67
 #define RCV_SPK_SEL_PMGPIO    24
 static int msm_hac_control;
 static int msm_rcv_control;
-/* HTC-- */
-/* Shared channel numbers for Slimbus ports that connect APQ to MDM. */
+static int aux_pcm_open = 0;
 enum {
-	SLIM_1_RX_1 = 145, /* BT-SCO and USB TX */
-	SLIM_1_TX_1 = 146, /* BT-SCO and USB RX */
-	SLIM_3_RX_1 = 151, /* External echo-cancellation ref */
-	SLIM_3_RX_2 = 152, /* External echo-cancellation ref */
-	SLIM_3_TX_1 = 153, /* HDMI RX */
-	SLIM_3_TX_2 = 154, /* HDMI RX */
-	SLIM_4_TX_1 = 148, /* In-call recording RX */
-	SLIM_4_TX_2 = 149, /* In-call recording RX */
-	SLIM_4_RX_1 = 150, /* In-call music delivery TX */
+	SLIM_1_RX_1 = 145, 
+	SLIM_1_TX_1 = 146, 
+	SLIM_3_RX_1 = 151, 
+	SLIM_3_RX_2 = 152, 
+	SLIM_3_TX_1 = 153, 
+	SLIM_3_TX_2 = 154, 
+	SLIM_4_TX_1 = 148, 
+	SLIM_4_TX_2 = 149, 
+	SLIM_4_RX_1 = 150, 
 };
 
 enum {
@@ -154,6 +152,7 @@ static struct tabla_mbhc_config mbhc_cfg = {
 };
 
 static struct mutex cdc_mclk_mutex;
+static struct mutex aux_pcm_mutex;
 
 static int msm8960_mi2s_rx_free_gpios(void)
 {
@@ -1756,7 +1755,7 @@ static int msm_aux_pcm_get_gpios(void)
 {
 	int ret = 0;
 
-	pr_debug("%s\n", __func__);
+	pr_info("%s++\n ", __func__);
 
 	ret = gpio_request(GPIO_AUX_PCM_DOUT, "AUX PCM DOUT");
 	if (ret < 0) {
@@ -1784,7 +1783,7 @@ static int msm_aux_pcm_get_gpios(void)
 				__func__, GPIO_AUX_PCM_CLK);
 		goto fail_clk;
 	}
-
+	pr_info("%s --\n", __func__);
 	return 0;
 
 fail_clk:
@@ -1800,11 +1799,12 @@ fail_dout:
 
 static int msm_aux_pcm_free_gpios(void)
 {
+	pr_info("%s ++\n", __func__);
 	gpio_free(GPIO_AUX_PCM_DIN);
 	gpio_free(GPIO_AUX_PCM_DOUT);
 	gpio_free(GPIO_AUX_PCM_SYNC);
 	gpio_free(GPIO_AUX_PCM_CLK);
-
+	pr_info("%s --\n", __func__);
 	return 0;
 }
 static int msm_startup(struct snd_pcm_substream *substream)
@@ -1821,13 +1821,23 @@ static int msm_startup(struct snd_pcm_substream *substream)
 static int msm_auxpcm_startup(struct snd_pcm_substream *substream)
 {
 	int ret = 0;
+	mutex_lock(&aux_pcm_mutex);
 
+	aux_pcm_open++;
+
+	if(aux_pcm_open > 1) {
+		mutex_unlock(&aux_pcm_mutex);
+		return 0;
+	}
 	pr_debug("%s(): substream = %s\n", __func__, substream->name);
 	ret = msm_aux_pcm_get_gpios();
 	if (ret < 0) {
 		pr_err("%s: Aux PCM GPIO request failed\n", __func__);
+		aux_pcm_open--;
+		mutex_unlock(&aux_pcm_mutex);
 		return -EINVAL;
 	}
+	mutex_unlock(&aux_pcm_mutex);
 	return 0;
 }
 
@@ -1848,7 +1858,14 @@ static void msm_auxpcm_shutdown(struct snd_pcm_substream *substream)
 {
 
 	pr_debug("%s(): substream = %s\n", __func__, substream->name);
-	msm_aux_pcm_free_gpios();
+	mutex_lock(&aux_pcm_mutex);
+	aux_pcm_open--;
+
+	if(aux_pcm_open < 1) {
+		msm_aux_pcm_free_gpios();
+	}
+
+	mutex_unlock(&aux_pcm_mutex);
 }
 
 static void msm_shutdown(struct snd_pcm_substream *substream)
@@ -2217,6 +2234,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_dai_name = "msm-stub-tx",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_AUXPCM_TX,
+		.ops = &msm_auxpcm_be_ops,
 		.be_hw_params_fixup = msm_auxpcm_be_params_fixup,
 	},
 	{
@@ -2509,6 +2527,7 @@ static int __init msm_audio_init(void)
 
 	gpio_tlmm_config(audio_wdc_table[0], GPIO_CFG_ENABLE);
 	mutex_init(&cdc_mclk_mutex);
+	mutex_init(&aux_pcm_mutex);
 	return ret;
 
 }
@@ -2524,6 +2543,7 @@ static void __exit msm_audio_exit(void)
 	platform_device_unregister(msm_snd_device);
 	kfree(mbhc_cfg.calibration);
 	mutex_destroy(&cdc_mclk_mutex);
+	mutex_destroy(&aux_pcm_mutex);
 }
 module_exit(msm_audio_exit);
 

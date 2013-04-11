@@ -179,12 +179,15 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 			 * the head of packet), we always check 1st packet. It should
 			 * be the 0xc sync packet.
 			 */
-			if (pkt_hdr || (first_pkt == 1)) {
+			if ((pkt_hdr || (first_pkt == 1)) && actual_size > 0) {
 				if (unlikely(first_pkt == 1)) first_pkt = 0;
 				type = checkcmd_modem_epst(buf);
 				if (type) {
 					modem_to_userspace(buf, actual_size, type, 1);
 					pkt_hdr = 1;
+
+					diagmem_free(driver,
+						(unsigned char *)buf, POOL_TYPE_HSIC);
 					/* TODO[HTC] release buffer to diagmem
 					 * Only need to release USB_MODE because
 					 * MEMORY_DEVICE_MODE dont allocate memory yet
@@ -199,8 +202,9 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 			}
 
 			if ((actual_size == 1 && *buf == CONTROL_CHAR) ||
+					((actual_size >= 2) &&
 					(*(buf+actual_size-1) == CONTROL_CHAR &&
-					 *(buf+actual_size-2) != ESC_CHAR))
+					 *(buf+actual_size-2) != ESC_CHAR)))
 				pkt_hdr = 1;
 #endif
 			/*

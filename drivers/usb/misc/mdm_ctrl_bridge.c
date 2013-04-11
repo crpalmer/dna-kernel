@@ -108,6 +108,7 @@ int ctrl_bridge_set_cbits(unsigned int id, unsigned int cbits)
 		return -ENODEV;
 
 	pr_debug("%s: dev[id] =%u cbits : %u\n", __func__, id, cbits);
+	dev_err(&dev->intf->dev, "%s: dev[id] =%u cbits : %u\n", __func__, id, cbits);	
 
 	brdg = dev->brdg;
 	if (!brdg)
@@ -320,6 +321,15 @@ void ctrl_bridge_close(unsigned int id)
 	dev_dbg(&dev->intf->dev, "%s:\n", __func__);
 
 	ctrl_bridge_set_cbits(dev->brdg->ch_id, 0);
+
+	
+	dev_err(&dev->intf->dev, "%s: usb_wait_anchor_empty_timeout tx_submitted\n", __func__);
+
+	usb_wait_anchor_empty_timeout(&dev->tx_submitted, 500);
+
+	
+	dev_err(&dev->intf->dev, "%s: tx_submitted usb_anchor_empty:%d\n", __func__, usb_anchor_empty(&dev->tx_submitted));
+
 	usb_unlink_anchored_urbs(&dev->tx_submitted);
 
 	dev->brdg = NULL;
@@ -333,6 +343,10 @@ static void ctrl_write_callback(struct urb *urb)
 	if (urb->status) {
 		pr_debug("Write status/size %d/%d\n",
 			urb->status, urb->actual_length);
+
+		
+		dev_err(&dev->intf->dev, "%s[%d]: Write status/size %d/%d\n",
+			__func__, __LINE__, urb->status, urb->actual_length);
 	}
 
 	kfree(urb->transfer_buffer);
@@ -387,6 +401,10 @@ int ctrl_bridge_write(unsigned int id, char *data, size_t size)
 		out_ctlreq->bRequest = USB_CDC_REQ_SET_CONTROL_LINE_STATE;
 		out_ctlreq->wValue = dev->cbits_tomdm;
 		dev->set_ctrl_line_sts++;
+		
+		dev_err(&dev->intf->dev,
+			"%s[%d]: USB_CDC_REQ_SET_CONTROL_LINE_STATE cbits_tomdm:%x, set_ctrl_line_sts:%d\n",
+			__func__, __LINE__, dev->cbits_tomdm, dev->set_ctrl_line_sts);
 	} else {
 		out_ctlreq->bRequest = USB_CDC_SEND_ENCAPSULATED_COMMAND;
 		out_ctlreq->wValue = 0;

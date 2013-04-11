@@ -13,7 +13,6 @@
 #ifndef __HTC_CHARGER_H__
 #define __HTC_CHARGER_H__
 
-/* for cable_detect struct */
 #include <mach/board.h>
 
 enum htc_charger_event {
@@ -29,6 +28,9 @@ enum htc_charger_event {
 	HTC_CHARGER_EVENT_SRC_MHL_AC,
 	HTC_CHARGER_EVENT_SRC_INTERNAL,
 	HTC_CHARGER_EVENT_SRC_CLEAR,
+	HTC_CHARGER_EVENT_SRC_DETECTING,
+	HTC_CHARGER_EVENT_SRC_UNKNOWN_USB,
+	HTC_CHARGER_EVENT_SRC_UNDER_RATING,
 };
 
 enum htc_charging_cfg {
@@ -49,6 +51,8 @@ enum htc_power_source_type {
 	HTC_PWR_SOURCE_TYPE_9VAC,
 	HTC_PWR_SOURCE_TYPE_WIRELESS,
 	HTC_PWR_SOURCE_TYPE_MHL_AC,
+	HTC_PWR_SOURCE_TYPE_DETECTING,
+	HTC_PWR_SOURCE_TYPE_UNKNOWN_USB,
 	HTC_PWR_SOURCE_TYPE_PQM_FASTCHARGE,
 	HTC_PWR_SOURCE_TYPE_MAX = 255,
 };
@@ -70,6 +74,7 @@ struct htc_charger {
 	int (*charger_change_notifier_register)
 			(struct t_cable_status_notifier *notifier);
 	int (*dump_all)(void);
+	int (*is_under_rating)(int *result);
 	int (*get_attr_text)(char *buf, int size);
 	int (*enable_5v_output)(bool enable);
 };

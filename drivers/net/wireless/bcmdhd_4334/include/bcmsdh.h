@@ -26,15 +26,12 @@
  * $Id: bcmsdh.h 343301 2012-07-06 13:07:32Z $
  */
 
-/**
- * @file bcmsdh.h
- */
 
 #ifndef	_bcmsdh_h_
 #define	_bcmsdh_h_
 
-#define BCMSDH_ERROR_VAL	0x0001 /* Error */
-#define BCMSDH_INFO_VAL		0x0002 /* Info */
+#define BCMSDH_ERROR_VAL	0x0001 
+#define BCMSDH_INFO_VAL		0x0002 
 extern const uint bcmsdh_msglevel;
 
 #define BCMSDH_ERROR(x)

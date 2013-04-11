@@ -1109,6 +1109,7 @@ static int msm_sat_define_ch(struct msm_slim_sat *sat, u8 *buf, u8 len, u8 mc)
 		u16 chh[40];
 		struct slim_ch prop;
 		u32 exp;
+		u16 *grph = NULL;
 		u8 coeff, cc;
 		u8 prrate = buf[6];
 		if (len <= 8)
@@ -1129,6 +1130,9 @@ static int msm_sat_define_ch(struct msm_slim_sat *sat, u8 *buf, u8 len, u8 mc)
 					return ret;
 				if (mc == SLIM_USR_MC_DEF_ACT_CHAN)
 					sat->satch[j].req_def++;
+				
+				if (i == 8)
+					grph = &sat->satch[j].chanh;
 				continue;
 			}
 			if (sat->nsatch >= MSM_MAX_SATCH)
@@ -1140,6 +1144,8 @@ static int msm_sat_define_ch(struct msm_slim_sat *sat, u8 *buf, u8 len, u8 mc)
 			sat->satch[j].chanh = chh[i - 8];
 			if (mc == SLIM_USR_MC_DEF_ACT_CHAN)
 				sat->satch[j].req_def++;
+			if (i == 8)
+				grph = &sat->satch[j].chanh;
 			sat->nsatch++;
 		}
 		prop.dataf = (enum slim_ch_dataf)((buf[3] & 0xE0) >> 5);
@@ -1160,10 +1166,12 @@ static int msm_sat_define_ch(struct msm_slim_sat *sat, u8 *buf, u8 len, u8 mc)
 					true, &chh[0]);
 		else
 			ret = slim_define_ch(&sat->satcl, &prop,
-					&chh[0], 1, false, NULL);
+					chh, 1, true, &chh[0]);
 		dev_dbg(dev->dev, "define sat grp returned:%d", ret);
 		if (ret)
 			return ret;
+		else if (grph)
+			*grph = chh[0];
 
 		/* part of group so activating 1 will take care of rest */
 		if (mc == SLIM_USR_MC_DEF_ACT_CHAN)
@@ -1295,6 +1303,8 @@ static void slim_sat_rxprocess(struct work_struct *work)
 						slim_control_ch(&sat->satcl,
 							sat->satch[i].chanh,
 							SLIM_CH_REMOVE, true);
+						slim_dealloc_ch(&sat->satcl,
+							sat->satch[i].chanh);
 						sat->satch[i].reconf = false;
 					}
 				}
@@ -2070,46 +2080,31 @@ static int __devinit msm_slim_probe(struct platform_device *pdev)
 	clk_prepare_enable(dev->rclk);
 
 	dev->ver = readl_relaxed(dev->base);
-	/* Version info in 16 MSbits */
+	
 	dev->ver >>= 16;
-	/* Component register initialization */
+	
 	writel_relaxed(1, dev->base + CFG_PORT(COMP_CFG, dev->ver));
 	writel_relaxed((EE_MGR_RSC_GRP | EE_NGD_2 | EE_NGD_1),
 				dev->base + CFG_PORT(COMP_TRUST_CFG, dev->ver));
 
-	/*
-	 * Manager register initialization
-	 * If RX msg Q is used, disable RX_MSG_RCVD interrupt
-	 */
 	if (dev->use_rx_msgqs)
 		writel_relaxed((MGR_INT_RECFG_DONE | MGR_INT_TX_NACKED_2 |
-			MGR_INT_MSG_BUF_CONTE | /* MGR_INT_RX_MSG_RCVD | */
+			MGR_INT_MSG_BUF_CONTE | 
 			MGR_INT_TX_MSG_SENT), dev->base + MGR_INT_EN);
 	else
 		writel_relaxed((MGR_INT_RECFG_DONE | MGR_INT_TX_NACKED_2 |
 			MGR_INT_MSG_BUF_CONTE | MGR_INT_RX_MSG_RCVD |
 			MGR_INT_TX_MSG_SENT), dev->base + MGR_INT_EN);
 	writel_relaxed(1, dev->base + MGR_CFG);
-	/*
-	 * Framer registers are beyond 1K memory region after Manager and/or
-	 * component registers. Make sure those writes are ordered
-	 * before framer register writes
-	 */
 	wmb();
 
-	/* Framer register initialization */
+	
 	writel_relaxed((0xA << REF_CLK_GEAR) | (0xA << CLK_GEAR) |
 		(1 << ROOT_FREQ) | (1 << FRM_ACTIVE) | 1,
 		dev->base + FRM_CFG);
-	/*
-	 * Make sure that framer wake-up and enabling writes go through
-	 * before any other component is enabled. Framer is responsible for
-	 * clocking the bus and enabling framer first will ensure that other
-	 * devices can report presence when they are enabled
-	 */
 	mb();
 
-	/* Enable RX msg Q */
+	
 	if (dev->use_rx_msgqs)
 		writel_relaxed(MGR_CFG_ENABLE | MGR_CFG_RX_MSGQ_EN,
 					dev->base + MGR_CFG);
@@ -2136,10 +2131,6 @@ static int __devinit msm_slim_probe(struct platform_device *pdev)
 	mb();
 
 	writel_relaxed(1, dev->base + CFG_PORT(COMP_CFG, dev->ver));
-	/*
-	 * Make sure that all writes have gone through before exiting this
-	 * function
-	 */
 	mb();
 	if (pdev->dev.of_node)
 		of_register_slim_devices(&dev->ctrl);

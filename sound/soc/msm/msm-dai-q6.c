@@ -1296,7 +1296,17 @@ static int msm_dai_q6_dai_mi2s_remove(struct snd_soc_dai *dai)
 		dev_get_drvdata(dai->dev);
 	int rc;
 
-	/* If AFE port is still up, close it */
+	/*
+	 * For AUX PCM Interface the below sequence of clk
+	 * settings and opening of afe port is a strict requirement.
+	 * afe_port_start is called to make sure to make sure the port
+	 * is open before deasserting the clock line. This is
+	 * required because pcm register is not written before
+	 * clock deassert. Hence the hw does not get updated with
+	 * new setting if the below clock assert/deasset and afe_port_start
+	 * sequence is not followed.
+	 */
+
 	if (test_bit(STATUS_PORT_STARTED,
 			mi2s_dai_data->rx_dai.mi2s_dai_data.status_mask)) {
 		rc = afe_close(MI2S_RX); /* can block */
@@ -1350,6 +1360,16 @@ static int msm_dai_q6_dai_remove(struct snd_soc_dai *dai)
 
 	dai_data = dev_get_drvdata(dai->dev);
 
+	/*
+	 * For AUX PCM Interface the below sequence of clk
+	 * settings and opening of afe port is a strict requirement.
+	 * afe_port_start is called to make sure to make sure the port
+	 * is open before deasserting the clock line. This is
+	 * required because pcm register is not written before
+	 * clock deassert. Hence the hw does not get updated with
+	 * new setting if the below clock assert/deasset and afe_port_start
+	 * sequence is not followed.
+	 */
 	/* If AFE port is still up, close it */
 	if (test_bit(STATUS_PORT_STARTED, dai_data->status_mask)) {
 		switch (dai->id) {

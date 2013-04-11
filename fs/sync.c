@@ -70,7 +70,11 @@ int sync_filesystem(struct super_block *sb)
 	if (sb->s_flags & MS_RDONLY)
 		return 0;
 
-	ret = __sync_filesystem(sb, 0);
+	if (atomic_read(&vfs_emergency_remount)) {
+		pr_info("%s: force sync fs in wait mode\n", __func__);
+		ret = __sync_filesystem(sb, 1);
+	} else
+		ret = __sync_filesystem(sb, 0);
 	if (ret < 0)
 		return ret;
 	return __sync_filesystem(sb, 1);

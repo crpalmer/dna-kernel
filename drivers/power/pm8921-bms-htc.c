@@ -151,10 +151,13 @@ static struct pm8921_bms_chip *the_chip;
 /* Using this structure to record info for debug */
 struct pm8921_bms_debug {
 	int rbatt;
+	int rbatt_sf;
 	int voltage_unusable_uv;
 	int pc_unusable;
-	int cal_pc;
+	int rc_pc;
 	int scalefactor;
+	int batt_temp;
+	int soc_rbatt;
 };
 static struct pm8921_bms_debug bms_dbg;
 
@@ -528,8 +531,8 @@ static s64 cc_to_microvolt(struct pm8921_bms_chip *chip, s64 cc)
 				cc_to_microvolt_v2((s64)cc);
 }
 
-#define CC_READING_TICKS	55
-#define SLEEP_CLK_HZ		32768
+#define CC_READING_TICKS	56
+#define SLEEP_CLK_HZ		32764
 #define SECONDS_PER_HOUR	3600
 /**
  * ccmicrovolt_to_nvh -
@@ -1067,6 +1070,8 @@ static int get_rbatt(struct pm8921_bms_chip *chip, int soc_rbatt, int batt_temp)
 	batt_temp = batt_temp / 10;
 	scalefactor = interpolate_scalingfactor(chip, chip->rbatt_sf_lut,
 							batt_temp, soc_rbatt);
+	bms_dbg.rbatt_sf = scalefactor;
+	bms_dbg.soc_rbatt = soc_rbatt;
 	pr_debug("rbatt sf = %d for batt_temp = %d, soc_rbatt = %d\n",
 				scalefactor, batt_temp, soc_rbatt);
 	rbatt = (rbatt * scalefactor) / 100;
@@ -1176,24 +1181,13 @@ static int calculate_pc(struct pm8921_bms_chip *chip, int ocv_uv, int batt_temp,
 	scalefactor = interpolate_scalingfactor(chip,
 					chip->pc_sf_lut, chargecycles, pc);
 	pr_debug("scalefactor = %u batt_temp = %d\n", scalefactor, batt_temp);
-	bms_dbg.cal_pc = pc;
-	bms_dbg.scalefactor = scalefactor;
 
-	/* Multiply the initial FCC value by the scale factor. */
+	bms_dbg.scalefactor = scalefactor;
+	
 	pc = (pc * scalefactor) / 100;
 	return pc;
 }
 
-/**
- * calculate_cc_uah -
- * @chip:		the bms chip pointer
- * @cc:			the cc reading from bms h/w
- * @val:		return value
- * @coulumb_counter:	adjusted coulumb counter for 100%
- *
- * RETURNS: in val pointer coulumb counter based charger in uAh
- *          (micro Amp hour)
- */
 static void calculate_cc_uah(struct pm8921_bms_chip *chip, int cc, int *val)
 {
 	int64_t cc_voltage_uv, cc_nvh, cc_uah;
@@ -1259,6 +1253,7 @@ static int calculate_remaining_charge_uah(struct pm8921_bms_chip *chip,
 	}
 
 	pc = calculate_pc(chip, ocv, batt_temp, chargecycles);
+	bms_dbg.rc_pc = pc;
 	pr_debug("ocv = %d pc = %d\n", ocv, pc);
 	return (fcc_uah * pc) / 100;
 }
@@ -1349,6 +1344,7 @@ static int calculate_state_of_charge(struct pm8921_bms_chip *chip,
 						&remaining_charge_uah,
 						&cc_uah,
 						&rbatt);
+	bms_dbg.batt_temp = batt_temp;
 
 	/* calculate remaining usable charge */
 	remaining_usable_charge_uah = remaining_charge_uah
@@ -1371,14 +1367,16 @@ static int calculate_state_of_charge(struct pm8921_bms_chip *chip,
 	}
 
 	if (verbol) {
-		pr_info("rbatt=%d,V_unusable_uv=%d,pc_unusable=%d,"
-				"cal_pc=%d,scalefactor=%d,start_percent=%d,end_percent=%d\n",
-				bms_dbg.rbatt, bms_dbg.voltage_unusable_uv, bms_dbg.pc_unusable,
-				bms_dbg.cal_pc, bms_dbg.scalefactor,
-				the_chip->start_percent, the_chip->end_percent);
-		pr_info("FCC=%d,UC=%d,RC=%d,CC=%d,RUC=%d,SOC=%d,SOC_R=%d\n",
+		pr_info("FCC=%d,UC=%d,RC=%d,CC=%d,RUC=%d,SOC=%d,SOC_R=%d,"
+			       "start_percent=%d,end_percent=%d,"
+			       "rbatt=%d,rbatt_sf=%d,batt_temp=%d,soc_rbatt=%d,last_rbatt=%d,"
+			       "V_unusable_uv=%d,pc_unusable=%d,rc_pc=%d,scalefactor=%d\n",
 				fcc_uah, unusable_charge_uah, remaining_charge_uah,
-				cc_uah, remaining_usable_charge_uah, soc, soc_remainder);
+				cc_uah, remaining_usable_charge_uah, soc, soc_remainder,
+				the_chip->start_percent, the_chip->end_percent,
+				bms_dbg.rbatt, bms_dbg.rbatt_sf, bms_dbg.batt_temp,
+				bms_dbg.soc_rbatt, last_rbatt, bms_dbg.voltage_unusable_uv,
+				bms_dbg.pc_unusable, bms_dbg.rc_pc, bms_dbg.scalefactor);
 	}
 
 	if (soc > 100)
@@ -2542,11 +2540,17 @@ int pm8921_bms_get_attr_text(char *buf, int size)
 	len += scnprintf(buf + len, size - len,
 			"rbatt(milliOhms): %d;\n", bms_dbg.rbatt);
 	len += scnprintf(buf + len, size - len,
+			"rbatt_scalefactor: %d;\n", bms_dbg.rbatt_sf);
+	len += scnprintf(buf + len, size - len,
+			"soc_rbatt(%%): %d;\n", bms_dbg.soc_rbatt);
+	len += scnprintf(buf + len, size - len,
+			"last_rbatt(%%): %d;\n", last_rbatt);
+	len += scnprintf(buf + len, size - len,
 			"voltage_unusable_uv(uV): %d;\n", bms_dbg.voltage_unusable_uv);
 	len += scnprintf(buf + len, size - len,
 			"pc_unusable(%%): %d;\n", bms_dbg.pc_unusable);
 	len += scnprintf(buf + len, size - len,
-			"cal_pc(%%): %d;\n", bms_dbg.cal_pc);
+			"rc_pc(%%): %d;\n", bms_dbg.rc_pc);
 	len += scnprintf(buf + len, size - len,
 			"scalefactor(): %d;\n", bms_dbg.scalefactor);
 	len += scnprintf(buf + len, size - len,
@@ -2750,7 +2754,7 @@ static int pm8921_bms_resume(struct device *dev)
 
 	dump_cc_uah();
 	get_reg((void *)BMS_TOLERANCES, &val);
-	pr_info("BMS_TOLERANCES = 0x%02llx\n", val);
+	pr_info("last_rbatt:%d , BMS_TOLERANCES = 0x%02llx\n", last_rbatt, val);
 	return 0;
 }
 
@@ -2915,7 +2919,9 @@ static int __devinit pm8921_bms_probe(struct platform_device *pdev)
 	pr_info("OK battery_capacity_at_boot=%d volt = %d ocv = %d\n",
 				pm8921_bms_get_percent_charge(),
 				vbatt, last_ocv_uv);
-	pr_info("r_sense=%u,i_test=%u,v_failure=%u\n", chip->r_sense, chip->i_test, chip->v_failure);
+	pr_info("r_sense=%u,i_test=%u,v_failure=%u,default_rbatt_mohm=%d\n",
+			chip->r_sense, chip->i_test, chip->v_failure,
+			chip->default_rbatt_mohm);
 	return 0;
 
 free_irqs:

@@ -1889,11 +1889,11 @@ static int diagcharmdm_write(struct file *file, const char __user *buf,
 	/*First 4 bytes indicate the type of payload - ignore these */
 	payload_size = count - 4;
 	if (pkt_type == USER_SPACE_LOG_TYPE) {
-		err = copy_from_user(driver->user_space_data, buf + 4,
+		err = copy_from_user(driver->user_space_mdm_data, buf + 4,
 							 payload_size);
 		/* Check masks for On-Device logging */
 		if (driver->mask_check) {
-			if (!mask_request_validate(driver->user_space_data)) {
+			if (!mask_request_validate(driver->user_space_mdm_data)) {
 				DIAG_ERR("mask request Invalid ..cannot send to modem \n");
 				return -EFAULT;
 			}
@@ -1903,7 +1903,7 @@ static int diagcharmdm_write(struct file *file, const char __user *buf,
 			pr_info("diag: user space data %d\n", payload_size);
 			print_hex_dump(KERN_DEBUG, "Write Packet Data"
 					" to 9K(first 16 bytes)", 16, 1,
-					DUMP_PREFIX_ADDRESS, driver->user_space_data, 16, 1);
+					DUMP_PREFIX_ADDRESS, driver->user_space_mdm_data, 16, 1);
 		}
 #ifdef CONFIG_DIAG_SDIO_PIPE
 		/* send masks to 9k too */
@@ -1913,7 +1913,7 @@ static int diagcharmdm_write(struct file *file, const char __user *buf,
 					 payload_size));
 			if (driver->sdio_ch && (payload_size > 0)) {
 				sdio_write(driver->sdio_ch, (void *)
-				   (driver->user_space_data), payload_size);
+				   (driver->user_space_mdm_data), payload_size);
 			}
 		}
 #endif
@@ -1928,7 +1928,7 @@ static int diagcharmdm_write(struct file *file, const char __user *buf,
 			}
 			driver->in_busy_hsic_write = 1;
 			driver->in_busy_hsic_read_on_device = 0;
-			err = diag_bridge_write(driver->user_space_data,
+			err = diag_bridge_write(driver->user_space_mdm_data,
 							 payload_size);
 			if (err) {
 				pr_err("diag: err sending mask to MDM: %d\n",
@@ -1948,21 +1948,21 @@ static int diagcharmdm_write(struct file *file, const char __user *buf,
 			pr_info("%s() %d byte\n", __func__, payload_size);
 		return count;
 	} else if (driver->mdm_logging_process_id == current->tgid) {
-		err = copy_from_user(driver->user_space_data, buf + 4, payload_size);
+		err = copy_from_user(driver->user_space_mdm_data, buf + 4, payload_size);
 		if (diag9k_debug_mask) {
 			pr_info("diag: user space data %d\n", payload_size);
 			print_hex_dump(KERN_DEBUG, "Write Packet Data"
 					" to 9K(first 16 bytes)", 16, 1,
-					DUMP_PREFIX_ADDRESS, driver->user_space_data, 16, 1);
+					DUMP_PREFIX_ADDRESS, driver->user_space_mdm_data, 16, 1);
 		}
 #ifdef CONFIG_DIAG_SDIO_PIPE
 		if (driver->sdio_ch) {
-			sdio_write(driver->sdio_ch, driver->user_space_data, payload_size);
+			sdio_write(driver->sdio_ch, driver->user_space_mdm_data, payload_size);
 		}
 #endif
 #ifdef CONFIG_DIAG_BRIDGE_CODE
 		if (driver->hsic_ch) {
-			diag_bridge_write(driver->user_space_data, payload_size);
+			diag_bridge_write(driver->user_space_mdm_data, payload_size);
 			queue_work(driver->diag_bridge_wq, &driver->diag_read_hsic_work);
 		}
 #endif

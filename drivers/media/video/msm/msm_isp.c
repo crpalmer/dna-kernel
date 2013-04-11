@@ -437,28 +437,25 @@ static int msm_isp_notify_vfe(struct v4l2_subdev *sd,
 		}
 
 		if (!rc) {
-/* HTC_START */
             if (msm_isp_should_drop_frame(pmctl, msgid)) {
                 msgid = msm_isp_vfe_msg_to_img_mode(pmctl, msgid);
-                /* return dropped frame buffer to free_vq directly */
+                
                 msm_mctl_return_free_buf(pmctl, msgid, &(isp_output->buf));
+                kfree(isp_event);
                 return rc;
             } else {
-/* HTC_END */
 			isp_event->isp_data.isp_msg.msg_id =
 				isp_output->output_id;
 			isp_event->isp_data.isp_msg.frame_id =
 				isp_output->frameCounter;
 			buf = isp_output->buf;
-			/* HTC_START sungfeng 20120807 klocwork */
-			image_mode /*msgid*/ = msm_isp_vfe_msg_to_img_mode(pmctl, msgid);
-			BUG_ON(image_mode /*msgid*/ < 0);
-			msm_mctl_buf_done(pmctl, image_mode /*msgid*/,
+			
+			image_mode  = msm_isp_vfe_msg_to_img_mode(pmctl, msgid);
+			BUG_ON(image_mode  < 0);
+			msm_mctl_buf_done(pmctl, image_mode ,
 				&buf, isp_output->frameCounter);
-			/* HTC_END sungfeng 20120807 klocwork */
-/* HTC_START */
+			
             }
-/* HTC_END */
 		}
 		}
 		break;

@@ -473,7 +473,7 @@ static void kgsl_gpummu_default_setstate(struct kgsl_mmu *mmu,
 		return;
 
 	if (flags & KGSL_MMUFLAGS_PTUPDATE) {
-		kgsl_idle(mmu->device, KGSL_TIMEOUT_DEFAULT);
+		kgsl_idle(mmu->device);
 		gpummu_pt = mmu->hwpagetable->priv;
 		kgsl_regwrite(mmu->device, MH_MMU_PT_BASE,
 			gpummu_pt->base.gpuaddr);
@@ -545,28 +545,23 @@ static int kgsl_gpummu_start(struct kgsl_mmu *mmu)
 	if (mmu->flags & KGSL_FLAGS_STARTED)
 		return 0;
 
-	/* MMU not enabled */
+	
 	if ((mmu->config & 0x1) == 0)
 		return 0;
 
-	/* setup MMU and sub-client behavior */
+	
 	kgsl_regwrite(device, MH_MMU_CONFIG, mmu->config);
 
-	/* idle device */
-	kgsl_idle(device,  KGSL_TIMEOUT_DEFAULT);
+	
+	kgsl_idle(device);
 
-	/* enable axi interrupts */
+	
 	kgsl_regwrite(device, MH_INTERRUPT_MASK,
 			GSL_MMU_INT_MASK | MH_INTERRUPT_MASK__MMU_PAGE_FAULT);
 
 	kgsl_sharedmem_set(&mmu->setstate_memory, 0, 0,
 			   mmu->setstate_memory.size);
 
-	/* TRAN_ERROR needs a 32 byte (32 byte aligned) chunk of memory
-	 * to complete transactions in case of an MMU fault. Note that
-	 * we'll leave the bottom 32 bytes of the setstate_memory for other
-	 * purposes (e.g. use it when dummy read cycles are needed
-	 * for other blocks) */
 	kgsl_regwrite(device, MH_MMU_TRAN_ERROR,
 		mmu->setstate_memory.physaddr + 32);
 

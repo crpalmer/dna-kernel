@@ -242,9 +242,12 @@ long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 		pr_debug("%s: wait for mdm to need images reloaded\n",
 				__func__);
 		ret = wait_for_completion_interruptible(&mdm_needs_reload);
-		if (!ret)
+		if (!ret) {
 			put_user(mdm_drv->boot_type,
 					 (unsigned long __user *) arg);
+
+			pr_err("%s: mdm_drv->boot_type:%d\n", __func__, mdm_drv->boot_type);
+		}
 		INIT_COMPLETION(mdm_needs_reload);
 		break;
 /* HTC added start */
@@ -263,6 +266,13 @@ long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 	case NV_WRITE_DONE:
 		pr_info("%s: NV write done!\n", __func__);
 		notify_mdm_nv_write_done();
+		break;
+	case HTC_POWER_OFF_CHARM:
+		pr_info("%s: (HTC_POWER_OFF_CHARM)Powering off mdm\n", __func__);
+		if ( mdm_drv->ops->htc_power_down_mdm_cb ) {
+			mdm_drv->mdm_ready = 0;
+			mdm_drv->ops->htc_power_down_mdm_cb(mdm_drv);
+		}
 		break;
 /* HTC added end */
 	default:
@@ -419,7 +429,7 @@ static void mdm_disable_irqs(void)
 
 static irqreturn_t mdm_errfatal(int irq, void *dev_id)
 {
-	pr_debug("%s: mdm got errfatal interrupt\n", __func__);
+	pr_err("%s: mdm got errfatal interrupt\n", __func__);
 	if (mdm_drv->mdm_ready &&
 		(gpio_get_value(mdm_drv->mdm2ap_status_gpio) == 1)) {
 		pr_debug("%s: scheduling work now\n", __func__);
@@ -498,8 +508,9 @@ static int mdm_subsys_powerup(const struct subsys_data *crashed_subsys)
 {
 	gpio_direction_output(mdm_drv->ap2mdm_errfatal_gpio, 0);
 	gpio_direction_output(mdm_drv->ap2mdm_status_gpio, 1);
-	mdm_drv->ops->power_on_mdm_cb(mdm_drv);
+	
 	mdm_drv->boot_type = CHARM_NORMAL_BOOT;
+	pr_info("%s: mdm_needs_reload\n", __func__);
 	complete(&mdm_needs_reload);
 	if (!wait_for_completion_timeout(&mdm_boot,
 			msecs_to_jiffies(MDM_BOOT_TIMEOUT))) {

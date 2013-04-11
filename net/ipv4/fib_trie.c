@@ -2563,7 +2563,7 @@ static int fib_route_seq_show(struct seq_file *seq, void *v)
 			    || fa->fa_type == RTN_MULTICAST)
 				continue;
 
-			if (fi)
+			if ((fi) && (!IS_ERR(fi)))
 				seq_printf(seq,
 					 "%s\t%08X\t%08X\t%04X\t%d\t%u\t"
 					 "%d\t%08X\t%d\t%u\t%u%n",

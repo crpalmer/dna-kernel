@@ -14,9 +14,9 @@
 
 static struct lvds_panel_platform_data *frc_pdata;
 static struct platform_device *frc_fbpdev;
-static int gpio_update;		/* 268 */
-static int gpio_reset;	/* 269 */
-static int gpio_pwr;		/* 270 */
+static int gpio_update;		
+static int gpio_reset;	
+static int gpio_pwr;		
 
 static int lvds_frc_panel_on(struct platform_device *pdev)
 {

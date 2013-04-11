@@ -15,9 +15,7 @@
 
 #include <linux/input.h>
 
-/* TSC event type index in the containers of the handlers & handles */
 #define TSC_EVENT_TYPE_IND 0
-/* Number of supported event types to be filtered */
 #define MAX_EVENT_TYPE_NUM 1
 
 bool usfcdev_register(

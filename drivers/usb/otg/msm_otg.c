@@ -3993,6 +3993,9 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 				(unsigned long) motg);
 	motg->ac_detect_count = 0;
 
+	if (board_mfg_mode() == 5)
+		USB_disabled = 1;
+
 	ret = request_irq(motg->irq, msm_otg_irq, IRQF_SHARED,
 					"msm_otg", motg);
 	if (ret) {

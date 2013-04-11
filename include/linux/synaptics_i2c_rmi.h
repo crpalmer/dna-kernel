@@ -24,6 +24,7 @@
 #define SYNAPTICS_3K_INCELL_NAME "synaptics-3k-incell"
 #define SYNAPTICS_3200_NAME "synaptics-3200"
 #define SYNAPTICS_FW_3_2_PACKRAT 1115999
+#define SYNAPTICS_FW_NOCAL_PACKRAT 1293981
 
 
 #define SYN_CONFIG_SIZE 32 * 16
@@ -63,9 +64,12 @@ enum {
 };
 
 struct synaptics_virtual_key {
+	int index;
 	int keycode;
-	int range_min;
-	int range_max;
+	int x_range_min;
+	int x_range_max;
+	int y_range_min;
+	int y_range_max;
 };
 
 struct synaptics_i2c_rmi_platform_data {
@@ -75,6 +79,8 @@ struct synaptics_i2c_rmi_platform_data {
 	int (*power)(int on);	/* Only valid in first array entry */
 	struct synaptics_virtual_key *virtual_key;
 	uint8_t virtual_key_num;
+	struct kobject *vk_obj;
+	struct kobj_attribute *vk2Use;
 	uint8_t sensitivity;
 	uint8_t finger_support;
 	uint32_t gap_area;
@@ -130,6 +136,7 @@ struct synaptics_i2c_rmi_platform_data {
 	uint8_t energy_ratio_relaxation;
 	uint8_t multitouch_calibration;
 	uint8_t psensor_detection;
+	uint8_t PixelTouchThreshold_bef_unlock;
 };
 
 struct page_description {

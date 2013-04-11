@@ -26,11 +26,11 @@
 
 #include <typedefs.h>
 #include <bcmutils.h>
-#include <sdio.h>	/* SDIO Device and Protocol Specs */
-#include <bcmsdbus.h>	/* bcmsdh to/from specific controller APIs */
-#include <sdiovar.h>	/* to get msglevel bit values */
+#include <sdio.h>	
+#include <bcmsdbus.h>	
+#include <sdiovar.h>	
 
-#include <linux/sched.h>	/* request_irq() */
+#include <linux/sched.h>	
 
 #include <linux/mmc/core.h>
 #include <linux/mmc/card.h>

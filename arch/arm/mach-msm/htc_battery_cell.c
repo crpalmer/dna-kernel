@@ -17,9 +17,9 @@
 #include <linux/err.h>
 #include <mach/htc_battery_cell.h>
 
-static struct htc_battery_cell *cells;	/* ptr to an array */
-static int cell_num;					/* cells array size */
-static struct htc_battery_cell *cur_cell; /* cell current using */
+static struct htc_battery_cell *cells;	
+static int cell_num;					
+static struct htc_battery_cell *cur_cell; 
 
 static unsigned int hv_authenticated;
 

@@ -14,7 +14,6 @@
 #ifndef _A300_REG_H
 #define _A300_REG_H
 
-/* Interrupt bit positions within RBBM_INT_0 */
 
 #define A3XX_INT_RBBM_GPU_IDLE 0
 #define A3XX_INT_RBBM_AHB_ERROR 1

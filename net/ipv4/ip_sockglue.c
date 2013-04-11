@@ -149,6 +149,10 @@ void ip_cmsg_recv(struct msghdr *msg, struct sk_buff *skb)
 	struct inet_sock *inet = inet_sk(skb->sk);
 	unsigned flags = inet->cmsg_flags;
 
+	/* All current transport protocols have the port numbers in the
+	 * first four bytes of the transport header and this function is
+	 * written with this assumption in mind.
+	 */
 	/* Ordered by supposed usage frequency */
 	if (flags & 1)
 		ip_cmsg_recv_pktinfo(msg, skb);

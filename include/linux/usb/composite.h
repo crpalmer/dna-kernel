@@ -38,6 +38,7 @@
 #include <linux/usb/gadget.h>
 #include <linux/switch.h>
 
+#define USB_GADGET_DELAYED_STATUS	0x7fff
 /*
  * USB function drivers should return USB_GADGET_DELAYED_STATUS if they
  * wish to delay the data/status stages of the control transfer till they

@@ -5908,15 +5908,15 @@ static struct clk_lookup deluxe_j_clocks_8064_xb[] = {
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0020"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0048"),
 	CLK_LOOKUP("cam_clk",		cam1_clk.c,	"4-006c"),
-	CLK_LOOKUP("csi_src_clk",	csi0_src_clk.c,		"msm_csid.0"),
-	CLK_LOOKUP("csi_src_clk",	csi1_src_clk.c,		"msm_csid.1"),
-	CLK_LOOKUP("csi_src_clk",	csi2_src_clk.c,		"msm_csid.2"),
-	CLK_LOOKUP("csi_clk",		csi0_clk.c,		"msm_csid.0"),
-	CLK_LOOKUP("csi_clk",		csi1_clk.c,		"msm_csid.1"),
-	CLK_LOOKUP("csi_clk",		csi2_clk.c,		"msm_csid.2"),
-	CLK_LOOKUP("csi_phy_clk",	csi0_phy_clk.c,		"msm_csid.0"),
-	CLK_LOOKUP("csi_phy_clk",	csi1_phy_clk.c,		"msm_csid.1"),
-	CLK_LOOKUP("csi_phy_clk",	csi2_phy_clk.c,		"msm_csid.2"),
+	CLK_LOOKUP("csi_src_clk",	csi0_src_clk.c,		"msm_csiphy.0"),
+	CLK_LOOKUP("csi_src_clk",	csi1_src_clk.c,		"msm_csiphy.1"),
+	CLK_LOOKUP("csi_src_clk",	csi2_src_clk.c,		"msm_csiphy.2"),
+	CLK_LOOKUP("csi_clk",		csi0_clk.c,		"msm_csiphy.0"),
+	CLK_LOOKUP("csi_clk",		csi1_clk.c,		"msm_csiphy.1"),
+	CLK_LOOKUP("csi_clk",		csi2_clk.c,		"msm_csiphy.2"),
+	CLK_LOOKUP("csi_phy_clk",	csi0_phy_clk.c,		"msm_csiphy.0"),
+	CLK_LOOKUP("csi_phy_clk",	csi1_phy_clk.c,		"msm_csiphy.1"),
+	CLK_LOOKUP("csi_phy_clk",	csi2_phy_clk.c,		"msm_csiphy.2"),
 	CLK_LOOKUP("csi_pix_clk",	csi_pix_clk.c,		"msm_ispif.0"),
 	CLK_LOOKUP("csi_pix1_clk",	csi_pix1_clk.c,		"msm_ispif.0"),
 	CLK_LOOKUP("csi_rdi_clk",	csi_rdi_clk.c,		"msm_ispif.0"),
@@ -5998,9 +5998,9 @@ static struct clk_lookup deluxe_j_clocks_8064_xb[] = {
 	CLK_LOOKUP("bus_clk",		vpe_axi_clk.c,	"footswitch-8x60.9"),
 	CLK_LOOKUP("arb_clk",		amp_p_clk.c,		"mipi_dsi.1"),
 	CLK_LOOKUP("arb_clk",		amp_p_clk.c,		"mipi_dsi.2"),
-	CLK_LOOKUP("csi_pclk",          csi_p_clk.c,            "msm_csid.0"),
-	CLK_LOOKUP("csi_pclk",          csi_p_clk.c,            "msm_csid.1"),
-	CLK_LOOKUP("csi_pclk",          csi_p_clk.c,            "msm_csid.2"),
+	CLK_LOOKUP("csi_pclk",          csi_p_clk.c,            "msm_csiphy.0"),
+	CLK_LOOKUP("csi_pclk",          csi_p_clk.c,            "msm_csiphy.1"),
+	CLK_LOOKUP("csi_pclk",          csi_p_clk.c,            "msm_csiphy.2"),
 	CLK_LOOKUP("master_iface_clk",	dsi1_m_p_clk.c,		"mipi_dsi.1"),
 	CLK_LOOKUP("slave_iface_clk",	dsi1_s_p_clk.c,		"mipi_dsi.1"),
 	CLK_LOOKUP("master_iface_clk",	dsi2_m_p_clk.c,		"mipi_dsi.2"),
@@ -6878,6 +6878,23 @@ struct clock_init_data monarudo_clock_init_data_xd __initdata = {
 	.late_init = msm8960_clock_late_init,
 };
 /* HTC_END */
+/* HTC_START_Simon.Ti_Liu_20120702_IMPLEMENT_MCLK_SWITCH*/
+struct clock_init_data impression_j_clock_init_data_xa __initdata = {
+	.table = deluxe_j_clocks_8064_xb,
+	.size = ARRAY_SIZE(deluxe_j_clocks_8064_xb),
+	.pre_init = msm8960_clock_pre_init,
+	.post_init = msm8960_clock_post_init,
+	.late_init = msm8960_clock_late_init,
+};
+/* HTC_END */
+
+struct clock_init_data m7_clock_init_data_xa __initdata = {
+	.table = deluxe_j_clocks_8064_xb,
+	.size = ARRAY_SIZE(deluxe_j_clocks_8064_xb),
+	.pre_init = msm8960_clock_pre_init,
+	.post_init = msm8960_clock_post_init,
+	.late_init = msm8960_clock_late_init,
+};
 
 struct clock_init_data msm8930_clock_init_data __initdata = {
 	.table = msm_clocks_8930,

@@ -25,11 +25,7 @@
  * $Id: bcmsdh.c 300445 2011-12-03 05:37:20Z $
  */
 
-/**
- * @file bcmsdh.c
- */
 
-/* ****************** BCMSDH Interface Functions *************************** */
 
 #include <typedefs.h>
 #include <bcmdevs.h>

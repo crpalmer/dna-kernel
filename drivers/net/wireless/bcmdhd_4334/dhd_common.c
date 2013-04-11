@@ -287,14 +287,9 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *buf, int le
 	dhd_os_proto_block(dhd_pub);
 
 	ret = dhd_prot_ioctl(dhd_pub, ifindex, ioc, buf, len);
-#if defined(CUSTOMER_HW4)
-	if (!ret || ret == -ETIMEDOUT)
-#else
-	if (!ret)
-#endif /* CUSTOMER_HW4 */
-		/* Send hang event only if dhd_open() was success */
-		if (dhd_pub->up)
-			dhd_os_check_hang(dhd_pub, ifindex, ret);
+	if ((ret || ret == -ETIMEDOUT) && dhd_pub->up){
+		dhd_os_check_hang(dhd_pub, ifindex, ret);
+    }
 
 	dhd_os_proto_unblock(dhd_pub);
 
@@ -1253,16 +1248,13 @@ wl_pattern_atoh(char *src, char *dst)
 	return i;
 }
 #ifdef CUSTOMER_HW2
-//BRCM APSTA START
 #if defined(APSTA_CONCURRENT) && defined(SOFTAP)
 extern struct net_device *ap_net_dev;
 #endif
-//BRCM APSTA END
 
-/* HTC_CSP_START */
 extern bool hasDLNA;
 extern char ip_str[32];
-/* HTC_CSP_END */
+extern int is_screen_off;
 int dhd_set_pktfilter(dhd_pub_t * dhd, int add, int id, int offset, char *mask, char *pattern)
 {
 	char 				*str;
@@ -1348,9 +1340,13 @@ int dhd_set_pktfilter(dhd_pub_t * dhd, int add, int id, int offset, char *mask, 
 		}
 	}
 #endif
-/* HTC_CSP_END */
+	
+	if (add == 1 && id == 101) {
+		printf("Update dtim after connected AP, screen_off:%d\n", is_screen_off);
+		dhdhtc_update_dtim_listen_interval(is_screen_off);
+	}
 
-	/* Parse pattern filter pattern. */
+	
 	pattern_size = htod32(wl_pattern_atoh(pattern,
 		(char *) &pkt_filterp->u.pattern.mask_and_pattern[mask_size]));
 

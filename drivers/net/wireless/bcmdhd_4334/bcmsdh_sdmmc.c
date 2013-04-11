@@ -29,10 +29,10 @@
 #include <bcmendian.h>
 #include <bcmutils.h>
 #include <osl.h>
-#include <sdio.h>	/* SDIO Device and Protocol Specs */
-#include <sdioh.h>	/* Standard SDIO Host Controller Specification */
-#include <bcmsdbus.h>	/* bcmsdh to/from specific controller APIs */
-#include <sdiovar.h>	/* ioctl/iovars */
+#include <sdio.h>	
+#include <sdioh.h>	
+#include <bcmsdbus.h>	
+#include <sdiovar.h>	
 
 #include <linux/mmc/core.h>
 #include <linux/mmc/card.h>

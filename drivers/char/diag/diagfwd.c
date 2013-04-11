@@ -2229,6 +2229,11 @@ void diagfwd_init(void)
 		if (driver->user_space_data == NULL)
 			goto err;
 	kmemleak_not_leak(driver->user_space_data);
+	if (driver->user_space_mdm_data == NULL)
+		driver->user_space_mdm_data = kzalloc(USER_SPACE_DATA, GFP_KERNEL);
+		if (driver->user_space_mdm_data == NULL)
+			goto err;
+	kmemleak_not_leak(driver->user_space_mdm_data);
 	if (driver->msg_masks == NULL
 	    && (driver->msg_masks = kzalloc(MSG_MASK_SIZE,
 					     GFP_KERNEL)) == NULL)

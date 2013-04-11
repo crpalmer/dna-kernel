@@ -30,37 +30,34 @@
 #ifndef	_SBSDIO_H
 #define	_SBSDIO_H
 
-#define SBSDIO_NUM_FUNCTION		3	/* as of sdiod rev 0, supports 3 functions */
+#define SBSDIO_NUM_FUNCTION		3	
 
-/* function 1 miscellaneous registers */
-#define SBSDIO_SPROM_CS			0x10000		/* sprom command and status */
-#define SBSDIO_SPROM_INFO		0x10001		/* sprom info register */
-#define SBSDIO_SPROM_DATA_LOW		0x10002		/* sprom indirect access data byte 0 */
-#define SBSDIO_SPROM_DATA_HIGH		0x10003 	/* sprom indirect access data byte 1 */
-#define SBSDIO_SPROM_ADDR_LOW		0x10004		/* sprom indirect access addr byte 0 */
-#define SBSDIO_SPROM_ADDR_HIGH		0x10005		/* sprom indirect access addr byte 0 */
-#define SBSDIO_CHIP_CTRL_DATA		0x10006		/* xtal_pu (gpio) output */
-#define SBSDIO_CHIP_CTRL_EN		0x10007		/* xtal_pu (gpio) enable */
-#define SBSDIO_WATERMARK		0x10008		/* rev < 7, watermark for sdio device */
-#define SBSDIO_DEVICE_CTL		0x10009		/* control busy signal generation */
+#define SBSDIO_SPROM_CS			0x10000		
+#define SBSDIO_SPROM_INFO		0x10001		
+#define SBSDIO_SPROM_DATA_LOW		0x10002		
+#define SBSDIO_SPROM_DATA_HIGH		0x10003 	
+#define SBSDIO_SPROM_ADDR_LOW		0x10004		
+#define SBSDIO_SPROM_ADDR_HIGH		0x10005		
+#define SBSDIO_CHIP_CTRL_DATA		0x10006		
+#define SBSDIO_CHIP_CTRL_EN		0x10007		
+#define SBSDIO_WATERMARK		0x10008		
+#define SBSDIO_DEVICE_CTL		0x10009		
 
-/* registers introduced in rev 8, some content (mask/bits) defs in sbsdpcmdev.h */
-#define SBSDIO_FUNC1_SBADDRLOW		0x1000A		/* SB Address Window Low (b15) */
-#define SBSDIO_FUNC1_SBADDRMID		0x1000B		/* SB Address Window Mid (b23:b16) */
-#define SBSDIO_FUNC1_SBADDRHIGH		0x1000C		/* SB Address Window High (b31:b24)    */
-#define SBSDIO_FUNC1_FRAMECTRL		0x1000D		/* Frame Control (frame term/abort) */
-#define SBSDIO_FUNC1_CHIPCLKCSR		0x1000E		/* ChipClockCSR (ALP/HT ctl/status) */
-#define SBSDIO_FUNC1_SDIOPULLUP 	0x1000F		/* SdioPullUp (on cmd, d0-d2) */
-#define SBSDIO_FUNC1_WFRAMEBCLO		0x10019		/* Write Frame Byte Count Low */
-#define SBSDIO_FUNC1_WFRAMEBCHI		0x1001A		/* Write Frame Byte Count High */
-#define SBSDIO_FUNC1_RFRAMEBCLO		0x1001B		/* Read Frame Byte Count Low */
-#define SBSDIO_FUNC1_RFRAMEBCHI		0x1001C		/* Read Frame Byte Count High */
-#define SBSDIO_FUNC1_MESBUSYCTRL	0x1001D		/* MesBusyCtl at 0x1001D (rev 11) */
+#define SBSDIO_FUNC1_SBADDRLOW		0x1000A		
+#define SBSDIO_FUNC1_SBADDRMID		0x1000B		
+#define SBSDIO_FUNC1_SBADDRHIGH		0x1000C		
+#define SBSDIO_FUNC1_FRAMECTRL		0x1000D		
+#define SBSDIO_FUNC1_CHIPCLKCSR		0x1000E		
+#define SBSDIO_FUNC1_SDIOPULLUP 	0x1000F		
+#define SBSDIO_FUNC1_WFRAMEBCLO		0x10019		
+#define SBSDIO_FUNC1_WFRAMEBCHI		0x1001A		
+#define SBSDIO_FUNC1_RFRAMEBCLO		0x1001B		
+#define SBSDIO_FUNC1_RFRAMEBCHI		0x1001C		
+#define SBSDIO_FUNC1_MESBUSYCTRL	0x1001D		
 
-#define SBSDIO_FUNC1_MISC_REG_START	0x10000 	/* f1 misc register start */
-#define SBSDIO_FUNC1_MISC_REG_LIMIT	0x1001C 	/* f1 misc register end */
+#define SBSDIO_FUNC1_MISC_REG_START	0x10000 	
+#define SBSDIO_FUNC1_MISC_REG_LIMIT	0x1001C 	
 
-/* Sdio Core Rev 12 */
 #define SBSDIO_FUNC1_WAKEUPCTRL			0x1001E
 #define SBSDIO_FUNC1_WCTRL_ALPWAIT_MASK		0x1
 #define SBSDIO_FUNC1_WCTRL_ALPWAIT_SHIFT	0

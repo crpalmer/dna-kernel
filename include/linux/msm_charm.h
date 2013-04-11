@@ -12,6 +12,7 @@
 #define RAM_DUMP_DONE		_IOW(CHARM_CODE, 6, int)
 #define WAIT_FOR_RESTART	_IOR(CHARM_CODE, 7, int)
 
+#define HTC_POWER_OFF_CHARM	_IOW(CHARM_CODE, 101, int)
 #define GET_MFG_MODE   	_IO(CHARM_CODE, 94)     /* HTC added */
 #define GET_RADIO_FLAG   	_IO(CHARM_CODE, 95)     /* HTC added */
 #define SET_MODEM_ERRMSG	_IOW(CHARM_CODE, 96, char[MODEM_ERRMSG_LEN])	/* HTC added */

@@ -35,6 +35,7 @@
 #include <linux/fsnotify.h>
 #include "internal.h"
 
+atomic_t vfs_emergency_remount;
 
 LIST_HEAD(super_blocks);
 DEFINE_SPINLOCK(sb_lock);
@@ -791,6 +792,7 @@ static void do_emergency_remount(struct work_struct *work)
 {
 	struct super_block *sb, *p = NULL;
 
+	atomic_set(&vfs_emergency_remount, 1);
 	spin_lock(&sb_lock);
 	list_for_each_entry(sb, &super_blocks, s_list) {
 		if (hlist_unhashed(&sb->s_instances))
@@ -819,6 +821,7 @@ static void do_emergency_remount(struct work_struct *work)
 	* 2012-05-17 Add eMMC SPOR prevention code
 	*/
 	atomic_set(&emmc_reboot, 1);
+	atomic_set(&vfs_emergency_remount, 0);
 	printk("Lock eMMC\n");
 	printk("Emergency Remount complete\n");
 }

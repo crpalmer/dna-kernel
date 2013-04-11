@@ -16,33 +16,25 @@
 
 #include <linux/types.h>
 
-/* Snapshot header */
 
-/* High word is static, low word is snapshot version ID */
 #define SNAPSHOT_MAGIC 0x504D0002
 
-/* GPU ID scheme:
- * [16:31] - core identifer (0x0002 for 2D or 0x0003 for 3D)
- * [00:16] - GPU specific identifier
- */
 
 struct kgsl_snapshot_header {
-	__u32 magic; /* Magic identifier */
-	__u32 gpuid; /* GPU ID - see above */
-	/* Added in snapshot version 2 */
-	__u32 chipid; /* Chip ID from the GPU */
+	__u32 magic; 
+	__u32 gpuid; 
+	
+	__u32 chipid; 
 } __packed;
 
-/* Section header */
 #define SNAPSHOT_SECTION_MAGIC 0xABCD
 
 struct kgsl_snapshot_section_header {
-	__u16 magic; /* Magic identifier */
-	__u16 id;    /* Type of section */
-	__u32 size;  /* Size of the section including this header */
+	__u16 magic; 
+	__u16 id;    
+	__u32 size;  
 } __packed;
 
-/* Section identifiers */
 #define KGSL_SNAPSHOT_SECTION_OS           0x0101
 #define KGSL_SNAPSHOT_SECTION_REGS         0x0201
 #define KGSL_SNAPSHOT_SECTION_RB           0x0301

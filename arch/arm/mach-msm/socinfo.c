@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * SOC Info Routines
- *
- */
 
 #include <linux/types.h>
 #include <linux/sysdev.h>

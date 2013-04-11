@@ -15,7 +15,6 @@
 
 #include <mach/qdsp6v2/apr_us.h>
 
-/* cyclic buffer with 1 gap support */
 #define USM_MIN_BUF_CNT 3
 
 #define FORMAT_USPS_EPOS	0x00000000

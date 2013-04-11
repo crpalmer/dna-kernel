@@ -395,8 +395,8 @@ int mmc_switch(struct mmc_card *card, u8 set, u8 index, u8 value,
 		  set;
 		cmd.flags = MMC_CMD_AC;
 #if 1
-	if (index == EXT_CSD_BKOPS_START /*&&
-	    card->ext_csd.raw_bkops_status < EXT_CSD_BKOPS_LEVEL_2*/)
+	if (index == EXT_CSD_BKOPS_START 
+)
 		cmd.flags |= MMC_RSP_SPI_R1 | MMC_RSP_R1;
 	else
 		cmd.flags = MMC_RSP_SPI_R1B | MMC_RSP_R1B | MMC_CMD_AC;

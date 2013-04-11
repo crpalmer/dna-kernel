@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * Qualcomm MSM Runqueue Stats Interface for Userspace
- */
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>

@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * Qualcomm MSM8960 TSENS driver
- *
- */
 
 #include <linux/module.h>
 #include <linux/platform_device.h>

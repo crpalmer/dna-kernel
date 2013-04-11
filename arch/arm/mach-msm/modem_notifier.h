@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * Modem Restart Notifier API
- *
- */
 
 #ifndef _MODEM_NOTIFIER_H
 #define _MODEM_NOTIFIER_H

@@ -10,7 +10,6 @@
  * GNU General Public License for more details.
  */
 
-/* add additional information to our printk's */
 #define pr_fmt(fmt) "%s: " fmt "\n", __func__
 
 #include <linux/kernel.h>

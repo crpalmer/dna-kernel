@@ -193,39 +193,6 @@ int scsi_partsize(unsigned char *buf, unsigned long capacity,
 }
 EXPORT_SYMBOL(scsi_partsize);
 
-/*
- * Function : static int setsize(unsigned long capacity,unsigned int *cyls,
- *      unsigned int *hds, unsigned int *secs);
- *
- * Purpose : to determine a near-optimal int 0x13 mapping for a
- *      SCSI disk in terms of lost space of size capacity, storing
- *      the results in *cyls, *hds, and *secs.
- *
- * Returns : -1 on failure, 0 on success.
- *
- * Extracted from
- *
- * WORKING                                                    X3T9.2
- * DRAFT                                                        792D
- * see http://www.t10.org/ftp/t10/drafts/cam/cam-r12b.pdf
- *
- *                                                        Revision 6
- *                                                         10-MAR-94
- * Information technology -
- * SCSI-2 Common access method
- * transport and SCSI interface module
- * 
- * ANNEX A :
- *
- * setsize() converts a read capacity value to int 13h
- * head-cylinder-sector requirements. It minimizes the value for
- * number of heads and maximizes the number of cylinders. This
- * will support rather large disks before the number of heads
- * will not fit in 4 bits (or 6 bits). This algorithm also
- * minimizes the number of sectors that will be unused at the end
- * of the disk while allowing for very large disks to be
- * accommodated. This algorithm does not use physical geometry. 
- */
 
 static int setsize(unsigned long capacity, unsigned int *cyls, unsigned int *hds,
 		   unsigned int *secs)

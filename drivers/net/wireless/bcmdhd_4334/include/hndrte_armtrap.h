@@ -28,11 +28,8 @@
 #define	_hndrte_armtrap_h
 
 
-/* ARM trap handling */
 
-/* Trap types defined by ARM (see arminc.h) */
 
-/* Trap locations in lo memory */
 #define	TRAP_STRIDE	4
 #define FIRST_TRAP	TR_RST
 #define LAST_TRAP	(TR_FIQ * TRAP_STRIDE)

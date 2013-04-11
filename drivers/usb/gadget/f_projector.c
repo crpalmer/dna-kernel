@@ -462,14 +462,18 @@ static void send_fb(struct projector_dev *dev)
 			xfer = count > TXN_MAX? TXN_MAX : count;
 			req->length = xfer;
 			memcpy(req->buf, frame, xfer);
+
+			count -= xfer;
+			frame += xfer;
+
+			if (count <= 0)
+				req->zero = 1;
 			if (usb_ep_queue(dev->ep_in, req, GFP_ATOMIC) < 0) {
 				proj_req_put(dev, &dev->tx_idle, req);
 				printk(KERN_WARNING "%s: failed to queue req %p\n",
 					__func__, req);
 				break;
 			}
-			count -= xfer;
-			frame += xfer;
 		} else {
 			printk(KERN_ERR "send_fb: no req to send\n");
 			break;

@@ -1056,7 +1056,7 @@ static int ar0260_sensor_open_init(const struct msm_camera_sensor_info *data)
 
 static const char *ar0260Vendor = "aptina";
 static const char *ar0260NAME = "ar0260";
-static const char *ar0260Size = "2.0M";
+static const char *ar0260Size = "2.1M";
 
 static ssize_t sensor_vendor_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -1392,5 +1392,5 @@ static struct msm_sensor_ctrl_t ar0260_s_ctrl = {
 };
 
 module_init(msm_sensor_init_module);
-MODULE_DESCRIPTION("Aptina 2.0 MP Bayer sensor driver");
+MODULE_DESCRIPTION("Aptina 2.1 MP Bayer sensor driver");
 MODULE_LICENSE("GPL v2");

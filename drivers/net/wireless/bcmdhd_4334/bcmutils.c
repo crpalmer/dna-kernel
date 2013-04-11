@@ -1232,30 +1232,9 @@ bcm_iovar_lencheck(const bcm_iovar_t *vi, void *arg, int len, bool set)
 	return bcmerror;
 }
 
-#endif	/* BCMDRIVER */
+#endif	
 
 
-/*******************************************************************************
- * crc8
- *
- * Computes a crc8 over the input data using the polynomial:
- *
- *       x^8 + x^7 +x^6 + x^4 + x^2 + 1
- *
- * The caller provides the initial value (either CRC8_INIT_VALUE
- * or the previous returned value) to allow for processing of
- * discontiguous blocks of data.  When generating the CRC the
- * caller is responsible for complementing the final return value
- * and inserting it into the byte stream.  When checking, a final
- * return value of CRC8_GOOD_VALUE indicates a valid CRC.
- *
- * Reference: Dallas Semiconductor Application Note 27
- *   Williams, Ross N., "A Painless Guide to CRC Error Detection Algorithms",
- *     ver 3, Aug 1993, ross@guest.adelaide.edu.au, Rocksoft Pty Ltd.,
- *     ftp://ftp.rocksoft.com/clients/rocksoft/papers/crc_v3.txt
- *
- * ****************************************************************************
- */
 
 static const uint8 crc8_table[256] = {
     0x00, 0xF7, 0xB9, 0x4E, 0x25, 0xD2, 0x9C, 0x6B,
@@ -1297,41 +1276,17 @@ static const uint8 crc8_table[256] = {
 
 uint8
 hndcrc8(
-	uint8 *pdata,	/* pointer to array of data to process */
-	uint  nbytes,	/* number of input data bytes to process */
-	uint8 crc	/* either CRC8_INIT_VALUE or previous return value */
+	uint8 *pdata,	
+	uint  nbytes,	
+	uint8 crc	
 )
 {
-	/* hard code the crc loop instead of using CRC_INNER_LOOP macro
-	 * to avoid the undefined and unnecessary (uint8 >> 8) operation.
-	 */
 	while (nbytes-- > 0)
 		crc = crc8_table[(crc ^ *pdata++) & 0xff];
 
 	return crc;
 }
 
-/*******************************************************************************
- * crc16
- *
- * Computes a crc16 over the input data using the polynomial:
- *
- *       x^16 + x^12 +x^5 + 1
- *
- * The caller provides the initial value (either CRC16_INIT_VALUE
- * or the previous returned value) to allow for processing of
- * discontiguous blocks of data.  When generating the CRC the
- * caller is responsible for complementing the final return value
- * and inserting it into the byte stream.  When checking, a final
- * return value of CRC16_GOOD_VALUE indicates a valid CRC.
- *
- * Reference: Dallas Semiconductor Application Note 27
- *   Williams, Ross N., "A Painless Guide to CRC Error Detection Algorithms",
- *     ver 3, Aug 1993, ross@guest.adelaide.edu.au, Rocksoft Pty Ltd.,
- *     ftp://ftp.rocksoft.com/clients/rocksoft/papers/crc_v3.txt
- *
- * ****************************************************************************
- */
 
 static const uint16 crc16_table[256] = {
     0x0000, 0x1189, 0x2312, 0x329B, 0x4624, 0x57AD, 0x6536, 0x74BF,
@@ -1813,40 +1768,27 @@ bcm_mkiovar(char *name, char *data, uint datalen, char *buf, uint buflen)
 
 	strncpy(buf, name, buflen);
 
-	/* append data onto the end of the name string */
+	
 	memcpy(&buf[len], data, datalen);
 	len += datalen;
 
 	return len;
 }
 
-/* Quarter dBm units to mW
- * Table starts at QDBM_OFFSET, so the first entry is mW for qdBm=153
- * Table is offset so the last entry is largest mW value that fits in
- * a uint16.
- */
 
-#define QDBM_OFFSET 153		/* Offset for first entry */
-#define QDBM_TABLE_LEN 40	/* Table size */
+#define QDBM_OFFSET 153		
+#define QDBM_TABLE_LEN 40	
 
-/* Smallest mW value that will round up to the first table entry, QDBM_OFFSET.
- * Value is ( mW(QDBM_OFFSET - 1) + mW(QDBM_OFFSET) ) / 2
- */
-#define QDBM_TABLE_LOW_BOUND 6493 /* Low bound */
+#define QDBM_TABLE_LOW_BOUND 6493 
 
-/* Largest mW value that will round down to the last table entry,
- * QDBM_OFFSET + QDBM_TABLE_LEN-1.
- * Value is ( mW(QDBM_OFFSET + QDBM_TABLE_LEN - 1) + mW(QDBM_OFFSET + QDBM_TABLE_LEN) ) / 2.
- */
-#define QDBM_TABLE_HIGH_BOUND 64938 /* High bound */
+#define QDBM_TABLE_HIGH_BOUND 64938 
 
 static const uint16 nqdBm_to_mW_map[QDBM_TABLE_LEN] = {
-/* qdBm: 	+0 	+1 	+2 	+3 	+4 	+5 	+6 	+7 */
-/* 153: */      6683,	7079,	7499,	7943,	8414,	8913,	9441,	10000,
-/* 161: */      10593,	11220,	11885,	12589,	13335,	14125,	14962,	15849,
-/* 169: */      16788,	17783,	18836,	19953,	21135,	22387,	23714,	25119,
-/* 177: */      26607,	28184,	29854,	31623,	33497,	35481,	37584,	39811,
-/* 185: */      42170,	44668,	47315,	50119,	53088,	56234,	59566,	63096
+      6683,	7079,	7499,	7943,	8414,	8913,	9441,	10000,
+      10593,	11220,	11885,	12589,	13335,	14125,	14962,	15849,
+      16788,	17783,	18836,	19953,	21135,	22387,	23714,	25119,
+      26607,	28184,	29854,	31623,	33497,	35481,	37584,	39811,
+      42170,	44668,	47315,	50119,	53088,	56234,	59566,	63096
 };
 
 uint16
@@ -1856,21 +1798,15 @@ bcm_qdbm_to_mw(uint8 qdbm)
 	int idx = qdbm - QDBM_OFFSET;
 
 	if (idx >= QDBM_TABLE_LEN) {
-		/* clamp to max uint16 mW value */
+		
 		return 0xFFFF;
 	}
 
-	/* scale the qdBm index up to the range of the table 0-40
-	 * where an offset of 40 qdBm equals a factor of 10 mW.
-	 */
 	while (idx < 0) {
 		idx += 40;
 		factor *= 10;
 	}
 
-	/* return the mW value scaled down to the correct factor of 10,
-	 * adding in factor/2 to get proper rounding.
-	 */
 	return ((nqdBm_to_mW_map[idx] + factor/2) / factor);
 }
 

@@ -12,10 +12,6 @@
 #ifndef __MACH_CLK_H
 #define __MACH_CLK_H
 
-/* Magic rate value for use with PM QOS to request the board's maximum
- * supported AXI rate. PM QOS will only pass positive s32 rate values
- * through to the clock driver, so INT_MAX is used.
- */
 #define MSM_AXI_MAX_FREQ	LONG_MAX
 
 enum clk_reset_action {

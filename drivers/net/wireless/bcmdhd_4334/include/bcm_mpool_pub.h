@@ -61,68 +61,34 @@
 #ifndef _BCM_MPOOL_PUB_H
 #define _BCM_MPOOL_PUB_H 1
 
-#include <typedefs.h> /* needed for uint16 */
+#include <typedefs.h> 
 
 
-/*
-**************************************************************************
-*
-* Type definitions, handles
-*
-**************************************************************************
-*/
 
-/* Forward declaration of OSL handle. */
 struct osl_info;
 
-/* Forward declaration of string buffer. */
 struct bcmstrbuf;
 
-/*
- * Opaque type definition for the pool manager handle. This object is used for global
- * memory pool operations such as obtaining a new pool, deleting a pool, iterating and
- * instrumentation/debugging.
- */
 struct bcm_mpm_mgr;
 typedef struct bcm_mpm_mgr *bcm_mpm_mgr_h;
 
-/*
- * Opaque type definition for an instance of a pool. This handle is used for allocating
- * and freeing memory through the pool, as well as management/instrumentation on this
- * specific pool.
- */
 struct bcm_mp_pool;
 typedef struct bcm_mp_pool *bcm_mp_pool_h;
 
 
-/*
- * To make instrumentation more readable, every memory
- * pool must have a readable name. Pool names are up to
- * 8 bytes including '\0' termination. (7 printable characters.)
- */
 #define BCM_MP_NAMELEN 8
 
 
-/*
- * Type definition for pool statistics.
- */
 typedef struct bcm_mp_stats {
-	char name[BCM_MP_NAMELEN];  /* Name of this pool. */
-	unsigned int objsz;         /* Object size allocated in this pool */
-	uint16 nobj;                /* Total number of objects in this pool */
-	uint16 num_alloc;           /* Number of objects currently allocated */
-	uint16 high_water;          /* Max number of allocated objects. */
-	uint16 failed_alloc;        /* Failed allocations. */
+	char name[BCM_MP_NAMELEN];  
+	unsigned int objsz;         
+	uint16 nobj;                
+	uint16 num_alloc;           
+	uint16 high_water;          
+	uint16 failed_alloc;        
 } bcm_mp_stats_t;
 
 
-/*
-**************************************************************************
-*
-* API Routines on the pool manager.
-*
-**************************************************************************
-*/
 
 /*
  * bcm_mpm_init() - initialize the whole memory pool system.
@@ -139,42 +105,8 @@ typedef struct bcm_mp_stats {
 int bcm_mpm_init(struct osl_info *osh, int max_pools, bcm_mpm_mgr_h *mgrp);
 
 
-/*
- * bcm_mpm_deinit() - de-initialize the whole memory pool system.
- *
- * Parameters:
- *    mgr:     INPUT  Pointer to pool manager handle.
- *
- * Returns:
- *    BCME_OK  Memory pool manager successfully de-initialized.
- *    other    Indicated error occured during de-initialization.
- */
 int bcm_mpm_deinit(bcm_mpm_mgr_h *mgrp);
 
-/*
- * bcm_mpm_create_prealloc_pool() - Create a new pool for fixed size objects. The
- *                                  pool uses a contiguous block of pre-alloced
- *                                  memory. The memory block may either be provided
- *                                  by the client or dynamically allocated by the
- *                                  pool manager.
- *
- * Parameters:
- *    mgr:      INPUT  The handle to the pool manager
- *    obj_sz:   INPUT  Size of objects that will be allocated by the new pool
- *                     Must be >= sizeof(void *).
- *    nobj:     INPUT  Maximum number of concurrently existing objects to support
- *    memstart  INPUT  Pointer to the memory to use, or NULL to malloc()
- *    memsize   INPUT  Number of bytes referenced from memstart (for error checking).
- *                     Must be 0 if 'memstart' is NULL.
- *    poolname  INPUT  For instrumentation, the name of the pool
- *    newp:     OUTPUT The handle for the new pool, if creation is successful
- *
- * Returns:
- *    BCME_OK   Pool created ok.
- *    other     Pool not created due to indicated error. newpoolp set to NULL.
- *
- *
- */
 int bcm_mpm_create_prealloc_pool(bcm_mpm_mgr_h mgr,
                                  unsigned int obj_sz,
                                  int nobj,

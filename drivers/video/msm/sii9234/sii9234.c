@@ -12,9 +12,6 @@
  * GNU General Public License for more details.
  *
  */
-/*********************************************************************
-*  Inculde
-**********************************************************************/
 #include <linux/earlysuspend.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
@@ -473,7 +470,7 @@ void sii9234_mhl_device_wakeup(void)
 
 	if (!g_bInitCompleted) {
 		PR_DISP_INFO("MHL inserted before HDMI related function was ready! Wait more 5 sec...\n");
-		queue_delayed_work(pInfo->wq, &pInfo->init_delay_work, HZ*5);
+		queue_delayed_work(pInfo->wq, &pInfo->init_delay_work, HZ*10);
 		return;
 	}
 

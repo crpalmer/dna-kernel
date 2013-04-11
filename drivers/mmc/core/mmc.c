@@ -561,6 +561,13 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 			ext_csd[EXT_CSD_MAX_PACKED_READS];
 	}
 
+	if (card->cid.manfid == 0x45) {
+		char buf[7] = {0};
+		sprintf(buf, "%c%c%c%c%c%c", ext_csd[73], ext_csd[74], ext_csd[75],
+										ext_csd[76], ext_csd[77], ext_csd[78]);
+		strncpy(card->ext_csd.fwrev, buf, strlen(buf));
+	}
+
 out:
 	return err;
 }

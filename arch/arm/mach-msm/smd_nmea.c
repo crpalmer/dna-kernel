@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * SMD NMEA Driver -- Provides GPS NMEA device to SMD port interface.
- *
- */
 
 #include <linux/module.h>
 #include <linux/fs.h>

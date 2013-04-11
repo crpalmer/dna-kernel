@@ -11,7 +11,6 @@
  *
 */
 
-/* For Decoders */
 #ifndef __Q6_AUDIO_COMMON_H__
 #define __Q6_AUDIO_COMMON_H__
 

@@ -27,34 +27,20 @@
 #define __WLDEV_COMMON_H__
 
 #include <wlioctl.h>
-/*HTC_CSP_START*/
 #define DEF_COUNTRY_CODE	"XX"
-/*HTC_CPS_END*/
 
-//BRCM APSTA START
 typedef struct {
         int cfg;
         int val;
 } bss_setbuf_t;
-//BRCM APSTA END
 
-/* wl_dev_ioctl - get/set IOCTLs, will call net_device's do_ioctl (or
- *  netdev_ops->ndo_do_ioctl in new kernels)
- *  @dev: the net_device handle
- */
 s32 wldev_ioctl(
 	struct net_device *dev, u32 cmd, void *arg, u32 len, u32 set);
 
-/** Retrieve named IOVARs, this function calls wl_dev_ioctl with
- *  WLC_GET_VAR IOCTL code
- */
 s32 wldev_iovar_getbuf(
 	struct net_device *dev, s8 *iovar_name,
 	void *param, s32 paramlen, void *buf, s32 buflen, struct mutex* buf_sync);
 
-/** Set named IOVARs, this function calls wl_dev_ioctl with
- *  WLC_SET_VAR IOCTL code
- */
 s32 wldev_iovar_setbuf(
 	struct net_device *dev, s8 *iovar_name,
 	void *param, s32 paramlen, void *buf, s32 buflen, struct mutex* buf_sync);

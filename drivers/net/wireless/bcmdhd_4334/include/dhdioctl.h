@@ -34,44 +34,37 @@
 #include <typedefs.h>
 
 
-/* require default structure packing */
 #define BWL_DEFAULT_PACKING
 #include <packed_section_start.h>
 
 
-/* Linux network driver ioctl encoding */
 typedef struct dhd_ioctl {
-	uint cmd;	/* common ioctl definition */
-	void *buf;	/* pointer to user buffer */
-	uint len;	/* length of user buffer */
-	bool set;	/* get or set request (optional) */
+	uint cmd;	
+	void *buf;	
+	uint len;	
+	bool set;	
 	uint used;	/* bytes read or written (optional) */
-	uint needed;	/* bytes needed (optional) */
-	uint driver;	/* to identify target driver */
+	uint needed;	
+	uint driver;	
 } dhd_ioctl_t;
 
-/* Underlying BUS definition */
 enum {
-	BUS_TYPE_USB = 0, /* for USB dongles */
-	BUS_TYPE_SDIO /* for SDIO dongles */
+	BUS_TYPE_USB = 0, 
+	BUS_TYPE_SDIO 
 };
 
-/* per-driver magic numbers */
 #define DHD_IOCTL_MAGIC		0x00444944
 
-/* bump this number if you change the ioctl interface */
 #define DHD_IOCTL_VERSION	1
 
-#define	DHD_IOCTL_MAXLEN	8192		/* max length ioctl buffer required */
-#define	DHD_IOCTL_SMLEN		256		/* "small" length ioctl buffer required */
+#define	DHD_IOCTL_MAXLEN	8192		
+#define	DHD_IOCTL_SMLEN		256		
 
-/* common ioctl definitions */
 #define DHD_GET_MAGIC				0
 #define DHD_GET_VERSION				1
 #define DHD_GET_VAR				2
 #define DHD_SET_VAR				3
 
-/* message levels */
 #define DHD_ERROR_VAL	0x0001
 #define DHD_TRACE_VAL	0x0002
 #define DHD_INFO_VAL	0x0004

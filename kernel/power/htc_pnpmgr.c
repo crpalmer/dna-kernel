@@ -92,6 +92,7 @@ static int thermal_c2_value;
 static int thermal_c3_value;
 static int thermal_final_value;
 static int thermal_g0_value;
+static int data_throttling_value;
 
 define_int_show(thermal_c0, thermal_c0_value);
 define_int_store(thermal_c0, thermal_c0_value, null_cb);
@@ -116,6 +117,10 @@ power_attr(thermal_final);
 define_int_show(thermal_g0, thermal_g0_value);
 define_int_store(thermal_g0, thermal_g0_value, null_cb);
 power_attr(thermal_g0);
+
+define_int_show(pause_dt, data_throttling_value);
+define_int_store(pause_dt, data_throttling_value, null_cb);
+power_attr(pause_dt);
 
 /* Multi-core tunables */
 static int mp_args_changed = 0;
@@ -269,6 +274,7 @@ static struct attribute *thermal_g[] = {
 	&thermal_c3_attr.attr,
 	&thermal_final_attr.attr,
 	&thermal_g0_attr.attr,
+	&pause_dt_attr.attr,
 #endif
 	NULL,
 };

@@ -21,8 +21,6 @@ ccflags-y += -Wno-declaration-after-statement
 ccflags-$(CONFIG_MOBICORE_DEBUG) += -DDEBUG
 ccflags-$(CONFIG_MOBICORE_VERBOSE) += -DDEBUG_VERBOSE
 
-# set up PWD so that older versions of make will work with our build.
-PWD = $(shell pwd)
 # Choose one platform from the folder
 MOBICORE_PLATFORM := $(shell (ls -1 $(PWD)/$(GUD_ROOT_FOLDER)/mobicore_driver/platforms | tail -1) )
 # Use the available platform folder

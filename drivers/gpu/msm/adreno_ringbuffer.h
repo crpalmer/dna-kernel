@@ -13,15 +13,10 @@
 #ifndef __ADRENO_RINGBUFFER_H
 #define __ADRENO_RINGBUFFER_H
 
-/*
- * Adreno ringbuffer sizes in bytes - these are converted to
- * the appropriate log2 values in the code
- */
 
 #define KGSL_RB_SIZE (32 * 1024)
 #define KGSL_RB_BLKSIZE 16
 
-/* CP timestamp register */
 #define	REG_CP_TIMESTAMP		 REG_SCRATCH_REG0
 
 
@@ -123,6 +118,10 @@ adreno_ringbuffer_restore(struct adreno_ringbuffer *rb, unsigned int *rb_buff,
 
 unsigned int *adreno_ringbuffer_allocspace(struct adreno_ringbuffer *rb,
 					     unsigned int numcmds);
+
+int adreno_ringbuffer_read_pfp_ucode(struct kgsl_device *device);
+
+int adreno_ringbuffer_read_pm4_ucode(struct kgsl_device *device);
 
 static inline int adreno_ringbuffer_count(struct adreno_ringbuffer *rb,
 	unsigned int rptr)

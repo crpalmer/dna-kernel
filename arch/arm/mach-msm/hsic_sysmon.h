@@ -13,9 +13,6 @@
 #ifndef __HSIC_SYSMON_H__
 #define __HSIC_SYSMON_H__
 
-/**
- * enum hsic_sysmon_device_id - Supported HSIC subsystem devices
- */
 enum hsic_sysmon_device_id {
 	HSIC_SYSMON_DEV_EXT_MODEM,
 	NUM_HSIC_SYSMON_DEVS

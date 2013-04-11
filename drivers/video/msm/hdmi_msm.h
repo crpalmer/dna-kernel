@@ -15,7 +15,6 @@
 
 #include <mach/msm_iomap.h>
 #include "external_common.h"
-/* #define PORT_DEBUG */
 
 #ifdef PORT_DEBUG
 const char *hdmi_msm_name(uint32 offset);

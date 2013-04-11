@@ -218,7 +218,7 @@ int msm_get_voice_state(void);
 int msm_enable_incall_recording(int popp_id, int rec_mode, int rate,
 				int channel_mode);
 int msm_disable_incall_recording(uint32_t popp_id, uint32_t rec_mode);
-#ifdef CONFIG_MACH_VILLEC2
+#ifdef CONFIG_MACH_DUMMY
 void msm_set_voc_freq(int tx_freq, int rx_freq);
 #endif
 #endif

@@ -16,7 +16,6 @@
 
 #include "vidc_hwio_reg.h"
 
-/*HTC_START*/
 extern u32 vidc_msg_register;
 #define VIDC_REG_OUT(x...)          \
     if (vidc_msg_register) {        \

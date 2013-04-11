@@ -191,6 +191,8 @@ static int htc_battery_get_charging_status(void)
 	case CHARGER_9V_AC:
 	case CHARGER_WIRELESS:
 	case CHARGER_MHL_AC:
+	case CHARGER_DETECTING:
+	case CHARGER_UNKNOWN_USB:
 		if (battery_core_info.htc_charge_full)
 			ret = POWER_SUPPLY_STATUS_FULL;
 		else {
@@ -219,6 +221,15 @@ static ssize_t htc_battery_show_cc_attr(struct device *dev,
 					char *buf)
 {
 	return battery_core_info.func.func_show_cc_attr(attr, buf);
+}
+
+static ssize_t htc_battery_show_htc_extension_attr(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{
+	if (battery_core_info.func.func_show_htc_extension_attr)
+		return battery_core_info.func.func_show_htc_extension_attr(attr, buf);
+	return 0;
 }
 
 static ssize_t htc_battery_set_delta(struct device *dev,
@@ -440,6 +451,7 @@ static struct device_attribute htc_battery_attrs[] = {
 
 	__ATTR(batt_attr_text, S_IRUGO, htc_battery_show_batt_attr, NULL),
 	__ATTR(batt_power_meter, S_IRUGO, htc_battery_show_cc_attr, NULL),
+	__ATTR(htc_extension, S_IRUGO, htc_battery_show_htc_extension_attr, NULL),
 };
 
 static struct device_attribute htc_set_delta_attrs[] = {
@@ -555,9 +567,14 @@ static int htc_power_get_property(struct power_supply *psy,
 				val->intval = 1;
 			else
 				val->intval = 0;
-		} else if (psy->type == POWER_SUPPLY_TYPE_USB)
-			val->intval = (charger ==  CHARGER_USB ? 1 : 0);
-		else if (psy->type == POWER_SUPPLY_TYPE_WIRELESS)
+		} else if (psy->type == POWER_SUPPLY_TYPE_USB) {
+			if (charger == CHARGER_USB ||
+			    charger == CHARGER_UNKNOWN_USB ||
+			    charger == CHARGER_DETECTING)
+				val->intval = 1;
+			else
+				val->intval = 0;
+		} else if (psy->type == POWER_SUPPLY_TYPE_WIRELESS)
 			val->intval = (charger ==  CHARGER_WIRELESS ? 1 : 0);
 		else
 			val->intval = 0;
@@ -894,6 +911,9 @@ int htc_battery_core_register(struct device *dev,
 	if (htc_battery->func_show_cc_attr)
 		battery_core_info.func.func_show_cc_attr =
 					htc_battery->func_show_cc_attr;
+	if (htc_battery->func_show_htc_extension_attr)
+		battery_core_info.func.func_show_htc_extension_attr =
+					htc_battery->func_show_htc_extension_attr;
 	if (htc_battery->func_get_battery_info)
 		battery_core_info.func.func_get_battery_info =
 					htc_battery->func_get_battery_info;

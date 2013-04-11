@@ -333,11 +333,11 @@ void	Int1RsenIsr(void)
 	uint8_t		reg71 = I2C_ReadByte(TPI_SLAVE_ADDR, 0x71);
 	uint8_t		rsen  = I2C_ReadByte(TPI_SLAVE_ADDR, 0x09) & BIT_2;
 
-	if ((reg71 & BIT_5)/* ||
-		((false == deglitchingRsenNow) && (rsen == 0x00))*/) {
+	if ((reg71 & BIT_5)
+) {
 		TPI_DEBUG_PRINT(("Drv: Got INTR_1: reg71 = %02X, rsen = %02X\n", (int) reg71, (int) rsen));
 		Int1ProcessRsen(rsen);
-		/* Clear MDI_RSEN interrupt */
+		
 		I2C_WriteByte(TPI_SLAVE_ADDR, 0x71, BIT_5);
 		UNMASK_INTR_1_INTERRUPTS;
 	}

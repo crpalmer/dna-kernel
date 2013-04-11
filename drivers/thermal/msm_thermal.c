@@ -99,12 +99,10 @@ static void disable_msm_thermal(void)
 {
 	int cpu = 0;
 
-	/* make sure check_temp is no longer running */
-	cancel_delayed_work(&check_temp_work);
+	
+	cancel_delayed_work_sync(&check_temp_work);
 	flush_scheduled_work();
 
-	if (limited_max_freq == MSM_CPUFREQ_NO_LIMIT)
-		return;
 
 	for_each_possible_cpu(cpu) {
 		update_cpu_max_freq(cpu, MSM_CPUFREQ_NO_LIMIT);

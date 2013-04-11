@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
 */
 
-/* The MSM Hardware supports multiple flavors of physical memory.
- * This file captures hardware specific information of these types.
-*/
 
 #ifndef __ASM_ARCH_MSM_MEMTYPES_H
 #define __ASM_ARCH_MSM_MEMTYPES_H

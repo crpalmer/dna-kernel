@@ -13,10 +13,6 @@
 #ifndef __KGSL_MMU_H
 #define __KGSL_MMU_H
 
-/*
- * These defines control the split between ttbr1 and ttbr0 pagetables of IOMMU
- * and what ranges of memory we map to them
- */
 #define KGSL_IOMMU_GLOBAL_MEM_BASE	0xC0000000
 #define KGSL_IOMMU_GLOBAL_MEM_SIZE	SZ_4M
 #define KGSL_IOMMU_TTBR1_SPLIT		2
@@ -141,6 +137,12 @@ struct kgsl_mmu_ops {
 				enum kgsl_iommu_context_id ctx_id);
 	int (*mmu_get_reg_map_desc)(struct kgsl_mmu *mmu,
 				void **reg_map_desc);
+	unsigned int (*mmu_sync_lock)
+				(struct kgsl_mmu *mmu,
+				unsigned int *cmds);
+	unsigned int (*mmu_sync_unlock)
+				(struct kgsl_mmu *mmu,
+				unsigned int *cmds);
 };
 
 struct kgsl_mmu_pt_ops {
@@ -158,6 +160,8 @@ struct kgsl_mmu_pt_ops {
 	unsigned int (*mmu_pt_get_base_addr)
 			(struct kgsl_pagetable *pt);
 };
+
+#define KGSL_MMU_FLAGS_IOMMU_SYNC BIT(31)
 
 struct kgsl_mmu {
 	unsigned int     refcnt;
@@ -301,6 +305,26 @@ static inline unsigned int kgsl_mmu_get_int_mask(void)
 	else
 		return (MH_INTERRUPT_MASK__AXI_READ_ERROR |
 			MH_INTERRUPT_MASK__AXI_WRITE_ERROR);
+}
+
+static inline int kgsl_mmu_sync_lock(struct kgsl_mmu *mmu,
+				unsigned int *cmds)
+{
+	if ((mmu->flags & KGSL_MMU_FLAGS_IOMMU_SYNC) &&
+			mmu->mmu_ops && mmu->mmu_ops->mmu_sync_lock)
+		return mmu->mmu_ops->mmu_sync_lock(mmu, cmds);
+	else
+		return 0;
+}
+
+static inline int kgsl_mmu_sync_unlock(struct kgsl_mmu *mmu,
+				unsigned int *cmds)
+{
+	if ((mmu->flags & KGSL_MMU_FLAGS_IOMMU_SYNC) &&
+			mmu->mmu_ops && mmu->mmu_ops->mmu_sync_unlock)
+		return mmu->mmu_ops->mmu_sync_unlock(mmu, cmds);
+	else
+		return 0;
 }
 
 #endif /* __KGSL_MMU_H */

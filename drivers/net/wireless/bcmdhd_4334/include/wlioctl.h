@@ -1219,45 +1219,39 @@ typedef struct {
 #define WL_IOCTL_ACTION_OVL				0x40
 #define WL_IOCTL_ACTION_MASK			0x7e
 #define WL_IOCTL_ACTION_OVL_SHIFT		1
-#endif /* LINUX_POSTMOGRIFY_REMOVAL */
+#endif 
 
-/* Linux network driver ioctl encoding */
 typedef struct wl_ioctl {
-	uint cmd;	/* common ioctl definition */
-	void *buf;	/* pointer to user buffer */
-	uint len;	/* length of user buffer */
-	uint8 set;		/* 1=set IOCTL; 0=query IOCTL */
+	uint cmd;	
+	void *buf;	
+	uint len;	
+	uint8 set;		
 	uint used;	/* bytes read or written (optional) */
-	uint needed;	/* bytes needed (optional) */
+	uint needed;	
 } wl_ioctl_t;
 #ifndef LINUX_POSTMOGRIFY_REMOVAL
 
-/* reference to wl_ioctl_t struct used by usermode driver */
-#define ioctl_subtype	set		/* subtype param */
-#define ioctl_pid	used		/* pid param */
-#define ioctl_status	needed		/* status param */
+#define ioctl_subtype	set		
+#define ioctl_pid	used		
+#define ioctl_status	needed		
 
-/*
- * Structure for passing hardware and software
- * revision info up from the driver.
- */
 typedef struct wlc_rev_info {
-	uint		vendorid;	/* PCI vendor id */
-	uint		deviceid;	/* device id of chip */
-	uint		radiorev;	/* radio revision */
-	uint		chiprev;	/* chip revision */
-	uint		corerev;	/* core revision */
-	uint		boardid;	/* board identifier (usu. PCI sub-device id) */
-	uint		boardvendor;	/* board vendor (usu. PCI sub-vendor id) */
-	uint		boardrev;	/* board revision */
-	uint		driverrev;	/* driver version */
-	uint		ucoderev;	/* microcode version */
-	uint		bus;		/* bus type */
-	uint		chipnum;	/* chip number */
-	uint		phytype;	/* phy type */
-	uint		phyrev;		/* phy revision */
-	uint		anarev;		/* anacore rev */
-	uint		chippkg;	/* chip package info */
+	uint		vendorid;	
+	uint		deviceid;	
+	uint		radiorev;	
+	uint		chiprev;	
+	uint		corerev;	
+	uint		boardid;	
+	uint		boardvendor;	
+	uint		boardrev;	
+	uint		driverrev;	
+	uint		ucoderev;	
+	uint		bus;		
+	uint		chipnum;	
+	uint		phytype;	
+	uint		phyrev;		
+	uint		anarev;		
+	uint		chippkg;	
 } wlc_rev_info_t;
 
 #define WL_REV_INFO_LEGACY_LENGTH	48
@@ -4341,10 +4335,10 @@ typedef enum {
 
 #ifdef DONGLEOVERLAYS
 typedef struct {
-	uint32 flags_idx;	/* lower 8 bits: overlay index; upper 24 bits: flags */
-	uint32 offset;		/* offset into overlay region to write code */
-	uint32 len;			/* overlay code len */
-	/* overlay code follows this struct */
+	uint32 flags_idx;	
+	uint32 offset;		
+	uint32 len;			
+	
 } wl_ioctl_overlay_t;
 
 #define OVERLAY_IDX_MASK		0x000000ff
@@ -4353,54 +4347,45 @@ typedef struct {
 #define OVERLAY_FLAGS_SHIFT		8
 /* overlay written to device memory immediately after loading the base image */
 #define OVERLAY_FLAG_POSTLOAD	0x100
-/* defer overlay download until the device responds w/WLC_E_OVL_DOWNLOAD event */
 #define OVERLAY_FLAG_DEFER_DL	0x200
-/* overlay downloaded prior to the host going to sleep */
 #define OVERLAY_FLAG_PRESLEEP	0x400
 
 #define OVERLAY_DOWNLOAD_CHUNKSIZE	1024
-#endif /* DONGLEOVERLAYS */
+#endif 
 
-#endif /* LINUX_POSTMOGRIFY_REMOVAL */
-/* no default structure packing */
+#endif 
 #include <packed_section_end.h>
 
-/* require strict packing */
 #include <packed_section_start.h>
 #ifndef LINUX_POSTMOGRIFY_REMOVAL
-/* Structures and constants used for "vndr_ie" IOVar interface */
-#define VNDR_IE_CMD_LEN		4	/* length of the set command string:
-					 * "add", "del" (+ NUL)
-					 */
+#define VNDR_IE_CMD_LEN		4	
 
-/* 802.11 Mgmt Packet flags */
 #define VNDR_IE_BEACON_FLAG	0x1
 #define VNDR_IE_PRBRSP_FLAG	0x2
 #define VNDR_IE_ASSOCRSP_FLAG	0x4
 #define VNDR_IE_AUTHRSP_FLAG	0x8
 #define VNDR_IE_PRBREQ_FLAG	0x10
 #define VNDR_IE_ASSOCREQ_FLAG	0x20
-#define VNDR_IE_IWAPID_FLAG	0x40 /* vendor IE in IW advertisement protocol ID field */
-#define VNDR_IE_CUSTOM_FLAG	0x100 /* allow custom IE id */
+#define VNDR_IE_IWAPID_FLAG	0x40 
+#define VNDR_IE_CUSTOM_FLAG	0x100 
 
 #define VNDR_IE_INFO_HDR_LEN	(sizeof(uint32))
 
 typedef BWL_PRE_PACKED_STRUCT struct {
-	uint32 pktflag;			/* bitmask indicating which packet(s) contain this IE */
-	vndr_ie_t vndr_ie_data;		/* vendor IE data */
+	uint32 pktflag;			
+	vndr_ie_t vndr_ie_data;		
 } BWL_POST_PACKED_STRUCT vndr_ie_info_t;
 
 typedef BWL_PRE_PACKED_STRUCT struct {
-	int iecount;			/* number of entries in the vndr_ie_list[] array */
-	vndr_ie_info_t vndr_ie_list[1];	/* variable size list of vndr_ie_info_t structs */
+	int iecount;			
+	vndr_ie_info_t vndr_ie_list[1];	
 } BWL_POST_PACKED_STRUCT vndr_ie_buf_t;
 
 typedef BWL_PRE_PACKED_STRUCT struct {
-	char cmd[VNDR_IE_CMD_LEN];	/* vndr_ie IOVar set command : "add", "del" + NUL */
-	vndr_ie_buf_t vndr_ie_buffer;	/* buffer containing Vendor IE list information */
+	char cmd[VNDR_IE_CMD_LEN];	
+	vndr_ie_buf_t vndr_ie_buffer;	
 } BWL_POST_PACKED_STRUCT vndr_ie_setbuf_t;
 
-/* tag_ID/length/value_buffer tuple */
 typedef BWL_PRE_PACKED_STRUCT struct {
 	uint8	id;
 	uint8	len;

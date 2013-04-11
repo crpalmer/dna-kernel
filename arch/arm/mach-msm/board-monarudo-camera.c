@@ -2646,7 +2646,7 @@ static int deluxe_j_ov2722_vreg_on(void)
 	mdelay(1);
 
 
-	/* io */	// i2c and io use the same power
+		
 	rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
 	if (rc < 0) {
 		pr_err("[CAM] sensor_power_enable(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
@@ -2655,6 +2655,15 @@ static int deluxe_j_ov2722_vreg_on(void)
 	mdelay(1);
 
 
+	/* io */	// i2c and io use the same power
+	rc = camera_sensor_power_enable("8921_lvs4", 1800000, &reg_8921_lvs4);
+	if (rc < 0) {
+		pr_err("[CAM] sensor_power_enable(\"8921_lvs4\", 1.8V) FAILED %d\n", rc);
+		goto enable_io_fail;
+	}
+	mdelay(1);
+
+	
 	/* analog */
 	rc = camera_sensor_power_enable("8921_l8", 2800000, &reg_8921_l8);
 	if (rc < 0) {

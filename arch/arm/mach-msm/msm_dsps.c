@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  */
 
-/*
- * msm_dsps - control DSPS clocks, gpios and vregs.
- *
- */
 
 #include <asm/atomic.h>
 
