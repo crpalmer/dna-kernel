@@ -14,11 +14,6 @@
 #ifndef __ARCH_ARM_MACH_MSM_RPM_SMD_H
 #define __ARCH_ARM_MACH_MSM_RPM_SMD_H
 
-/**
- * enum msm_rpm_set - RPM enumerations for sleep/active set
- * %MSM_RPM_CTX_SET_0: Set resource parameters for active mode.
- * %MSM_RPM_CTX_SET_SLEEP: Set resource parameters for sleep.
- */
 enum msm_rpm_set {
 	MSM_RPM_CTX_ACTIVE_SET,
 	MSM_RPM_CTX_SLEEP_SET,

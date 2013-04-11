@@ -144,6 +144,8 @@ extern PBCMSDH_SDMMC_INSTANCE gInstance;
 #define CMD_DEL_VENDR_IE    "DEL_VENDR_IE"
 #define CMD_SCAN_SUPPRESS   "SCAN_SUPPRESS"
 #define CMD_SCAN_ABORT		"SCAN_ABORT"
+#define CMD_GET_CONAP_CHANNEL "GET_CONAP_CHANNEL"
+
 #endif
 //BRCM APSTA END
 
@@ -374,6 +376,45 @@ static int wl_android_scanabort(struct net_device *net, char *command, int total
 
     wl_cfg80211_scan_abort(net);
     return 0;
+}
+
+extern struct net_device *ap_net_dev;
+extern int wldev_get_conap_ctrl_channel(struct net_device *dev,uint8 *ctrl_channel);
+
+static int wl_android_get_conap_channel(struct net_device *net, char *buf, int len)
+{
+
+    int error = 0;
+    uint8 conap_ctrl_channel = 0;
+    char tmp[256];
+    char *ptmp;
+
+    memset(tmp, 0, sizeof(tmp));
+    ptmp = tmp;
+
+    if (!ap_net_dev ){
+        printf("%s NULL ConAP netdev[%p]",__FUNCTION__,ap_net_dev);
+        error = -1;
+        ptmp += snprintf(ptmp, 80, "%d|", error);
+        ptmp += snprintf(ptmp, 80, " ConAp interface not enable");
+        goto exit;
+    }
+
+    if((error = wldev_get_conap_ctrl_channel(net,&conap_ctrl_channel))){
+        printf("%s get Chanspec failed\n",__func__);
+        ptmp += snprintf(ptmp, 80, "%d|", error);
+        ptmp += snprintf(ptmp, 80, " conap got chanspec fail");
+        goto exit;
+    }else{
+        printf("%s get hostap successful ctrl_channel[%d]\n",__func__,conap_ctrl_channel);
+
+        ptmp += snprintf(ptmp, 80, "%d|", conap_ctrl_channel);
+        ptmp += snprintf(ptmp, 80, " conap got conap_channel");
+    }
+exit:
+	memset(buf, 0x0, len);
+	memcpy(buf, tmp, len);
+	return len;
 }
 //Hugh 04-05 ----
 //Hugh 2012-03-22 ----
@@ -1506,16 +1547,16 @@ extern char project_type[33];
 static int wl_android_wifi_call = 0;
 static struct mutex wl_wificall_mutex;
 static struct mutex wl_wifionoff_mutex;
+char wl_abdroid_gatewaybuf[8+1]; 
 #ifdef BCM4329_LOW_POWER
 extern int LowPowerMode;
-char wl_abdroid_gatewaybuf[8+1]; /* HTC_KlocWork */
 extern bool hasDLNA;
 extern bool allowMulticast;
 extern int dhd_set_keepalive(int value);
 #endif
 
 static int active_level = -80;
-static int active_period = 20000; /*in mini secs*/
+static int active_period = 20000; 
 static int wl_android_active_expired = 0;
 struct timer_list *wl_android_active_timer = NULL;
 static int screen_off = 0;
@@ -1993,11 +2034,13 @@ static int wl_android_auto_channel(struct net_device *dev, char *command, int to
 	res = wldev_ioctl(dev, WLC_GET_AP, &apsta_var, sizeof(apsta_var), 0);
 
 	updown = 1;
+#if 0
 	res = wldev_ioctl(dev, WLC_UP, &updown, sizeof(updown), 1);
 	if (res < 0) {
 		DHD_ERROR(("%s fail to set apsta \n", __func__));
 		goto fail;
 	}
+#endif
 
 auto_channel_retry:
 	memset(&null_ssid, 0, sizeof(wlc_ssid_t));
@@ -2068,13 +2111,8 @@ get_channel_retry:
 		channel = chosen;
 	}
 
-	res = wldev_ioctl(dev, WLC_DOWN, &updown, sizeof(updown), 1);
-	if (res < 0) {
-		DHD_ERROR(("%s fail to set up err =%d\n", __func__, res));
-		goto fail;
-	}
-
 fail :
+	res = wldev_ioctl(dev, WLC_UP, &updown, sizeof(updown), 1);
 
 	bytes_written = snprintf(command, total_len, "%d", channel);
 	return bytes_written;
@@ -2530,21 +2568,21 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = wl_android_get_link_speed(net, command, priv_cmd.total_len);
 	}
 	else if (strnicmp(command, CMD_RXFILTER_START, strlen(CMD_RXFILTER_START)) == 0) {
-		/* HTC_CSP_START*/
+		
 		snprintf(command, 3, "OK");
 		bytes_written = strlen("OK");
 		/*bytes_written = net_os_set_packet_filter(net, 1);*/
-		/* HTC_CSP_END*/
+		
 	}
 	else if (strnicmp(command, CMD_RXFILTER_STOP, strlen(CMD_RXFILTER_STOP)) == 0) {
-		/* HTC_CSP_START*/
+		
 		snprintf(command, 3, "OK");
 		bytes_written = strlen("OK");
 		/*bytes_written = net_os_set_packet_filter(net, 0);*/
-		/* HTC_CSP_END*/
+		
 	}
 	else if (strnicmp(command, CMD_RXFILTER_ADD, strlen(CMD_RXFILTER_ADD)) == 0) {
-		/*HTC_CSP_START*/
+		
 #ifdef BCM4329_LOW_POWER
 		if (LowPowerMode == 1) {
 			data = (struct dd_pkt_filter_s *)&command[32];
@@ -2561,10 +2599,10 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		int filter_num = *(command + strlen(CMD_RXFILTER_ADD) + 1) - '0';
 		bytes_written = net_os_rxfilter_add_remove(net, TRUE, filter_num);
 		*/
-		/* HTC_CSP_END */
+		
 	}
 	else if (strnicmp(command, CMD_RXFILTER_REMOVE, strlen(CMD_RXFILTER_REMOVE)) == 0) {
-		/*HTC_CSP_START*/
+		
 #ifdef BCM4329_LOW_POWER
 		if (LowPowerMode == 1) {
 			data = (struct dd_pkt_filter_s *)&command[32];
@@ -2581,21 +2619,21 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		int filter_num = *(command + strlen(CMD_RXFILTER_REMOVE) + 1) - '0';
 		bytes_written = net_os_rxfilter_add_remove(net, FALSE, filter_num);
 		*/
-		/*HTC_CSP_END*/
+		
 	}
 	else if (strnicmp(command, CMD_BTCOEXSCAN_START, strlen(CMD_BTCOEXSCAN_START)) == 0) {
-		/* TBD: BTCOEXSCAN-START */
+		
 	}
 	else if (strnicmp(command, CMD_BTCOEXSCAN_STOP, strlen(CMD_BTCOEXSCAN_STOP)) == 0) {
-		/* TBD: BTCOEXSCAN-STOP */
+		
 	}
 	else if (strnicmp(command, CMD_BTCOEXMODE, strlen(CMD_BTCOEXMODE)) == 0) {
 		uint mode = *(command + strlen(CMD_BTCOEXMODE) + 1) - '0';
 
 		if (mode == 1)
-			net_os_set_packet_filter(net, 0); /* DHCP starts */
+			net_os_set_packet_filter(net, 0); 
 		else
-			net_os_set_packet_filter(net, 1); /* DHCP ends */
+			net_os_set_packet_filter(net, 1); 
 #ifdef WL_CFG80211
 		bytes_written = wl_cfg80211_set_btcoex_dhcp(net, command);
 #endif
@@ -2847,22 +2885,21 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 	else if (strnicmp(command, CMD_SET_APSTA, strlen(CMD_SET_APSTA)) == 0) {
 		bytes_written = wl_android_set_apsta(net, command, priv_cmd.total_len);
 	} 
-//Terry 2012-04-25
 	else if (strnicmp(command, CMD_SET_BCN_TIMEOUT, strlen(CMD_SET_BCN_TIMEOUT)) == 0) {
 		printk("[WLAN] %s CMD_SET_BCN_TIMEOUT\n",__FUNCTION__);
 		bytes_written = wl_android_set_bcn_timeout(net, command, priv_cmd.total_len);
 	} 
-//Terry 2012-04-25
-//Hugh 2012-04-05 ++++	
 	else if (strnicmp(command, CMD_SCAN_SUPPRESS, strlen(CMD_SCAN_SUPPRESS)) == 0) {
 		bytes_written = wl_android_scansuppress(net, command, priv_cmd.total_len);
 	} 
 	else if (strnicmp(command, CMD_SCAN_ABORT, strlen(CMD_SCAN_ABORT)) == 0) {
 		bytes_written = wl_android_scanabort(net, command, priv_cmd.total_len);
 	} 
-//Hugh 2012-04-05 ----	
+else if (strnicmp(command, CMD_GET_CONAP_CHANNEL, strlen(CMD_GET_CONAP_CHANNEL)) == 0) {
+    printf(" %s CMD_GET_CONAP_CHANNEL\n",__FUNCTION__);
+    bytes_written = wl_android_get_conap_channel(net, command, priv_cmd.total_len);
+} 
 
-//Hugh  2012-03-22 ----
 #ifdef BRCM_WPSAP
 	else if (strnicmp(command, CMD_SET_WSEC, strlen(CMD_SET_WSEC)) == 0) {
 		printk("[WLAN] %s CMD_SET_WSEC\n",__FUNCTION__);

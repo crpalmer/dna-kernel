@@ -238,12 +238,18 @@ static void ib_parse_set_bin_data(struct kgsl_device *device, unsigned int *pkt,
 	if (type3_pkt_size(pkt[0]) < 2)
 		return;
 
-	/* Visiblity stream buffer */
+	
 	ret = kgsl_snapshot_get_object(device, ptbase, pkt[1], 0,
 			SNAPSHOT_GPU_OBJECT_GENERIC);
 	snapshot_frozen_objsize += ret;
 
-	/* visiblity stream size buffer (fixed size 8 dwords) */
+	/*
+	 * The address is where the data in the rest of this packet is written
+	 * to, but since that might be an offset into the larger buffer we need
+	 * to get the whole thing. Pass a size of 0 kgsl_snapshot_get_object to
+	 * capture the entire buffer.
+	 */
+	
 	ret = kgsl_snapshot_get_object(device, ptbase, pkt[2], 32,
 			SNAPSHOT_GPU_OBJECT_GENERIC);
 	snapshot_frozen_objsize += ret;
@@ -404,6 +410,13 @@ static void ib_parse_type0(struct kgsl_device *device, unsigned int *ptr,
 
 	for (i = 0; i < size; i++, offset++) {
 
+/*
+ * Parse type0 packets found in the stream.  Some of the registers that are
+ * written are clues for GPU buffers that we need to freeze.  Register writes
+ * are considred valid when a draw initator is called, so just cache the values
+ * here and freeze them when a CP_DRAW_INDX is seen.  This protects against
+ * needlessly caching buffers that won't be used during a draw call
+ */
 		/* Visiblity stream buffer */
 
 		if (offset >= A3XX_VSC_PIPE_DATA_ADDRESS_0 &&

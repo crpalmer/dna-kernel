@@ -15,7 +15,6 @@
 #include <media/msm/vidc_type.h>
 #include <media/msm/vcd_api.h>
 
-/*HTC_START*/
 #define VCD_MSG_LOW(xx_fmt...)				\
 if (vidc_msg_debug) {				\
 		printk(KERN_INFO "\n\t* [VID] " xx_fmt);\

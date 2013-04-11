@@ -11,9 +11,7 @@
  *
  */
 
-/* #define DEBUG */
 #define DEV_DBG_PREFIX "HDMI: "
-/* #define REG_DUMP */
 
 #define CEC_MSG_PRINT
 #define TOGGLE_CEC_HARDWARE_FSM
@@ -1043,20 +1041,16 @@ static irqreturn_t hdmi_msm_isr(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
-	/* Process HPD Interrupt */
-	/* HDMI_HPD_INT_STATUS[0x0250] */
+	
+	
 	hpd_int_status = HDMI_INP_ND(0x0250);
-	/* HDMI_HPD_INT_CTRL[0x0254] */
+	
 	hpd_int_ctrl = HDMI_INP_ND(0x0254);
 	if ((hpd_int_ctrl & (1 << 2)) && (hpd_int_status & (1 << 0))) {
 		boolean cable_detected = (hpd_int_status & 2) >> 1;
 
-		/* HDMI_HPD_INT_CTRL[0x0254] */
-		/* Clear all interrupts, timer will turn IRQ back on
-		 * Leaving the bit[2] on, else core goes off
-		 * on getting HPD during power off
-		 */
-		HDMI_OUTP(0x0254, (1 << 2) | (1 << 0));
+		
+		HDMI_OUTP(0x0254, ((hpd_int_ctrl | (BIT(0))) & ~BIT(2)));
 
 		DEV_DBG("%s: HPD IRQ, Ctrl=%04x, State=%04x\n", __func__,
 			hpd_int_ctrl, hpd_int_status);
@@ -1493,114 +1487,26 @@ again:
 	if (status)
 		goto error;
 
-	/* Ensure Device Address has LSB set to 0 to indicate Slave addr read */
+	
 	dev_addr &= 0xFE;
 
-	/* 0x0238 HDMI_DDC_DATA
-	   [31] INDEX_WRITE WRITE ONLY. To write index field, set this bit to
-		1 while writing HDMI_DDC_DATA.
-	   [23:16] INDEX Use to set index into DDC buffer for next read or
-		current write, or to read index of current read or next write.
-		Writable only when INDEX_WRITE=1.
-	   [15:8] DATA Use to fill or read the DDC buffer
-	   [0] DATA_RW Select whether buffer access will be a read or write.
-		For writes, address auto-increments on write to HDMI_DDC_DATA.
-		For reads, address autoincrements on reads to HDMI_DDC_DATA.
-		* 0: Write
-		* 1: Read */
 
-	/* 1. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #1
-	 *    DATA_RW = 0x1 (write)
-	 *    DATA = linkAddress (primary link address and writing)
-	 *    INDEX = 0x0 (initial offset into buffer)
-	 *    INDEX_WRITE = 0x1 (setting initial offset) */
 	HDMI_OUTP_ND(0x0238, (0x1UL << 31) | (dev_addr << 8));
 
-	/* 2. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #2
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = offsetAddress
-	 *    INDEX = 0x0
-	 *    INDEX_WRITE = 0x0 (auto-increment by hardware) */
 	HDMI_OUTP_ND(0x0238, offset << 8);
 
-	/* 3. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #3
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = data_buf[ndx]
-	 *    INDEX = 0x0
-	 *    INDEX_WRITE = 0x0 (auto-increment by hardware) */
 	for (ndx = 0; ndx < data_len; ++ndx)
 		HDMI_OUTP_ND(0x0238, ((uint32)data_buf[ndx]) << 8);
 
-	/* Data setup is complete, now setup the transaction characteristics */
+	
 
-	/* 0x0228 HDMI_DDC_TRANS0
-	   [23:16] CNT0 Byte count for first transaction (excluding the first
-		byte, which is usually the address).
-	   [13] STOP0 Determines whether a stop bit will be sent after the first
-		transaction
-		* 0: NO STOP
-		* 1: STOP
-	   [12] START0 Determines whether a start bit will be sent before the
-		first transaction
-		* 0: NO START
-		* 1: START
-	   [8] STOP_ON_NACK0 Determines whether the current transfer will stop
-		if a NACK is received during the first transaction (current
-		transaction always stops).
-		* 0: STOP CURRENT TRANSACTION, GO TO NEXT TRANSACTION
-		* 1: STOP ALL TRANSACTIONS, SEND STOP BIT
-	   [0] RW0 Read/write indicator for first transaction - set to 0 for
-		write, 1 for read. This bit only controls HDMI_DDC behaviour -
-		the R/W bit in the transaction is programmed into the DDC buffer
-		as the LSB of the address byte.
-		* 0: WRITE
-		* 1: READ */
 
-	/* 4. Write to HDMI_I2C_TRANSACTION0 with the following fields set in
-	      order to handle characteristics of portion #1 and portion #2
-	 *    RW0 = 0x0 (write)
-	 *    START0 = 0x1 (insert START bit)
-	 *    STOP0 = 0x0 (do NOT insert STOP bit)
-	 *    CNT0 = 0x1 (single byte transaction excluding address) */
 	HDMI_OUTP_ND(0x0228, (1 << 12) | (1 << 16));
 
-	/* 0x022C HDMI_DDC_TRANS1
-	  [23:16] CNT1 Byte count for second transaction (excluding the first
-		byte, which is usually the address).
-	  [13] STOP1 Determines whether a stop bit will be sent after the second
-		transaction
-		* 0: NO STOP
-		* 1: STOP
-	  [12] START1 Determines whether a start bit will be sent before the
-		second transaction
-		* 0: NO START
-		* 1: START
-	  [8] STOP_ON_NACK1 Determines whether the current transfer will stop if
-		a NACK is received during the second transaction (current
-		transaction always stops).
-		* 0: STOP CURRENT TRANSACTION, GO TO NEXT TRANSACTION
-		* 1: STOP ALL TRANSACTIONS, SEND STOP BIT
-	  [0] RW1 Read/write indicator for second transaction - set to 0 for
-		write, 1 for read. This bit only controls HDMI_DDC behaviour -
-		the R/W bit in the transaction is programmed into the DDC buffer
-		as the LSB of the address byte.
-		* 0: WRITE
-		* 1: READ */
 
-	/* 5. Write to HDMI_I2C_TRANSACTION1 with the following fields set in
-	      order to handle characteristics of portion #3
-	 *    RW1 = 0x1 (read)
-	 *    START1 = 0x1 (insert START bit)
-	 *    STOP1 = 0x1 (insert STOP bit)
-	 *    CNT1 = data_len   (0xN (write N bytes of data))
-	 *    Byte count for second transition (excluding the first
-	 *    Byte which is usually the address) */
 	HDMI_OUTP_ND(0x022C, (1 << 13) | ((data_len-1) << 16));
 
-	/* Trigger the I2C transfer */
+	
 	/* 0x020C HDMI_DDC_CTRL
 	   [21:20] TRANSACTION_CNT
 		Number of transactions to be done in current transfer.
@@ -1618,12 +1524,6 @@ again:
 	   [1] SOFT_RESET Write 1 to reset DDC controller
 	   [0] GO WRITE ONLY. Write 1 to start DDC transfer. */
 
-	/* 6. Write to HDMI_I2C_CONTROL to kick off the hardware.
-	 *    Note that NOTHING has been transmitted on the DDC lines up to this
-	 *    point.
-	 *    TRANSACTION_CNT = 0x1 (execute transaction0 followed by
-	 *    transaction1)
-	 *    GO = 0x1 (kicks off hardware) */
 	INIT_COMPLETION(hdmi_msm_state->ddc_sw_done);
 	HDMI_OUTP_ND(0x020C, (1 << 0) | (1 << 20));
 
@@ -1692,111 +1592,25 @@ again:
 	if (status)
 		goto error;
 
-	/* Ensure Device Address has LSB set to 0 to indicate Slave addr read */
+	
 	dev_addr &= 0xFE;
 
-	/* 0x0238 HDMI_DDC_DATA
-	   [31] INDEX_WRITE WRITE ONLY. To write index field, set this bit to
-		1 while writing HDMI_DDC_DATA.
-	   [23:16] INDEX Use to set index into DDC buffer for next read or
-		current write, or to read index of current read or next write.
-		Writable only when INDEX_WRITE=1.
-	   [15:8] DATA Use to fill or read the DDC buffer
-	   [0] DATA_RW Select whether buffer access will be a read or write.
-		For writes, address auto-increments on write to HDMI_DDC_DATA.
-		For reads, address autoincrements on reads to HDMI_DDC_DATA.
-		* 0: Write
-		* 1: Read */
 
-	/* 1. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #1
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = linkAddress (primary link address and writing)
-	 *    INDEX = 0x0 (initial offset into buffer)
-	 *    INDEX_WRITE = 0x1 (setting initial offset) */
 	HDMI_OUTP_ND(0x0238, (0x1UL << 31) | (dev_addr << 8));
 
-	/* 2. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #2
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = offsetAddress
-	 *    INDEX = 0x0
-	 *    INDEX_WRITE = 0x0 (auto-increment by hardware) */
 	HDMI_OUTP_ND(0x0238, offset << 8);
 
-	/* 3. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #3
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = linkAddress + 1 (primary link address 0x74 and reading)
-	 *    INDEX = 0x0
-	 *    INDEX_WRITE = 0x0 (auto-increment by hardware) */
 	HDMI_OUTP_ND(0x0238, (dev_addr | 1) << 8);
 
-	/* Data setup is complete, now setup the transaction characteristics */
+	
 
-	/* 0x0228 HDMI_DDC_TRANS0
-	   [23:16] CNT0 Byte count for first transaction (excluding the first
-		byte, which is usually the address).
-	   [13] STOP0 Determines whether a stop bit will be sent after the first
-		transaction
-		* 0: NO STOP
-		* 1: STOP
-	   [12] START0 Determines whether a start bit will be sent before the
-		first transaction
-		* 0: NO START
-		* 1: START
-	   [8] STOP_ON_NACK0 Determines whether the current transfer will stop
-		if a NACK is received during the first transaction (current
-		transaction always stops).
-		* 0: STOP CURRENT TRANSACTION, GO TO NEXT TRANSACTION
-		* 1: STOP ALL TRANSACTIONS, SEND STOP BIT
-	   [0] RW0 Read/write indicator for first transaction - set to 0 for
-		write, 1 for read. This bit only controls HDMI_DDC behaviour -
-		the R/W bit in the transaction is programmed into the DDC buffer
-		as the LSB of the address byte.
-		* 0: WRITE
-		* 1: READ */
 
-	/* 4. Write to HDMI_I2C_TRANSACTION0 with the following fields set in
-	      order to handle characteristics of portion #1 and portion #2
-	 *    RW0 = 0x0 (write)
-	 *    START0 = 0x1 (insert START bit)
-	 *    STOP0 = 0x0 (do NOT insert STOP bit)
-	 *    CNT0 = 0x1 (single byte transaction excluding address) */
 	HDMI_OUTP_ND(0x0228, (1 << 12) | (1 << 16));
 
-	/* 0x022C HDMI_DDC_TRANS1
-	  [23:16] CNT1 Byte count for second transaction (excluding the first
-		byte, which is usually the address).
-	  [13] STOP1 Determines whether a stop bit will be sent after the second
-		transaction
-		* 0: NO STOP
-		* 1: STOP
-	  [12] START1 Determines whether a start bit will be sent before the
-		second transaction
-		* 0: NO START
-		* 1: START
-	  [8] STOP_ON_NACK1 Determines whether the current transfer will stop if
-		a NACK is received during the second transaction (current
-		transaction always stops).
-		* 0: STOP CURRENT TRANSACTION, GO TO NEXT TRANSACTION
-		* 1: STOP ALL TRANSACTIONS, SEND STOP BIT
-	  [0] RW1 Read/write indicator for second transaction - set to 0 for
-		write, 1 for read. This bit only controls HDMI_DDC behaviour -
-		the R/W bit in the transaction is programmed into the DDC buffer
-		as the LSB of the address byte.
-		* 0: WRITE
-		* 1: READ */
 
-	/* 5. Write to HDMI_I2C_TRANSACTION1 with the following fields set in
-	      order to handle characteristics of portion #3
-	 *    RW1 = 0x1 (read)
-	 *    START1 = 0x1 (insert START bit)
-	 *    STOP1 = 0x1 (insert STOP bit)
-	 *    CNT1 = data_len   (it's 128 (0x80) for a blk read) */
 	HDMI_OUTP_ND(0x022C, 1 | (1 << 12) | (1 << 13) | (request_len << 16));
 
-	/* Trigger the I2C transfer */
+	
 	/* 0x020C HDMI_DDC_CTRL
 	   [21:20] TRANSACTION_CNT
 		Number of transactions to be done in current transfer.
@@ -1814,13 +1628,6 @@ again:
 	   [1] SOFT_RESET Write 1 to reset DDC controller
 	   [0] GO WRITE ONLY. Write 1 to start DDC transfer. */
 
-	/* 6. Write to HDMI_I2C_CONTROL to kick off the hardware.
-	 *    Note that NOTHING has been transmitted on the DDC lines up to this
-	 *    point.
-	 *    TRANSACTION_CNT = 0x1 (execute transaction0 followed by
-	 *    transaction1)
-	 *    SEND_RESET = Set to 1 to send reset sequence
-	 *    GO = 0x1 (kicks off hardware) */
 	INIT_COMPLETION(hdmi_msm_state->ddc_sw_done);
 	HDMI_OUTP_ND(0x020C, (1 << 0) | (1 << 20));
 
@@ -1921,144 +1728,30 @@ again:
 	if (status)
 		goto error;
 
-	/* Ensure Device Address has LSB set to 0 to indicate Slave addr read */
+	
 	dev_addr &= 0xFE;
 
-	/* 0x0238 HDMI_DDC_DATA
-	   [31] INDEX_WRITE WRITE ONLY. To write index field, set this bit to
-		1 while writing HDMI_DDC_DATA.
-	   [23:16] INDEX Use to set index into DDC buffer for next read or
-		current write, or to read index of current read or next write.
-		Writable only when INDEX_WRITE=1.
-	   [15:8] DATA Use to fill or read the DDC buffer
-	   [0] DATA_RW Select whether buffer access will be a read or write.
-		For writes, address auto-increments on write to HDMI_DDC_DATA.
-		For reads, address autoincrements on reads to HDMI_DDC_DATA.
-		* 0: Write
-		* 1: Read */
 
-	/* 1. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #1
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = linkAddress (primary link address and writing)
-	 *    INDEX = 0x0 (initial offset into buffer)
-	 *    INDEX_WRITE = 0x1 (setting initial offset) */
 	HDMI_OUTP_ND(0x0238, (0x1UL << 31) | (seg_addr << 8));
 
-	/* 2. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #2
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = offsetAddress
-	 *    INDEX = 0x0
-	 *    INDEX_WRITE = 0x0 (auto-increment by hardware) */
 	HDMI_OUTP_ND(0x0238, seg_num << 8);
 
-	/* 3. Write to HDMI_I2C_DATA with the following fields set in order to
-	 *    handle portion #3
-	 *    DATA_RW = 0x0 (write)
-	 *    DATA = linkAddress + 1 (primary link address 0x74 and reading)
-	 *    INDEX = 0x0
-	 *    INDEX_WRITE = 0x0 (auto-increment by hardware) */
 	HDMI_OUTP_ND(0x0238, dev_addr << 8);
 	HDMI_OUTP_ND(0x0238, offset << 8);
 	HDMI_OUTP_ND(0x0238, (dev_addr | 1) << 8);
 
-	/* Data setup is complete, now setup the transaction characteristics */
+	
 
-	/* 0x0228 HDMI_DDC_TRANS0
-	   [23:16] CNT0 Byte count for first transaction (excluding the first
-		byte, which is usually the address).
-	   [13] STOP0 Determines whether a stop bit will be sent after the first
-		transaction
-		* 0: NO STOP
-		* 1: STOP
-	   [12] START0 Determines whether a start bit will be sent before the
-		first transaction
-		* 0: NO START
-		* 1: START
-	   [8] STOP_ON_NACK0 Determines whether the current transfer will stop
-		if a NACK is received during the first transaction (current
-		transaction always stops).
-		* 0: STOP CURRENT TRANSACTION, GO TO NEXT TRANSACTION
-		* 1: STOP ALL TRANSACTIONS, SEND STOP BIT
-	   [0] RW0 Read/write indicator for first transaction - set to 0 for
-		write, 1 for read. This bit only controls HDMI_DDC behaviour -
-		the R/W bit in the transaction is programmed into the DDC buffer
-		as the LSB of the address byte.
-		* 0: WRITE
-		* 1: READ */
 
-	/* 4. Write to HDMI_I2C_TRANSACTION0 with the following fields set in
-	      order to handle characteristics of portion #1 and portion #2
-	 *    RW0 = 0x0 (write)
-	 *    START0 = 0x1 (insert START bit)
-	 *    STOP0 = 0x0 (do NOT insert STOP bit)
-	 *    CNT0 = 0x1 (single byte transaction excluding address) */
 	HDMI_OUTP_ND(0x0228, (1 << 12) | (1 << 16));
 
-	/* 0x022C HDMI_DDC_TRANS1
-	  [23:16] CNT1 Byte count for second transaction (excluding the first
-		byte, which is usually the address).
-	  [13] STOP1 Determines whether a stop bit will be sent after the second
-		transaction
-		* 0: NO STOP
-		* 1: STOP
-	  [12] START1 Determines whether a start bit will be sent before the
-		second transaction
-		* 0: NO START
-		* 1: START
-	  [8] STOP_ON_NACK1 Determines whether the current transfer will stop if
-		a NACK is received during the second transaction (current
-		transaction always stops).
-		* 0: STOP CURRENT TRANSACTION, GO TO NEXT TRANSACTION
-		* 1: STOP ALL TRANSACTIONS, SEND STOP BIT
-	  [0] RW1 Read/write indicator for second transaction - set to 0 for
-		write, 1 for read. This bit only controls HDMI_DDC behaviour -
-		the R/W bit in the transaction is programmed into the DDC buffer
-		as the LSB of the address byte.
-		* 0: WRITE
-		* 1: READ */
 
-	/* 5. Write to HDMI_I2C_TRANSACTION1 with the following fields set in
-	      order to handle characteristics of portion #3
-	 *    RW1 = 0x1 (read)
-	 *    START1 = 0x1 (insert START bit)
-	 *    STOP1 = 0x1 (insert STOP bit)
-	 *    CNT1 = data_len   (it's 128 (0x80) for a blk read) */
 	HDMI_OUTP_ND(0x022C, (1 << 12) | (1 << 16));
 
-	/* 0x022C HDMI_DDC_TRANS2
-	  [23:16] CNT1 Byte count for second transaction (excluding the first
-		byte, which is usually the address).
-	  [13] STOP1 Determines whether a stop bit will be sent after the second
-		transaction
-		* 0: NO STOP
-		* 1: STOP
-	  [12] START1 Determines whether a start bit will be sent before the
-		second transaction
-		* 0: NO START
-		* 1: START
-	  [8] STOP_ON_NACK1 Determines whether the current transfer will stop if
-		a NACK is received during the second transaction (current
-		transaction always stops).
-		* 0: STOP CURRENT TRANSACTION, GO TO NEXT TRANSACTION
-		* 1: STOP ALL TRANSACTIONS, SEND STOP BIT
-	  [0] RW1 Read/write indicator for second transaction - set to 0 for
-		write, 1 for read. This bit only controls HDMI_DDC behaviour -
-		the R/W bit in the transaction is programmed into the DDC buffer
-		as the LSB of the address byte.
-		* 0: WRITE
-		* 1: READ */
 
-	/* 5. Write to HDMI_I2C_TRANSACTION1 with the following fields set in
-	      order to handle characteristics of portion #3
-	 *    RW1 = 0x1 (read)
-	 *    START1 = 0x1 (insert START bit)
-	 *    STOP1 = 0x1 (insert STOP bit)
-	 *    CNT1 = data_len   (it's 128 (0x80) for a blk read) */
 	HDMI_OUTP_ND(0x0230, 1 | (1 << 12) | (1 << 13) | (request_len << 16));
 
-	/* Trigger the I2C transfer */
+	
 	/* 0x020C HDMI_DDC_CTRL
 	   [21:20] TRANSACTION_CNT
 		Number of transactions to be done in current transfer.
@@ -2076,12 +1769,6 @@ again:
 	   [1] SOFT_RESET Write 1 to reset DDC controller
 	   [0] GO WRITE ONLY. Write 1 to start DDC transfer. */
 
-	/* 6. Write to HDMI_I2C_CONTROL to kick off the hardware.
-	 *    Note that NOTHING has been transmitted on the DDC lines up to this
-	 *    point.
-	 *    TRANSACTION_CNT = 0x2 (execute transaction0 followed by
-	 *    transaction1)
-	 *    GO = 0x1 (kicks off hardware) */
 	INIT_COMPLETION(hdmi_msm_state->ddc_sw_done);
 	HDMI_OUTP_ND(0x020C, (1 << 0) | (2 << 20));
 
@@ -2469,10 +2156,6 @@ static int hdcp_authentication_part1(void)
 		}
 		DEV_DBG("HDCP: AKSV=%02x%08x\n", qfprom_aksv_1, qfprom_aksv_0);
 
-		/* 0x0288 HDCP_SW_LOWER_AKSV
-			[31:0] LOWER_AKSV */
-		/* 0x0284 HDCP_SW_UPPER_AKSV
-			[7:0] UPPER_AKSV */
 
 		/* This is the lower 32 bits of the SW
 		 * injected AKSV value(AKSV[31:0]) read
@@ -2484,7 +2167,7 @@ static int hdcp_authentication_part1(void)
 
 		msm_hdmi_init_ddc();
 
-		/* read Bcaps at 0x40 in HDCP Port */
+		
 		ret = hdmi_msm_ddc_read(0x74, 0x40, &bcaps, 1, 5, "Bcaps",
 			TRUE);
 		if (ret) {
@@ -2935,22 +2618,14 @@ static int hdcp_authentication_part2(void)
 	if (ret)
 		goto error;
 
-	/* Next: Write KSV FIFO to HDCP_SHA_DATA.
-	* This is done 1 byte at time starting with the LSB.
-	* On the very last byte write,
-	* the HDCP_SHA_DATA_DONE bit[0]
-	*/
 
-	/* 0x023C HDCP_SHA_CTRL
-	[0] RESET	[0] Enable, [1] Reset
-	[4] SELECT	[0] DIGA_HDCP, [1] DIGB_HDCP */
-	/* reset SHA engine */
+	
 	HDMI_OUTP(0x023C, 1);
-	/* enable SHA engine, SEL=DIGA_HDCP */
+	
 	HDMI_OUTP(0x023C, 0);
 
 	for (i = 0; i < ksv_bytes - 1; i++) {
-		/* Write KSV byte and do not set DONE bit[0] */
+		
 		HDMI_OUTP_ND(0x0244, kvs_fifo[i] << 16);
 
 		/* Once 64 bytes have been written, we need to poll for

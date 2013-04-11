@@ -19,9 +19,6 @@
 #ifndef __ARCH_ARM_MACH_MSM_ACPUCLOCK_H
 #define __ARCH_ARM_MACH_MSM_ACPUCLOCK_H
 
-/**
- * enum setrate_reason - Reasons for use with acpuclk_set_rate()
- */
 enum setrate_reason {
 	SETRATE_CPUFREQ = 0,
 	SETRATE_SWFI,

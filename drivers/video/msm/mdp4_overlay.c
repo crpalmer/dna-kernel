@@ -1642,7 +1642,7 @@ void mdp4_mixer_stage_commit(int mixer)
 }
 
 
-void mdp4_mixer_stage_up(struct mdp4_overlay_pipe *pipe)
+void mdp4_mixer_stage_up(struct mdp4_overlay_pipe *pipe, int commit)
 {
 	struct mdp4_overlay_pipe *pp;
 	int i, mixer;
@@ -1657,10 +1657,13 @@ void mdp4_mixer_stage_up(struct mdp4_overlay_pipe *pipe)
 		}
 	}
 
-	ctrl->stage[mixer][pipe->mixer_stage] = pipe;	/* keep it */
+	ctrl->stage[mixer][pipe->mixer_stage] = pipe;	
+
+	if (commit)
+		mdp4_mixer_stage_commit(mixer);
 }
 
-void mdp4_mixer_stage_down(struct mdp4_overlay_pipe *pipe)
+void mdp4_mixer_stage_down(struct mdp4_overlay_pipe *pipe, int commit)
 {
 	struct mdp4_overlay_pipe *pp;
 	int i, mixer;
@@ -1670,16 +1673,12 @@ void mdp4_mixer_stage_down(struct mdp4_overlay_pipe *pipe)
 	for (i = MDP4_MIXER_STAGE_BASE; i < MDP4_MIXER_STAGE_MAX; i++) {
 		pp = ctrl->stage[mixer][i];
 		if (pp && pp->pipe_ndx == pipe->pipe_ndx)
-			ctrl->stage[mixer][i] = NULL;  /* clear it */
+			ctrl->stage[mixer][i] = NULL;  
 	}
 
-	mdp4_mixer_stage_commit(mixer);
+	if (commit || (mixer > 0 && !hdmi_prim_display))
+		mdp4_mixer_stage_commit(mixer);
 }
-/*
- * mixer0: rgb3: border color at register 0x15004, 0x15008
- * mixer1:  vg3: border color at register 0x1D004, 0x1D008
- * mixer2:  xxx: border color at register 0x8D004, 0x8D008
- */
 void mdp4_overlay_borderfill_stage_up(struct mdp4_overlay_pipe *pipe)
 {
 	struct mdp4_overlay_pipe *bspipe;
@@ -1733,8 +1732,8 @@ void mdp4_overlay_borderfill_stage_up(struct mdp4_overlay_pipe *pipe)
 		mdp4_dtv_base_swap(0, pipe);
 
 	mdp4_overlay_reg_flush(bspipe, 1);
-	/* borderfill pipe as base layer */
-	mdp4_mixer_stage_up(pipe);
+	
+	mdp4_mixer_stage_up(pipe, 0);
 }
 
 void mdp4_overlay_borderfill_stage_down(struct mdp4_overlay_pipe *pipe)
@@ -1786,15 +1785,15 @@ void mdp4_overlay_borderfill_stage_down(struct mdp4_overlay_pipe *pipe)
 	else if (ctrl->panel_mode & MDP4_PANEL_DTV)
 		mdp4_dtv_base_swap(0, bspipe);
 
-	/* free borderfill pipe */
+	
 	mdp4_overlay_reg_flush(pipe, 1);
-	mdp4_mixer_stage_down(pipe);
+	mdp4_mixer_stage_down(pipe, 0); 
 	mdp4_overlay_pipe_free(pipe);
 
-	/* stage up base layer */
+	
 	mdp4_overlay_reg_flush(bspipe, 1);
-	/* restore original base layer */
-	mdp4_mixer_stage_up(bspipe);
+	
+	mdp4_mixer_stage_up(bspipe, 1);
 }
 
 
@@ -3009,7 +3008,7 @@ int mdp4_overlay_unset_mixer(int mixer)
 			continue;
 		pipe->flags &= ~MDP_OV_PLAY_NOWAIT;
 		mdp4_overlay_reg_flush(pipe, 1);
-		mdp4_mixer_stage_down(pipe);
+		mdp4_mixer_stage_down(pipe, 1);
 		mdp4_overlay_pipe_free(pipe);
 		cnt++;
 	}
@@ -3057,7 +3056,7 @@ int mdp4_overlay_unset(struct fb_info *info, int ndx)
 	}
 
 	mdp4_overlay_reg_flush(pipe, 1);
-	mdp4_mixer_stage_down(pipe);
+	mdp4_mixer_stage_down(pipe, 0);
 
 	if (pipe->mixer_num == MDP4_MIXER0) {
 		if (ctrl->panel_mode & MDP4_PANEL_MDDI) {
@@ -3194,7 +3193,7 @@ void mdp4_overlay_vsync_commit(struct mdp4_overlay_pipe *pipe)
 	pr_debug("%s: pipe=%x ndx=%d num=%d used=%d\n", __func__,
 		(int) pipe, pipe->pipe_ndx, pipe->pipe_num, pipe->pipe_used);
 	mdp4_overlay_reg_flush(pipe, 1);
-	mdp4_mixer_stage_up(pipe);
+	mdp4_mixer_stage_up(pipe, 0);
 }
 
 int mdp4_overlay_play(struct fb_info *info, struct msmfb_overlay_data *req)
@@ -3368,7 +3367,7 @@ mddi:
 		mdp4_overlay_rgb_setup(pipe);	/* rgb pipe */
 	}
 
-	mdp4_mixer_stage_up(pipe);
+	mdp4_mixer_stage_up(pipe, 0);
 
 	if (pipe->mixer_num == MDP4_MIXER2) {
 		ctrl->mixer2_played++;
@@ -3532,7 +3531,7 @@ int mdp4_v4l2_overlay_set(struct fb_info *info, struct mdp_overlay *req,
 void mdp4_v4l2_overlay_clear(struct mdp4_overlay_pipe *pipe)
 {
 	mdp4_overlay_reg_flush(pipe, 1);
-	mdp4_mixer_stage_down(pipe);
+	mdp4_mixer_stage_down(pipe, 1);
 	mdp4_overlay_pipe_free(pipe);
 }
 
@@ -3595,8 +3594,9 @@ int mdp4_v4l2_overlay_play(struct fb_info *info, struct mdp4_overlay_pipe *pipe,
 	if (ctrl->panel_mode & MDP4_PANEL_LCDC)
 		mdp4_overlay_reg_flush(pipe, 1);
 
-	mdp4_mixer_stage_up(pipe);
+	mdp4_mixer_stage_up(pipe, 0); 
 	mdp4_mixer_stage_commit(pipe->mixer_num);
+
 #ifdef V4L2_VSYNC
 	/*
 	 * TODO: incorporate v4l2 into vsycn driven mechanism

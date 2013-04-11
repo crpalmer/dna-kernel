@@ -1208,45 +1208,45 @@ build_shader_save_restore_cmds(struct adreno_device *adreno_dev,
 	unsigned int *partition1;
 	unsigned int *shaderBases, *partition2;
 
-	/* compute vertex, pixel and shared instruction shadow GPU addresses */
+	
 	tmp_ctx.shader_vertex = drawctxt->gpustate.gpuaddr + SHADER_OFFSET;
 	tmp_ctx.shader_pixel = tmp_ctx.shader_vertex
 				+ _shader_shadow_size(adreno_dev);
 	tmp_ctx.shader_shared = tmp_ctx.shader_pixel
 				+  _shader_shadow_size(adreno_dev);
 
-	/* restore shader partitioning and instructions */
+	
 
-	restore = cmd;		/* start address */
+	restore = cmd;		
 
-	/* Invalidate Vertex & Pixel instruction code address and sizes */
+	
 	*cmd++ = cp_type3_packet(CP_INVALIDATE_STATE, 1);
-	*cmd++ = 0x00000300;	/* 0x100 = Vertex, 0x200 = Pixel */
+	*cmd++ = 0x00000300;	
 
-	/* Restore previous shader vertex & pixel instruction bases. */
+	
 	*cmd++ = cp_type3_packet(CP_SET_SHADER_BASES, 1);
-	shaderBases = cmd++;	/* TBD #5: shader bases (from fixup) */
+	shaderBases = cmd++;	
 
-	/* write the shader partition information to a scratch register */
+	
 	*cmd++ = cp_type0_packet(REG_SQ_INST_STORE_MANAGMENT, 1);
-	partition1 = cmd++;	/* TBD #4a: partition info (from save) */
+	partition1 = cmd++;	
 
-	/* load vertex shader instructions from the shadow. */
+	
 	*cmd++ = cp_type3_packet(CP_IM_LOAD, 2);
-	*cmd++ = tmp_ctx.shader_vertex + 0x0;	/* 0x0 = Vertex */
-	startSizeVtx = cmd++;	/* TBD #1: start/size (from save) */
+	*cmd++ = tmp_ctx.shader_vertex + 0x0;	
+	startSizeVtx = cmd++;	
 
-	/* load pixel shader instructions from the shadow. */
+	
 	*cmd++ = cp_type3_packet(CP_IM_LOAD, 2);
-	*cmd++ = tmp_ctx.shader_pixel + 0x1;	/* 0x1 = Pixel */
-	startSizePix = cmd++;	/* TBD #2: start/size (from save) */
+	*cmd++ = tmp_ctx.shader_pixel + 0x1;	
+	startSizePix = cmd++;	
 
-	/* load shared shader instructions from the shadow. */
+	
 	*cmd++ = cp_type3_packet(CP_IM_LOAD, 2);
-	*cmd++ = tmp_ctx.shader_shared + 0x2;	/* 0x2 = Shared */
-	startSizeShared = cmd++;	/* TBD #3: start/size (from save) */
+	*cmd++ = tmp_ctx.shader_shared + 0x2;	
+	startSizeShared = cmd++;	
 
-	/* create indirect buffer command for above command sequence */
+	
 	create_ib1(drawctxt, drawctxt->shader_restore, restore, cmd);
 
 	/*
@@ -1258,86 +1258,81 @@ build_shader_save_restore_cmds(struct adreno_device *adreno_dev,
 	 *  have been written.
 	 */
 
-	fixup = cmd;		/* start address */
+	fixup = cmd;		
 
-	/* write the shader partition information to a scratch register */
+	
 	*cmd++ = cp_type0_packet(REG_SCRATCH_REG2, 1);
-	partition2 = cmd++;	/* TBD #4b: partition info (from save) */
+	partition2 = cmd++;	
 
-	/* mask off unused bits, then OR with shader instruction memory size */
+	
 	*cmd++ = cp_type3_packet(CP_REG_RMW, 3);
 	*cmd++ = REG_SCRATCH_REG2;
-	/* AND off invalid bits. */
+	
 	*cmd++ = 0x0FFF0FFF;
-	/* OR in instruction memory size.  */
+	
 	*cmd++ = adreno_encode_istore_size(adreno_dev);
 
-	/* write the computed value to the SET_SHADER_BASES data field */
+	
 	*cmd++ = cp_type3_packet(CP_REG_TO_MEM, 2);
 	*cmd++ = REG_SCRATCH_REG2;
-	/* TBD #5: shader bases (to restore) */
+	
 	*cmd++ = virt2gpu(shaderBases, &drawctxt->gpustate);
 
-	/* create indirect buffer command for above command sequence */
+	
 	create_ib1(drawctxt, drawctxt->shader_fixup, fixup, cmd);
 
-	/* save shader partitioning and instructions */
+	
 
-	save = cmd;		/* start address */
+	save = cmd;		
 
 	*cmd++ = cp_type3_packet(CP_WAIT_FOR_IDLE, 1);
 	*cmd++ = 0;
 
-	/* fetch the SQ_INST_STORE_MANAGMENT register value,
-	 *  store the value in the data fields of the SET_CONSTANT commands
-	 *  above.
-	 */
 	*cmd++ = cp_type3_packet(CP_REG_TO_MEM, 2);
 	*cmd++ = REG_SQ_INST_STORE_MANAGMENT;
-	/* TBD #4a: partition info (to restore) */
+	
 	*cmd++ = virt2gpu(partition1, &drawctxt->gpustate);
 	*cmd++ = cp_type3_packet(CP_REG_TO_MEM, 2);
 	*cmd++ = REG_SQ_INST_STORE_MANAGMENT;
-	/* TBD #4b: partition info (to fixup) */
+	
 	*cmd++ = virt2gpu(partition2, &drawctxt->gpustate);
 
 
-	/* store the vertex shader instructions */
+	
 	*cmd++ = cp_type3_packet(CP_IM_STORE, 2);
-	*cmd++ = tmp_ctx.shader_vertex + 0x0;	/* 0x0 = Vertex */
-	/* TBD #1: start/size (to restore) */
+	*cmd++ = tmp_ctx.shader_vertex + 0x0;	
+	
 	*cmd++ = virt2gpu(startSizeVtx, &drawctxt->gpustate);
 
-	/* store the pixel shader instructions */
+	
 	*cmd++ = cp_type3_packet(CP_IM_STORE, 2);
-	*cmd++ = tmp_ctx.shader_pixel + 0x1;	/* 0x1 = Pixel */
-	/* TBD #2: start/size (to restore) */
+	*cmd++ = tmp_ctx.shader_pixel + 0x1;	
+	
 	*cmd++ = virt2gpu(startSizePix, &drawctxt->gpustate);
 
-	/* store the shared shader instructions if vertex base is nonzero */
+	
 
 	*cmd++ = cp_type3_packet(CP_IM_STORE, 2);
-	*cmd++ = tmp_ctx.shader_shared + 0x2;	/* 0x2 = Shared */
-	/* TBD #3: start/size (to restore) */
+	*cmd++ = tmp_ctx.shader_shared + 0x2;	
+	
 	*cmd++ = virt2gpu(startSizeShared, &drawctxt->gpustate);
 
 
 	*cmd++ = cp_type3_packet(CP_WAIT_FOR_IDLE, 1);
 	*cmd++ = 0;
 
-	/* create indirect buffer command for above command sequence */
+	
 	create_ib1(drawctxt, drawctxt->shader_save, save, cmd);
 
 	tmp_ctx.cmd = cmd;
 }
 
-/* create buffers for saving/restoring registers, constants, & GMEM */
 static int a2xx_create_gpustate_shadow(struct adreno_device *adreno_dev,
 			struct adreno_context *drawctxt)
 {
 	drawctxt->flags |= CTXT_FLAGS_STATE_SHADOW;
 
-	/* build indirect command buffers to save & restore regs/constants */
+	
 	build_regrestore_cmds(adreno_dev, drawctxt);
 	build_regsave_cmds(adreno_dev, drawctxt);
 

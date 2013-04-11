@@ -204,6 +204,16 @@ int is_wifi_platform(struct mmc_platform_data *plat)
 }
 EXPORT_SYMBOL(is_wifi_platform);
 
+int is_wifi_mmc_host(struct mmc_host *mmc)
+{
+	struct msmsdcc_host *host = mmc_priv(mmc);
+	if (host && is_wifi_platform(host->plat))
+		return 1;
+
+	return 0;
+}
+EXPORT_SYMBOL(is_wifi_mmc_host);
+
 int is_wimax_platform(struct mmc_platform_data *plat)
 {
 	if (plat && plat->slot_type && *plat->slot_type == MMC_TYPE_SDIO_WIMAX)
@@ -282,53 +292,38 @@ static inline int msmsdcc_sps_restore_ep(struct msmsdcc_host *host,
 }
 static inline int msmsdcc_sps_init(struct msmsdcc_host *host) { return 0; }
 static inline void msmsdcc_sps_exit(struct msmsdcc_host *host) {}
-#endif /* CONFIG_MMC_MSM_SPS_SUPPORT */
+#endif 
 
-/**
- * Apply soft reset
- *
- * This function applies soft reset to SPS BAM and DML core.
- *
- * This function should be called to recover from error
- * conditions encountered during CMD/DATA tranfsers with card.
- *
- * @host - Pointer to driver's host structure
- *
- */
-static void msmsdcc_bam_dml_reset_and_restore(struct msmsdcc_host *host)
+static void msmsdcc_sps_pipes_reset_and_restore(struct msmsdcc_host *host)
 {
 	int rc;
 
-	/* Reset and init DML */
-	rc = msmsdcc_dml_init(host);
-	if (rc)
-		pr_err("%s: msmsdcc_dml_init error=%d\n",
-				mmc_hostname(host->mmc), rc);
-
-	/* Reset all SDCC BAM pipes */
+	
 	rc = msmsdcc_sps_reset_ep(host, &host->sps.prod);
 	if (rc)
-		pr_err("%s: msmsdcc_sps_reset_ep(prod) error=%d\n",
+		pr_err("%s:msmsdcc_sps_reset_ep(prod) error=%d\n",
 				mmc_hostname(host->mmc), rc);
 	rc = msmsdcc_sps_reset_ep(host, &host->sps.cons);
 	if (rc)
-		pr_err("%s: msmsdcc_sps_reset_ep(cons) error=%d\n",
+		pr_err("%s:msmsdcc_sps_reset_ep(cons) error=%d\n",
 				mmc_hostname(host->mmc), rc);
 
-	/* Reset BAM */
-	rc = sps_device_reset(host->sps.bam_handle);
-	if (rc)
-		pr_err("%s: sps_device_reset error=%d\n",
+	if (host->sps.reset_device) {
+		rc = sps_device_reset(host->sps.bam_handle);
+		if (rc)
+			pr_err("%s: sps_device_reset error=%d\n",
 				mmc_hostname(host->mmc), rc);
+		host->sps.reset_device = false;
+	}
 
-	/* Restore all BAM pipes connections */
+	
 	rc = msmsdcc_sps_restore_ep(host, &host->sps.prod);
 	if (rc)
-		pr_err("%s: msmsdcc_sps_restore_ep(prod) error=%d\n",
+		pr_err("%s:msmsdcc_sps_restore_ep(prod) error=%d\n",
 				mmc_hostname(host->mmc), rc);
 	rc = msmsdcc_sps_restore_ep(host, &host->sps.cons);
 	if (rc)
-		pr_err("%s: msmsdcc_sps_restore_ep(cons) error=%d\n",
+		pr_err("%s:msmsdcc_sps_restore_ep(cons) error=%d\n",
 				mmc_hostname(host->mmc), rc);
 }
 
@@ -430,29 +425,25 @@ static void msmsdcc_hard_reset(struct msmsdcc_host *host)
 static void msmsdcc_reset_and_restore(struct msmsdcc_host *host)
 {
 	if (is_soft_reset(host)) {
-		if (is_sps_mode(host))
-			/*
-			 * delay the SPS BAM reset in thread context as
-			 * sps_connect/sps_disconnect APIs can be called
-			 * only from non-atomic context.
-			 */
-			host->sps.reset_bam = true;
+		if (is_sps_mode(host)) {
+			
+			msmsdcc_dml_reset(host);
+			host->sps.pipe_reset_pending = true;
+		}
 		mb();
 		msmsdcc_soft_reset(host);
 
 		pr_info("%s: Applied soft reset to Controller\n",
 				mmc_hostname(host->mmc));
-	} else {
-		/* When there is a requirement to use this hard reset,
-		 * BAM needs to be reconfigured as well by calling
-		 * msmsdcc_sps_exit and msmsdcc_sps_init.
-		 */
 
-		/* Give Clock reset (hard reset) to controller */
+		if (is_sps_mode(host))
+			msmsdcc_dml_init(host);
+	} else {
+		
 		u32	mci_clk = 0;
 		u32	mci_mask0 = 0;
 
-		/* Save the controller state */
+		
 		mci_clk = readl_relaxed(host->base + MMCICLOCK);
 		mci_mask0 = readl_relaxed(host->base + MMCIMASK0);
 		host->pwr = readl_relaxed(host->base + MMCIPOWER);
@@ -2118,17 +2109,14 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	struct msmsdcc_host *host = mmc_priv(mmc);
 	unsigned long		flags;
 
-	/*
-	 * Get the SDIO AL client out of LPM.
-	 */
 	WARN(host->dummy_52_sent, "Dummy CMD52 in progress\n");
 	if (host->plat->is_sdio_al_client)
 		msmsdcc_sdio_al_lpm(mmc, false);
 
-	/* check if sps bam needs to be reset */
-	if (is_sps_mode(host) && host->sps.reset_bam) {
-		msmsdcc_bam_dml_reset_and_restore(host);
-		host->sps.reset_bam = false;
+	
+	if (is_sps_mode(host) && host->sps.pipe_reset_pending) {
+		msmsdcc_sps_pipes_reset_and_restore(host);
+		host->sps.pipe_reset_pending = false;
 	}
 
 	spin_lock_irqsave(&host->lock, flags);
@@ -2170,17 +2158,15 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	     mmc_hostname(host->mmc), __func__,
 	     mrq->cmd->opcode, host->curr.mrq->cmd->opcode);
 
-	/*
-	 * Set timeout value to 10 secs (or more in case of buggy cards)
-	 */
 	if ((mmc->card) && (mmc->card->quirks & MMC_QUIRK_INAND_DATA_TIMEOUT))
 		host->curr.req_tout_ms = 20000;
-	else
-		host->curr.req_tout_ms = MSM_MMC_REQ_TIMEOUT;
-	/*
-	 * Kick the software request timeout timer here with the timeout
-	 * value identified above
-	 */
+	else {
+		if (is_wifi_platform(host->plat)) {
+			host->curr.req_tout_ms = 6000;
+		} else {
+			host->curr.req_tout_ms = MSM_MMC_REQ_TIMEOUT;
+		}
+	}
 	mod_timer(&host->req_tout_timer,
 			(jiffies +
 			 msecs_to_jiffies(host->curr.req_tout_ms)));
@@ -3373,6 +3359,11 @@ static int msmsdcc_enable(struct mmc_host *mmc)
 	struct device *dev = mmc->parent;
 	struct msmsdcc_host *host = mmc_priv(mmc);
 
+	/*
+	 * We may come here with clocks turned off in that case don't
+	 * attempt to write into MASK0 register. While turning on the
+	 * clocks mci_irqenable will be written to MASK0 register.
+	 */
 /*
 #ifdef CONFIG_WIFI_MMC
 	if (is_wifi_platform(host->plat)) {
@@ -4565,26 +4556,17 @@ msmsdcc_sps_bam_global_irq_cb(enum sps_callback_case sps_cb_case, void *user)
 	BUG_ON(!is_sps_mode(host));
 
 	if (sps_cb_case == SPS_CALLBACK_BAM_ERROR_IRQ) {
-		/* Reset all endpoints along with resetting bam. */
-		host->sps.reset_bam = true;
+		host->sps.pipe_reset_pending = true;
+		host->sps.reset_device = true;
 
 		pr_err("%s: BAM Global ERROR IRQ happened\n",
 			mmc_hostname(host->mmc));
 		error = EAGAIN;
 	} else if (sps_cb_case == SPS_CALLBACK_BAM_HRESP_ERR_IRQ) {
-		/**
-		 *  This means that there was an AHB access error and
-		 *  the address we are trying to read/write is something
-		 *  we dont have priviliges to do so.
-		 */
 		pr_err("%s: BAM HRESP_ERR_IRQ happened\n",
 			mmc_hostname(host->mmc));
 		error = EACCES;
 	} else {
-		/**
-		 * This should not have happened ideally. If this happens
-		 * there is some seriously wrong.
-		 */
 		pr_err("%s: BAM global IRQ callback received, type:%d\n",
 			mmc_hostname(host->mmc), (u32) sps_cb_case);
 		error = EIO;
@@ -4672,8 +4654,10 @@ static int msmsdcc_sps_init(struct msmsdcc_host *host)
 	/* SPS driver wll handle the SDCC BAM IRQ */
 	bam.irq = (u32)host->bam_irqres->start;
 	bam.manage = SPS_BAM_MGR_LOCAL;
-	bam.callback = msmsdcc_sps_bam_global_irq_cb;
-	bam.user = (void *)host;
+	if (is_mmc_platform(host->plat)) {
+		bam.callback = msmsdcc_sps_bam_global_irq_cb;
+		bam.user = (void *)host;
+	}
 
 	pr_info("%s: bam physical base=0x%x\n", mmc_hostname(host->mmc),
 			(u32)bam.phys_addr);

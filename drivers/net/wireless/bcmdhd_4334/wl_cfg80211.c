@@ -7855,7 +7855,11 @@ retry:
 	if (count < 10) {
 		ret = 0;
 		wl->event_tsk.thr_pid = -1;
+#ifdef USE_KTHREAD_API
+		PROC_START2(wl_event_handler, wl, &wl->event_tsk, 0, "wl_event_handler");
+#else
 		PROC_START(wl_event_handler, wl, &wl->event_tsk, 0);
+#endif
 		if ((wl->event_tsk.thr_pid < 0) || (wl->event_tsk.thr_pid > 0xf0000000)) {
 			printf("%s: %dnd Create thread failed\n", __func__, count);
 			count++;
@@ -9056,8 +9060,10 @@ static s32 wl_event_handler(void *data)
 	tsk_ctl_t *tsk = (tsk_ctl_t *)data;
 
 	wl = (struct wl_priv *)tsk->parent;
+#ifndef USE_KTHREAD_API
 	DAEMONIZE("dhd_cfg80211_event");
 	complete(&tsk->completed);
+#endif
 
 	while (down_interruptible (&tsk->sema) == 0) {
 		SMP_RD_BARRIER_DEPENDS();
@@ -10256,6 +10262,34 @@ static void get_primary_mac(struct wl_priv *wl, struct ether_addr *mac)
 		0, wl->ioctl_buf, WLC_IOCTL_SMLEN, 0, &wl->ioctl_buf_sync);
 	memcpy(mac->octet, wl->ioctl_buf, ETHER_ADDR_LEN);
 }
+
+void wl_cfg80211_abort_connecting(void)
+{
+	struct wl_priv *wl = wlcfg_drv_priv;
+	struct net_device *dev;
+
+	if(!wl) {
+		printf("%s : wl is null, return\n",__func__);
+		return;
+	}
+
+	dev = wl_to_prmry_ndev(wl);
+	if(!dev) {
+        printf("%s : dev is null, return\n",__func__);
+        return;
+	}
+	if (wl_get_drv_status(wl, CONNECTING, dev)) {
+		int val = 0;
+		int err;
+		printf("%s: abort the connecting procedure.\n", __FUNCTION__);
+        err = wldev_ioctl(dev, WLC_DISASSOC, &val, sizeof(val), true);
+        if (unlikely(err)) {
+	        WL_ERR(("call WLC_DISASSOC failed. (%d)\n", err));
+	    }
+        
+        wl_bss_connect_done(wl, dev, NULL, NULL, false);
+    }
+}		
 
 //BRCM APSTA START
 #ifdef APSTA_CONCURRENT

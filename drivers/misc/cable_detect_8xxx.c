@@ -111,9 +111,6 @@ static void send_cable_connect_notify(int cable_type)
 	mutex_lock(&cable_notify_sem);
 	CABLE_DEBUG("%s: cable_type = %d\n", __func__, cable_type);
 
-	if (cable_type == CONNECT_TYPE_UNKNOWN)
-		cable_type = CONNECT_TYPE_USB;
-
 	if (pInfo->ac_9v_gpio && (cable_type == CONNECT_TYPE_USB
 				|| cable_type == CONNECT_TYPE_AC
 				|| cable_type == CONNECT_TYPE_MHL_AC)) {
@@ -696,6 +693,7 @@ static void mhl_status_notifier_func(bool isMHL, int charging_type)
 #endif
 		mhl_connected = 0;
 
+		switch_set_state(&dock_switch, DOCK_STATE_UNDOCKED);
 		pInfo->accessory_type = DOCK_STATE_UNDOCKED;
 		sii9234_disableIRQ();
 		enable_irq(pInfo->idpin_irq);
@@ -1063,7 +1061,8 @@ static void usb_status_notifier_func(int cable_type)
 #endif
 		}
 
-	if (cable_type > CONNECT_TYPE_NONE) {
+	if (cable_type > CONNECT_TYPE_NONE ||
+			cable_type == CONNECT_TYPE_UNKNOWN) {
 		if (pInfo->ad_en_gpio) {
 			if (gpio_get_value(pInfo->ad_en_gpio) ==
 							pInfo->ad_en_active_state)

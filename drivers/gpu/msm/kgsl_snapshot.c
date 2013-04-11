@@ -37,10 +37,10 @@ struct kgsl_snapshot_object {
 };
 
 struct snapshot_obj_itr {
-	void *buf;      /* Buffer pointer to write to */
-	int pos;        /* Current position in the sequence */
-	loff_t offset;  /* file offset to start writing from */
-	size_t remain;  /* Bytes remaining in buffer */
+	void *buf;      
+	int pos;        
+	loff_t offset;  
+	size_t remain;  
 	size_t write;   /* Bytes written so far */
 };
 
@@ -616,13 +616,11 @@ done:
 	return itr.write;
 }
 
-/* Show the timestamp of the last collected snapshot */
 static ssize_t timestamp_show(struct kgsl_device *device, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%x\n", device->snapshot_timestamp);
 }
 
-/* manually trigger a new snapshot to be collected */
 static ssize_t trigger_store(struct kgsl_device *device, const char *buf,
 	size_t count)
 {
@@ -635,13 +633,11 @@ static ssize_t trigger_store(struct kgsl_device *device, const char *buf,
 	return count;
 }
 
-/* Show the timestamp of the last collected snapshot */
 static ssize_t no_panic_show(struct kgsl_device *device, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%x\n", device->snapshot_no_panic);
 }
 
-/* manually trigger a new snapshot to be collected */
 static ssize_t no_panic_store(struct kgsl_device *device, const char *buf,
 	size_t count)
 {
@@ -670,7 +666,6 @@ struct kgsl_snapshot_attribute attr_##_name = { \
 
 SNAPSHOT_ATTR(trigger, 0600, NULL, trigger_store);
 SNAPSHOT_ATTR(timestamp, 0444, timestamp_show, NULL);
-/* HTC: dev only, for disable kernel panic and capture snapshot for analysis */
 SNAPSHOT_ATTR(no_panic, 0644, no_panic_show, no_panic_store);
 
 static void snapshot_sysfs_release(struct kobject *kobj)
@@ -718,6 +713,12 @@ static struct kobj_type ktype_snapshot = {
 	.release = snapshot_sysfs_release,
 };
 
+	/*
+	 * Make sure everything has been written out before destroying things.
+	 * The best way to confirm this is to go all the way through without
+	 * writing any bytes - so only release if we get this far and
+	 * itr->write is 0
+	 */
 /* kgsl_device_snapshot_init - Add resources for the device GPU snapshot
  * @device - The device to initalize
  *

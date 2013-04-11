@@ -3265,17 +3265,17 @@ dhdsdio_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, const ch
 		DHD_INFO(("%s: Request to %s %d bytes at address 0x%08x\n", __FUNCTION__,
 		          (set ? "write" : "read"), size, address));
 
-		/* check if CR4 */
+		
 		if (si_setcore(bus->sih, ARMCR4_CORE_ID, 0)) {
 			/* if address is 0, store the reset instruction to be written in 0 */
 
 			if (address == 0) {
 				bus->resetinstr = *(((uint32*)params) + 2);
 			}
-			/* Add start of RAM address to the address given by user */
+			
 			address += bus->dongle_ram_base;
 		} else {
-		/* If we know about SOCRAM, check for a fit */
+		
 		if ((bus->orig_ramsize) &&
 		    ((address > bus->orig_ramsize) || (address + size > bus->orig_ramsize)))
 		{
@@ -3684,7 +3684,7 @@ dhdsdio_write_vars(dhd_bus_t *bus)
 	uint32 varsizew;
 #ifdef DHD_DEBUG
 	uint8 *nvram_ularray;
-#endif /* DHD_DEBUG */
+#endif 
 
 	/* Even if there are no vars are to be written, we still need to set the ramsize. */
 	varsize = bus->varsz ? ROUNDUP(bus->varsz, 4) : 0;
@@ -5587,14 +5587,16 @@ dhdsdio_hostmail(dhd_bus_t *bus)
 	}
 
 #ifdef DHD_DEBUG
-	/* At least print a message if FW halted */
+	
 	if (hmb_data & HMB_DATA_FWHALT) {
 		DHD_ERROR(("INTERNAL ERROR: FIRMWARE HALTED\n"));
-		dhdsdio_checkdied(bus, NULL, 0);
+		bus->dhd->busstate = DHD_BUS_DOWN;
+		bus->intstatus = 0;
+		dhd_info_send_hang_message(bus->dhd);
 	}
-#endif /* DHD_DEBUG */
+#endif 
 
-	/* Shouldn't be any others */
+	
 	if (hmb_data & ~(HMB_DATA_DEVREADY |
 	                 HMB_DATA_FWHALT |
 	                 HMB_DATA_NAKHANDLED |
@@ -6674,9 +6676,17 @@ dhdsdio_probe(uint16 venid, uint16 devid, uint16 bus_no, uint16 slot,
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25))
-	mutex_unlock(&_dhd_sdio_mutex_lock_);
-	DHD_ERROR(("%s : the lock is released.\n", __FUNCTION__));
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) */
+	
+	if (mutex_is_locked(&_dhd_sdio_mutex_lock_) == 0) {
+		DHD_ERROR(("%s : no mutex held. \n", __FUNCTION__));
+	}
+	else {
+		DHD_ERROR(("%s : mutex is locked!. wait for unlocking\n", __FUNCTION__));
+		mutex_unlock(&_dhd_sdio_mutex_lock_);
+		DHD_ERROR(("%s : the lock is released.\n", __FUNCTION__));
+	}
+	
+#endif 
 	return bus;
 
 fail:
@@ -6684,9 +6694,17 @@ fail:
 
 forcereturn:
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25))
-	mutex_unlock(&_dhd_sdio_mutex_lock_);
-	DHD_ERROR(("%s : the lock is released.\n", __FUNCTION__));
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) */
+	
+	if (mutex_is_locked(&_dhd_sdio_mutex_lock_) == 0) {
+		DHD_ERROR(("%s : no mutex held. \n", __FUNCTION__));
+	}
+	else {
+		DHD_ERROR(("%s : mutex is locked!. wait for unlocking\n", __FUNCTION__));
+		mutex_unlock(&_dhd_sdio_mutex_lock_);
+		DHD_ERROR(("%s : the lock is released.\n", __FUNCTION__));
+	}
+	
+#endif 
 	return NULL;
 }
 

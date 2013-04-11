@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * Shared memory logging implementation.
- */
 
 #include <linux/slab.h>
 #include <linux/uaccess.h>

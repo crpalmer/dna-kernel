@@ -15,9 +15,6 @@
 #ifndef __ARCH_ARM_MACH_MSM_CLOCK_PLL_H
 #define __ARCH_ARM_MACH_MSM_CLOCK_PLL_H
 
-/**
- * enum - For PLL IDs
- */
 enum {
 	PLL_TCXO	= -1,
 	PLL_0	= 0,

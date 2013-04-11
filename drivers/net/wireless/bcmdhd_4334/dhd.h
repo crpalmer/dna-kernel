@@ -27,9 +27,6 @@
  * $Id: dhd.h 322404 2012-03-20 20:41:32Z $
  */
 
-/****************
- * Common types *
- */
 
 #ifndef _dhd_h_
 #define _dhd_h_
@@ -172,106 +169,104 @@ typedef struct reorder_info {
 	uint8 pend_pkts;
 } reorder_info_t;
 
-/* Common structure for module and instance linkage */
 typedef struct dhd_pub {
-	/* Linkage ponters */
-	osl_t *osh;		/* OSL handle */
-	struct dhd_bus *bus;	/* Bus module handle */
-	struct dhd_prot *prot;	/* Protocol module handle */
-	struct dhd_info  *info; /* Info module handle */
+	
+	osl_t *osh;		
+	struct dhd_bus *bus;	
+	struct dhd_prot *prot;	
+	struct dhd_info  *info; 
 
-	/* Internal dhd items */
-	bool up;		/* Driver up/down (to OS) */
-	bool txoff;		/* Transmit flow-controlled */
-	bool dongle_reset;  /* TRUE = DEVRESET put dongle into reset */
+	
+	bool up;		
+	bool txoff;		
+	bool dongle_reset;  
 	enum dhd_bus_state busstate;
-	uint hdrlen;		/* Total DHD header length (proto + bus) */
-	uint maxctl;		/* Max size rxctl request from proto to bus */
-	uint rxsz;		/* Rx buffer size bus module should use */
-	uint8 wme_dp;	/* wme discard priority */
+	uint hdrlen;		
+	uint maxctl;		
+	uint rxsz;		
+	uint8 wme_dp;	
 
-	/* Dongle media info */
-	bool iswl;		/* Dongle-resident driver is wl */
-	ulong drv_version;	/* Version of dongle-resident driver */
-	struct ether_addr mac;	/* MAC address obtained from dongle */
-	dngl_stats_t dstats;	/* Stats for dongle-based data */
+	
+	bool iswl;		
+	ulong drv_version;	
+	struct ether_addr mac;	
+	dngl_stats_t dstats;	
 
-	/* Additional stats for the bus level */
-	ulong tx_packets;	/* Data packets sent to dongle */
-	ulong tx_multicast;	/* Multicast data packets sent to dongle */
-	ulong tx_errors;	/* Errors in sending data to dongle */
-	ulong tx_ctlpkts;	/* Control packets sent to dongle */
-	ulong tx_ctlerrs;	/* Errors sending control frames to dongle */
-	ulong rx_packets;	/* Packets sent up the network interface */
-	ulong rx_multicast;	/* Multicast packets sent up the network interface */
-	ulong rx_errors;	/* Errors processing rx data packets */
-	ulong rx_ctlpkts;	/* Control frames processed from dongle */
-	ulong rx_ctlerrs;	/* Errors in processing rx control frames */
-	ulong rx_dropped;	/* Packets dropped locally (no memory) */
-	ulong rx_flushed;  /* Packets flushed due to unscheduled sendup thread */
-	ulong wd_dpc_sched;   /* Number of times dhd dpc scheduled by watchdog timer */
+	
+	ulong tx_packets;	
+	ulong tx_multicast;	
+	ulong tx_errors;	
+	ulong tx_ctlpkts;	
+	ulong tx_ctlerrs;	
+	ulong rx_packets;	
+	ulong rx_multicast;	
+	ulong rx_errors;	
+	ulong rx_ctlpkts;	
+	ulong rx_ctlerrs;	
+	ulong rx_dropped;	
+	ulong rx_flushed;  
+	ulong wd_dpc_sched;   
 
-	ulong rx_readahead_cnt;	/* Number of packets where header read-ahead was used. */
-	ulong tx_realloc;	/* Number of tx packets we had to realloc for headroom */
-	ulong fc_packets;       /* Number of flow control pkts recvd */
+	ulong rx_readahead_cnt;	
+	ulong tx_realloc;	
+	ulong fc_packets;       
 
-	/* Last error return */
+	
 	int bcmerror;
 	uint tickcnt;
 
-	/* Last error from dongle */
+	
 	int dongle_error;
 
 	uint8 country_code[WLC_CNTRY_BUF_SZ];
 
-	/* Suspend disable flag and "in suspend" flag */
-	int suspend_disable_flag; /* "1" to disable all extra powersaving during suspend */
-	int in_suspend;			/* flag set to 1 when early suspend called */
+	
+	int suspend_disable_flag; 
+	int in_suspend;			
 #ifdef PNO_SUPPORT
-	int pno_enable;                 /* pno status : "1" is pno enable */
-	int pno_suspend;		/* pno suspend status : "1" is pno suspended */
-#endif /* PNO_SUPPORT */
-	int dtim_skip;         /* dtim skip , default 0 means wake each dtim */
+	int pno_enable;                 
+	int pno_suspend;		
+#endif 
+	int dtim_skip;         
 
 #ifdef PKT_FILTER_SUPPORT
-	int early_suspended;	/* Early suspend status */
-	int dhcp_in_progress;	/* DHCP period */
+	int early_suspended;	
+	int dhcp_in_progress;	
 #endif
-	/* Pkt filter defination */
+	
 	char * pktfilter[100];
 	int pktfilter_count;
 
-	wl_country_t dhd_cspec;		/* Current Locale info */
+	wl_country_t dhd_cspec;		
 	char eventmask[WL_EVENTING_MASK_LEN];
-	int	op_mode;				/* STA, HostAPD, WFD, SoftAP */
+	int	op_mode;				
 /* Set this to 1 to use a seperate interface (p2p0) for p2p operations.
  *  For ICS MR1 releases it should be disable to be compatable with ICS MR1 Framework
  *  see target dhd-cdc-sdmmc-panda-cfg80211-icsmr1-gpl-debug in Makefile
  */
-/* #define WL_ENABLE_P2P_IF		1 */
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_HAS_WAKELOCK)
 	struct wake_lock wakelock[WAKE_LOCK_MAX];
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined (CONFIG_HAS_WAKELOCK) */
+#endif 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
-	struct mutex 	wl_start_stop_lock; /* lock/unlock for Android start/stop */
-	struct mutex 	wl_softap_lock;		 /* lock/unlock for any SoftAP/STA settings */
+	struct mutex 	wl_start_stop_lock; 
+	struct mutex 	wl_softap_lock;		 
 #endif 
 
 #ifdef WLBTAMP
 	uint16	maxdatablks;
-#endif /* WLBTAMP */
+#endif 
 #ifdef PROP_TXSTATUS
 	int   wlfc_enabled;
 	void* wlfc_state;
 #endif
 	bool	dongle_isolation;
-	bool	dongle_trap_occured;	/* flag for sending HANG event to upper layer */
+	bool	dongle_trap_occured;	
 	int   hang_was_sent;
-	int   rxcnt_timeout;		/* counter rxcnt timeout to send HANG */
-	int   txcnt_timeout;		/* counter txcnt timeout to send HANG */
+	int   rxcnt_timeout;		
+	int   txcnt_timeout;		
 #ifdef WLMEDIA_HTSF
-	uint8 htsfdlystat_sz; /* Size of delay stats, max 255B */
+	uint8 htsfdlystat_sz; 
 #endif
 	struct reorder_info *reorder_bufs[WLHOST_REORDERDATA_MAXFLOWS];
 } dhd_pub_t;

@@ -2215,6 +2215,9 @@ static int msm_close(struct file *f)
 	struct msm_cam_v4l2_dev_inst *pcam_inst;
 	struct msm_cam_server_queue *queue;
 	struct msm_cam_media_controller *pmctl;
+	
+	struct msm_sensor_ctrl_t *s_ctrl ;
+	
 	pcam_inst = container_of(f->private_data,
 		struct msm_cam_v4l2_dev_inst, eventHandle);
 	pcam = pcam_inst->pcam;
@@ -2228,7 +2231,12 @@ static int msm_close(struct file *f)
 		pr_err("%s NULL mctl pointer\n", __func__);
 		return -EINVAL;
 	}
-
+	
+    s_ctrl  = get_sctrl(pmctl->sensor_sdev);
+    if(s_ctrl && s_ctrl->sensor_first_mutex)  {
+	    mutex_lock(s_ctrl->sensor_first_mutex);
+	}
+	
 
 	mutex_lock(&pcam->vid_lock);
 	mutex_lock(&pcam_inst->inst_lock);
@@ -2281,12 +2289,7 @@ static int msm_close(struct file *f)
 
 	if (pcam->use_count == 0) {
 		int ges_evt = MSM_V4L2_GES_CAM_CLOSE;
-		//CC120901
-		struct msm_sensor_ctrl_t *s_ctrl = get_sctrl(pmctl->sensor_sdev);
-		if(s_ctrl && s_ctrl->sensor_first_mutex)  {
-			mutex_lock(s_ctrl->sensor_first_mutex);
-			mutex_unlock(s_ctrl->sensor_first_mutex);
-		}
+		
 
 		if (g_server_dev.use_count > 0) {
 			rc = msm_send_close_server(pcam);
@@ -2321,6 +2324,11 @@ static int msm_close(struct file *f)
 			NOTIFY_GESTURE_CAM_EVT, &ges_evt);
 	}
 	mutex_unlock(&pcam->vid_lock);
+	
+    if(s_ctrl && s_ctrl->sensor_first_mutex)  {
+	   mutex_unlock(s_ctrl->sensor_first_mutex);
+    }
+	
 	return rc;
 }
 

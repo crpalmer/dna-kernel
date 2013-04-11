@@ -13,13 +13,7 @@
 #ifndef __ASM_ARCH_MSM_IRQS_8064_H
 #define __ASM_ARCH_MSM_IRQS_8064_H
 
-/* MSM ACPU Interrupt Numbers */
 
-/*
- * 0-15:  STI/SGI (software triggered/generated interrupts)
- * 16-31: PPI (private peripheral interrupts)
- * 32+:   SPI (shared peripheral interrupts)
- */
 
 #define GIC_PPI_START 16
 #define GIC_SPI_START 32

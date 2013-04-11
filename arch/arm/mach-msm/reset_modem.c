@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * MSM architecture driver to reset the modem
- */
 #include <linux/uaccess.h>
 #include <linux/module.h>
 #include <linux/fs.h>

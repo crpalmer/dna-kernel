@@ -1905,7 +1905,7 @@ android_bind_enabled_functions(struct android_dev *dev,
 		pr_info("%s bind name: %s\n", __func__, f->name);
 		ret = f->bind_config(f, c);
 		if (ret) {
-			pr_err("%s: %s failed", __func__, f->name);
+			pr_err("%s: %s failed, ret:%d\n", __func__, f->name, ret);
 			return ret;
 		}
 	}

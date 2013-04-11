@@ -15,10 +15,8 @@
 #include <linux/bitops.h>
 #include <linux/mutex.h>
 
-/* #define DEBUG */
 #define DEV_DBG_PREFIX "EXT_COMMON: "
 
-/* The start of the data block collection within the CEA Extension Version 3 */
 #define DBC_START_OFFSET 4
 
 #include "msm_fb.h"

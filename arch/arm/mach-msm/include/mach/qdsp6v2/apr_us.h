@@ -15,8 +15,6 @@
 
 #include <mach/qdsp6v2/apr.h>
 
-/* ======================================================================= */
-/*  Session Level commands */
 #define USM_SESSION_CMD_MEMORY_MAP			0x00012304
 struct usm_stream_cmd_memory_map {
 	struct apr_hdr	hdr;

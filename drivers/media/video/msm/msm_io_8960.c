@@ -141,233 +141,28 @@ void msm_io_dump(void __iomem *addr, int size)
 void msm_io_memcpy(void __iomem *dest_addr, void __iomem *src_addr, u32 len)
 {
 	CDBG("%s: %p %p %d\n", __func__, dest_addr, src_addr, len);
-// HTC_START
 	if (dest_addr && src_addr) {
 		msm_io_memcpy_toio(dest_addr, src_addr, len / 4);
 		msm_io_dump(dest_addr, len);
 	} else
-// HTC_END
 		pr_err("%s: invalid address %p %p", __func__, dest_addr, src_addr);
 }
 
-#if 1	/* HTC_START  sync the previous project */
-static int msm_camera_vreg_enable(struct msm_camera_sensor_info *s_info)//(struct platform_device *pdev)
-{
-#if 0 /* HTC_START Hayden Huang 20111005 */
-	if (mipi_csi_vdd == NULL) {
-		mipi_csi_vdd = regulator_get(&pdev->dev, "mipi_csi_vdd");
-		if (IS_ERR(mipi_csi_vdd)) {
-			CDBG("%s: VREG MIPI CSI VDD get failed\n", __func__);
-			mipi_csi_vdd = NULL;
-			return -ENODEV;
-		}
-		if (regulator_set_voltage(mipi_csi_vdd, CAM_CSI_VDD_MINUV,
-			CAM_CSI_VDD_MAXUV)) {
-			CDBG("%s: VREG MIPI CSI VDD set voltage failed\n",
-				__func__);
-			goto mipi_csi_vdd_put;
-		}
-		if (regulator_set_optimum_mode(mipi_csi_vdd,
-			CAM_CSI_LOAD_UA) < 0) {
-			CDBG("%s: VREG MIPI CSI set optimum mode failed\n",
-				__func__);
-			goto mipi_csi_vdd_release;
-		}
-		if (regulator_enable(mipi_csi_vdd)) {
-			CDBG("%s: VREG MIPI CSI VDD enable failed\n",
-				__func__);
-			goto mipi_csi_vdd_disable;
-		}
-	}
-	if (cam_vana == NULL) {
-		cam_vana = regulator_get(&pdev->dev, "cam_vana");
-		if (IS_ERR(cam_vana)) {
-			CDBG("%s: VREG CAM VANA get failed\n", __func__);
-			cam_vana = NULL;
-			goto mipi_csi_vdd_disable;
-		}
-		if (regulator_set_voltage(cam_vana, CAM_VANA_MINUV,
-			CAM_VANA_MAXUV)) {
-			CDBG("%s: VREG CAM VANA set voltage failed\n",
-				__func__);
-			goto cam_vana_put;
-		}
-		if (regulator_set_optimum_mode(cam_vana,
-			CAM_VANA_LOAD_UA) < 0) {
-			CDBG("%s: VREG CAM VANA set optimum mode failed\n",
-				__func__);
-			goto cam_vana_release;
-		}
-		if (regulator_enable(cam_vana)) {
-			CDBG("%s: VREG CAM VANA enable failed\n", __func__);
-			goto cam_vana_disable;
-		}
-	}
-	if (cam_vio == NULL) {
-		cam_vio = regulator_get(&pdev->dev, "cam_vio");
-		if (IS_ERR(cam_vio)) {
-			CDBG("%s: VREG VIO get failed\n", __func__);
-			cam_vio = NULL;
-			goto cam_vana_disable;
-		}
-		if (regulator_enable(cam_vio)) {
-			CDBG("%s: VREG VIO enable failed\n", __func__);
-			goto cam_vio_put;
-		}
-	}
-	if (cam_vdig == NULL) {
-		cam_vdig = regulator_get(&pdev->dev, "cam_vdig");
-		if (IS_ERR(cam_vdig)) {
-			CDBG("%s: VREG CAM VDIG get failed\n", __func__);
-			cam_vdig = NULL;
-			goto cam_vio_disable;
-		}
-		if (regulator_set_voltage(cam_vdig, CAM_VDIG_MINUV,
-			CAM_VDIG_MAXUV)) {
-			CDBG("%s: VREG CAM VDIG set voltage failed\n",
-				__func__);
-			goto cam_vdig_put;
-		}
-		if (regulator_set_optimum_mode(cam_vdig,
-			CAM_VDIG_LOAD_UA) < 0) {
-			CDBG("%s: VREG CAM VDIG set optimum mode failed\n",
-				__func__);
-			goto cam_vdig_release;
-		}
-		if (regulator_enable(cam_vdig)) {
-			CDBG("%s: VREG CAM VDIG enable failed\n", __func__);
-			goto cam_vdig_disable;
-		}
-	}
-	if (cam_vaf == NULL) {
-		cam_vaf = regulator_get(&pdev->dev, "cam_vaf");
-		if (IS_ERR(cam_vaf)) {
-			CDBG("%s: VREG CAM VAF get failed\n", __func__);
-			cam_vaf = NULL;
-			goto cam_vdig_disable;
-		}
-		if (regulator_set_voltage(cam_vaf, CAM_VAF_MINUV,
-			CAM_VAF_MAXUV)) {
-			CDBG("%s: VREG CAM VAF set voltage failed\n",
-				__func__);
-			goto cam_vaf_put;
-		}
-		if (regulator_set_optimum_mode(cam_vaf,
-			CAM_VAF_LOAD_UA) < 0) {
-			CDBG("%s: VREG CAM VAF set optimum mode failed\n",
-				__func__);
-			goto cam_vaf_release;
-		}
-		if (regulator_enable(cam_vaf)) {
-			CDBG("%s: VREG CAM VAF enable failed\n", __func__);
-			goto cam_vaf_disable;
-		}
-	}
-#endif /* HTC_END Hayden Huang 20111005 */
-	return 0;
-
-#if 0 /* HTC_START Hayden Huang 20111005 */
-cam_vaf_disable:
-	regulator_set_optimum_mode(cam_vaf, 0);
-cam_vaf_release:
-	regulator_set_voltage(cam_vaf, 0, CAM_VAF_MAXUV);
-	regulator_disable(cam_vaf);
-cam_vaf_put:
-	regulator_put(cam_vaf);
-	cam_vaf = NULL;
-cam_vdig_disable:
-	regulator_set_optimum_mode(cam_vdig, 0);
-cam_vdig_release:
-	regulator_set_voltage(cam_vdig, 0, CAM_VDIG_MAXUV);
-	regulator_disable(cam_vdig);
-cam_vdig_put:
-	regulator_put(cam_vdig);
-	cam_vdig = NULL;
-cam_vio_disable:
-	regulator_disable(cam_vio);
-cam_vio_put:
-	regulator_put(cam_vio);
-	cam_vio = NULL;
-cam_vana_disable:
-	regulator_set_optimum_mode(cam_vana, 0);
-cam_vana_release:
-	regulator_set_voltage(cam_vana, 0, CAM_VANA_MAXUV);
-	regulator_disable(cam_vana);
-cam_vana_put:
-	regulator_put(cam_vana);
-	cam_vana = NULL;
-mipi_csi_vdd_disable:
-	regulator_set_optimum_mode(mipi_csi_vdd, 0);
-mipi_csi_vdd_release:
-	regulator_set_voltage(mipi_csi_vdd, 0, CAM_CSI_VDD_MAXUV);
-	regulator_disable(mipi_csi_vdd);
-
-mipi_csi_vdd_put:
-	regulator_put(mipi_csi_vdd);
-	mipi_csi_vdd = NULL;
-	return -ENODEV;
-#endif /* HTC_END Hayden Huang 20111005 */
-}
-
-static void msm_camera_vreg_disable(void)
-{
-#if 0 /* HTC_START Hayden Huang 20111005 */
-	if (mipi_csi_vdd) {
-		regulator_set_voltage(mipi_csi_vdd, 0, CAM_CSI_VDD_MAXUV);
-		regulator_set_optimum_mode(mipi_csi_vdd, 0);
-		regulator_disable(mipi_csi_vdd);
-		regulator_put(mipi_csi_vdd);
-		mipi_csi_vdd = NULL;
-	}
-
-	if (cam_vana) {
-		regulator_set_voltage(cam_vana, 0, CAM_VANA_MAXUV);
-		regulator_set_optimum_mode(cam_vana, 0);
-		regulator_disable(cam_vana);
-		regulator_put(cam_vana);
-		cam_vana = NULL;
-	}
-
-	if (cam_vio) {
-		regulator_disable(cam_vio);
-		regulator_put(cam_vio);
-		cam_vio = NULL;
-	}
-
-	if (cam_vdig) {
-		regulator_set_voltage(cam_vdig, 0, CAM_VDIG_MAXUV);
-		regulator_set_optimum_mode(cam_vdig, 0);
-		regulator_disable(cam_vdig);
-		regulator_put(cam_vdig);
-		cam_vdig = NULL;
-	}
-
-	if (cam_vaf) {
-		regulator_set_voltage(cam_vaf, 0, CAM_VAF_MAXUV);
-		regulator_set_optimum_mode(cam_vaf, 0);
-		regulator_disable(cam_vaf);
-		regulator_put(cam_vaf);
-		cam_vaf = NULL;
-	}
-#endif /* HTC_END Hayden Huang 20111005 */
-}
-
-#endif	/* HTC_END */
 int msm_camio_clk_enable(enum msm_camio_clk_type clktype)
 {
 	int rc = 0;
 	struct clk *clk = NULL;
 
 	switch (clktype) {
-#if 1	/* HTC_START  sync the previous project */
+#if 1	
 	case CAMIO_CAM_MCLK_CLK:
 		camio_cam_clk =
-		clk = clk_get(&(camio_sctrl->sensor_i2c_client->client->dev), "cam_clk");//(&camio_dev->dev, "cam_clk");
+		clk = clk_get(&(camio_sctrl->sensor_i2c_client->client->dev), "cam_clk");
 		pr_info("%s: clk(%p) obj.name:%s", __func__, clk, camio_sctrl->sensor_i2c_client->client->dev.kobj.name);
 		if (!IS_ERR(clk))
 			msm_camio_clk_rate_set_2(clk, camio_clk.mclk_clk_rate);
 		break;
-#endif	/* HTC_END */
+#endif	
 	case CAMIO_JPEG_CLK:
 		camio_jpeg_clk =
 		clk = clk_get(NULL, "ijpeg_clk");
@@ -586,7 +381,6 @@ int msm_camio_probe_on(void *s_ctrl)//(struct platform_device *pdev)
 	if (rc < 0)
 		return rc;
 
-	msm_camera_vreg_enable(sinfo);//(pdev);
 	if (camdev && camdev->camera_csi_on)
 		rc = camdev->camera_csi_on();
 	if (rc < 0)
@@ -601,8 +395,6 @@ int msm_camio_probe_off(void *s_ctrl)//(struct platform_device *pdev)
 	struct msm_sensor_ctrl_t* sctrl = (struct msm_sensor_ctrl_t *)s_ctrl;
 	struct msm_camera_sensor_info *sinfo = sctrl->sensordata;//pdev->dev.platform_data;
 	struct msm_camera_device_platform_data *camdev = sinfo->pdata;
-
-	msm_camera_vreg_disable();
 
 	if (camdev && camdev->camera_csi_off)
 		rc = camdev->camera_csi_off();

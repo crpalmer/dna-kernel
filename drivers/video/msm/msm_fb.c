@@ -2898,34 +2898,21 @@ static int msmfb_blit(struct fb_info *info, void __user *p)
 		msm_fb_ensure_memory_coherency_before_dma(info,
 				req_list, req_list_count);
 
-		/*
-		 * Do the blit DMA, if required -- returning early only if
-		 * there is a failure.
-		 */
 		for (i = 0; i < req_list_count; i++) {
 			if (!(req_list[i].flags & MDP_NO_BLIT)) {
-				/* Do the actual blit. */
+				
 				int ret = mdp_blit(info, &(req_list[i]));
 
-				/*
-				 * Note that early returns don't guarantee
-				 * memory coherency.
-				 */
 				if (ret)
 					return ret;
 			}
 		}
 
-		/*
-		 * Ensure that CPU cache and other internal CPU state is
-		 * updated to reflect any change in memory modified by MDP blit
-		 * DMA.
-		 */
 		msm_fb_ensure_memory_coherency_after_dma(info,
 				req_list,
 				req_list_count);
 
-		/* Go to next window of requests. */
+		
 		count -= req_list_count;
 		p += sizeof(struct mdp_blit_req)*req_list_count;
 	}

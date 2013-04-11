@@ -43,6 +43,7 @@ struct tps61310_data {
 	uint32_t			strb1;
 	uint8_t 			led_count;
 	uint8_t 			mode_pin_suspend_state_low;
+	uint8_t				disable_tx_mask;
 };
 
 static struct i2c_client *this_client;
@@ -499,6 +500,7 @@ static int tps61310_probe(struct i2c_client *client,
 	tps61310->flash_sw_timeout	  = pdata->flash_duration_ms;
 	tps61310->led_count = (pdata->led_count) ? pdata->led_count : 1;
 	tps61310->mode_pin_suspend_state_low = pdata->mode_pin_suspend_state_low;
+	tps61310->disable_tx_mask			= pdata->disable_tx_mask;
 
 	if (tps61310->flash_sw_timeout <= 0)
 		tps61310->flash_sw_timeout = 600;
@@ -526,6 +528,8 @@ static int tps61310_probe(struct i2c_client *client,
 	/* voltage drop monitor*/
 	tps61310_i2c_command(0x07, 0xF6);
 
+	if (this_tps61310->disable_tx_mask)
+		tps61310_i2c_command(0x03,0xC0);
 	FLT_INFO_LOG("%s -\n", __func__);
 	return 0;
 

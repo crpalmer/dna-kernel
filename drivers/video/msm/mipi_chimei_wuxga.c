@@ -11,20 +11,7 @@
  *
  */
 
-/*
- * Chimei WUXGA LVDS Panel driver.
- * The panel model is N101JSF-L21.
- *
- * The panel interface includes:
- * 1. LVDS input for video (clock & data).
- * 2. few configuration	pins to control 3D module: Enable, Mode (2D/3D).
- * 3. Backlight LED control (PWM 200 HZ).
- *
- * This panel is controled via the Toshiba DSI-to-LVDS bridge.
- *
- */
 
-/* #define DEBUG 1 */
 
 #include "msm_fb.h"
 #include "msm_fb_panel.h"

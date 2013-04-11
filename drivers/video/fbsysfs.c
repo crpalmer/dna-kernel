@@ -9,11 +9,6 @@
  *	2 of the License, or (at your option) any later version.
  */
 
-/*
- * Note:  currently there's only stubs for framebuffer_alloc and
- * framebuffer_release here.  The reson for that is that until all drivers
- * are converted to use it a sysfsification will open OOPSable races.
- */
 
 #include <linux/kernel.h>
 #include <linux/slab.h>

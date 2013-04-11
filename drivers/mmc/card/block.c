@@ -2148,25 +2148,6 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 			else
 				mmc_blk_rw_rq_prep(mq->mqrq_cur, card, 0, mq);
 			areq = &mq->mqrq_cur->mmc_active;
-			if (mmc_card_mmc(card)) {
-				/*
-				* 2012-05-17 Add eMMC SPOR prevention code
-				*/
-				if (atomic_read(&emmc_reboot)) {
-					mq_rq = container_of(areq, struct mmc_queue_req, mmc_active);
-					brq = &mq_rq->brq;
-					req = mq_rq->req;
-					if ((brq->data.flags & MMC_DATA_WRITE) != 0) {
-						brq->data.bytes_xfered = (brq->data.blocks << 9);
-						mmc_queue_bounce_post(mq_rq);
-						type = rq_data_dir(req) == READ ? MMC_BLK_READ : MMC_BLK_WRITE;
-						ret = blk_end_request(req, 0, brq->data.bytes_xfered);
-						pr_info("%s: Attempt to write eMMC (CMD%d) start %d length %d bytes\n"
-							, mmc_hostname(card->host), brq->cmd.opcode, brq->cmd.arg, brq->data.bytes_xfered);
-						return 1;
-					}
-				}
-			}
 		} else
 			areq = NULL;
 		areq = mmc_start_req(card->host, areq, (int *) &status);

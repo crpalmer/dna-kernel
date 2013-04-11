@@ -78,6 +78,7 @@ struct TPS61310_flashlight_platform_data {
 	uint32_t tps61310_strb0;
 	uint32_t tps61310_strb1;
 	uint8_t mode_pin_suspend_state_low;
+	uint8_t disable_tx_mask;
 };
 
 int aat1271_flashlight_control(int mode);

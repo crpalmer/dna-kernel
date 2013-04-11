@@ -299,36 +299,43 @@ void mmc_start_bkops(struct mmc_card *card)
 	int err;
 	unsigned long flags;
 	int timeout;
+	int is_storage_encrypting = 0;
 
 	BUG_ON(!card);
 	if (!card->ext_csd.bkops_en || !(card->host->caps2 & MMC_CAP2_BKOPS))
 		return;
 
-	if (mmc_card_check_bkops(card)) {
+	if (card->host->bkops_trigger == ENCRYPT_MAGIC_NUMBER)
+		is_storage_encrypting = 1;
+
+	if (!mmc_card_doing_bkops(card) && (mmc_card_check_bkops(card) || is_storage_encrypting)) {
 		spin_lock_irqsave(&card->host->lock, flags);
 		mmc_card_clr_check_bkops(card);
 		spin_unlock_irqrestore(&card->host->lock, flags);
-		if (mmc_is_exception_event(card, EXT_CSD_URGENT_BKOPS))
-			if (card->ext_csd.raw_bkops_status >= EXT_CSD_BKOPS_LEVEL_2) {
+		if (mmc_is_exception_event(card, EXT_CSD_URGENT_BKOPS) || is_storage_encrypting)
+			if (card->ext_csd.raw_bkops_status >= EXT_CSD_BKOPS_LEVEL_2 || is_storage_encrypting) {
 				spin_lock_irqsave(&card->host->lock, flags);
 				mmc_card_set_need_bkops(card);
 				spin_unlock_irqrestore(&card->host->lock, flags);
 			}
 	}
 
-	/*
-	 * If card is already doing bkops or need for
-	 * bkops flag is not set, then do nothing just
-	 * return
-	 */
-	if (mmc_card_doing_bkops(card) || !mmc_card_need_bkops(card))
+	if (mmc_card_doing_bkops(card) || !mmc_card_need_bkops(card) || card->host->bkops_trigger == ENCRYPT_MAGIC_NUMBER2) {
+		spin_lock_irqsave(&card->host->lock, flags);
+		mmc_card_clr_check_bkops(card);
+		spin_unlock_irqrestore(&card->host->lock, flags);
 		return;
+	}
 
 	mmc_claim_host(card->host);
 
 	timeout = (card->ext_csd.raw_bkops_status >= EXT_CSD_BKOPS_LEVEL_2) ?
 		MMC_BKOPS_MAX_TIMEOUT : 0;
 
+	if (is_storage_encrypting)
+		timeout = 50000;
+
+	pr_info("%s: %s\n", mmc_hostname(card->host), __func__);
 	err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
 			EXT_CSD_BKOPS_START, 1, timeout);
 	if (err) {
@@ -380,28 +387,19 @@ static void mmc_wait_for_req_done(struct mmc_host *host,
 				  struct mmc_request *mrq)
 {
 	struct mmc_command *cmd;
-	unsigned long timeout = 0;
 
 	while (1) {
-#if defined CONFIG_MACH_MONARUDO
-	if (host->index == 1) {
-		timeout = wait_for_completion_timeout(&mrq->completion, msecs_to_jiffies(2000));
-		if (!timeout) {
-			printk("%s: wait for completion timeout!!\n",
-					mmc_hostname(host));
-			mrq->cmd->error = -ETIMEDOUT;
-		}
-	}
-	else
 		wait_for_completion_io(&mrq->completion);	
-#else
-		wait_for_completion_io(&mrq->completion);
-#endif
-		cmd = mrq->cmd;
-		if (!cmd->error || !cmd->retries ||
-		    mmc_card_removed(host->card))
-			break;
 
+		cmd = mrq->cmd;
+		if (is_wifi_mmc_host(host)) {
+			if (!cmd->error || !cmd->retries)
+			break;
+		} else {
+			if (!cmd->error || !cmd->retries ||
+				mmc_card_removed(host->card))
+				break;
+		}
 		pr_debug("%s: req failed (CMD%u): %d, retrying...\n",
 			 mmc_hostname(host), cmd->opcode, cmd->error);
 		cmd->retries--;
@@ -1948,8 +1946,19 @@ int mmc_can_discard(struct mmc_card *card)
 	   supported in Samsung VHX eMMC. (sector size is 14.56G or 29.12G) */
 	if (card->cid.manfid == 0x15) {
 		if (card->ext_csd.sectors == 30535680 ||
-		    card->ext_csd.sectors == 61071360)
+			card->ext_csd.sectors == 61071360 ||
+			card->ext_csd.sectors == 122142720)
 			return 1;
+	}
+
+	
+	if (card->cid.manfid == 0x45) {
+		if (card->ext_csd.sectors == 30777344 ||
+			card->ext_csd.sectors == 61071360 ||
+			card->ext_csd.sectors == 122142720 ) {
+			if (!strcmp(card->ext_csd.fwrev, "02f11o"))
+				return 1;
+		}
 	}
 
 	return 0;
@@ -1958,10 +1967,12 @@ EXPORT_SYMBOL(mmc_can_discard);
 
 int mmc_can_sanitize(struct mmc_card *card)
 {
+#if 0
 	if (!mmc_can_trim(card) && !mmc_can_erase(card))
 		return 0;
 	if (card->ext_csd.sec_feature_support & EXT_CSD_SEC_SANITIZE)
 		return 1;
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(mmc_can_sanitize);
@@ -2483,17 +2494,44 @@ int mmc_card_support_bkops(struct mmc_card *card)
 {
 	if (card && mmc_card_mmc(card) && (card->ext_csd.rev >= 5 && card->ext_csd.bkops) && (card->host->caps & MMC_CAP_NONREMOVABLE)) {
 		if (card->cid.manfid == 0x15) {
-			/* 16GB Samsung 21nm VHX eMMC [MCP][VilleC2] */
-			if ((card->ext_csd.sectors == 30535680) && !strcmp(card->cid.prod_name, "K3U00M")) {
+			
+			if (card->ext_csd.rev >= 6)
 				return 1;
+			
+			
+			if (card->ext_csd.sectors == 30535680) {
+				if ((card->cid.fwrev == 0x5) || (card->cid.fwrev == 0x15))
+					return 1;
+				else
+					return 0;
 			}
-			/* 16GB Samsung 21nm VHX eMMC [Discrete] */
-			if ((card->ext_csd.sectors == 30535680) && !strcmp(card->cid.prod_name, "MAG2GA")) {
+			
+			if (card->ext_csd.sectors == 61071360) {
+				if ((card->cid.fwrev == 0x5) || (card->cid.fwrev == 0x15))
+					return 1;
+				else
+					return 0;
+			}
+			
+			if (card->ext_csd.sectors == 122142720) {
+				if ((card->cid.fwrev == 0x5) || (card->cid.fwrev == 0x15))
+					return 1;
+				else
+					return 0;
+			}
+		} else if (card->cid.manfid == 0x45) {
+			
+			if (card->ext_csd.rev >= 6)
 				return 1;
+			
+			if (card->ext_csd.sectors == 30777344 ||
+				card->ext_csd.sectors == 61071360 ||
+				card->ext_csd.sectors == 122142720 ) {
+				if (!strcmp(card->ext_csd.fwrev, "02f11o"))
+					return 1;
+				else
+					return 0;
 			}
-			/* 64GB Samsung 21nm VHX eMMC [Discrete]*/
-			if (card->ext_csd.sectors == 122142720)
-				return 0;
 		} else {
 			printk(KERN_DEBUG "%s: manfid = 0x%x prod_name = %s\n", mmc_hostname(card->host), card->cid.manfid, card->cid.prod_name);
 			return 0;

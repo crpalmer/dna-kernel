@@ -18,16 +18,9 @@
  *
  */
 
-static int sg_version_num = 30534;	/* 2 digits for each component */
+static int sg_version_num = 30534;	
 #define SG_VERSION_STR "3.5.34"
 
-/*
- *  D. P. Gilbert (dgilbert@interlog.com, dougg@triode.net.au), notes:
- *      - scsi logging is available via SCSI_LOG_TIMEOUT macros. First
- *        the kernel/module needs to be built with CONFIG_SCSI_LOGGING
- *        (otherwise the macros compile to empty statements).
- *
- */
 #include <linux/module.h>
 
 #include <linux/fs.h>

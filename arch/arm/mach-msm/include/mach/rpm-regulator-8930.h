@@ -14,30 +14,11 @@
 #ifndef __ARCH_ARM_MACH_MSM_INCLUDE_MACH_RPM_REGULATOR_8930_H
 #define __ARCH_ARM_MACH_MSM_INCLUDE_MACH_RPM_REGULATOR_8930_H
 
-/* Pin control input signals. */
 #define RPM_VREG_PIN_CTRL_PM8038_D1	0x01
 #define RPM_VREG_PIN_CTRL_PM8038_A0	0x02
 #define RPM_VREG_PIN_CTRL_PM8038_A1	0x04
 #define RPM_VREG_PIN_CTRL_PM8038_A2	0x08
 
-/**
- * enum rpm_vreg_pin_fn_8930 - RPM regulator pin function choices
- * %RPM_VREG_PIN_FN_8930_DONT_CARE:	do not care about pin control state of
- *					the regulator; allow another master
- *					processor to specify pin control
- * %RPM_VREG_PIN_FN_8930_ENABLE:	pin control switches between disable and
- *					enable
- * %RPM_VREG_PIN_FN_8930_MODE:		pin control switches between LPM and HPM
- * %RPM_VREG_PIN_FN_8930_SLEEP_B:	regulator is forced into LPM when
- *					sleep_b signal is asserted
- * %RPM_VREG_PIN_FN_8930_NONE:		do not use pin control for the regulator
- *					and do not allow another master to
- *					request pin control
- *
- * The pin function specified in platform data corresponds to the active state
- * pin function value.  Pin function will be NONE until a consumer requests
- * pin control to be enabled.
- */
 enum rpm_vreg_pin_fn_8930 {
 	RPM_VREG_PIN_FN_8930_DONT_CARE,
 	RPM_VREG_PIN_FN_8930_ENABLE,

@@ -427,7 +427,6 @@ enum pm8xxx_regulator_action {
 	PM8XXX_REGULATOR_ACTION_PIN_CTRL,
 };
 
-/* Debug state printing */
 static void pm8xxx_vreg_show_state(struct regulator_dev *rdev,
 				   enum pm8xxx_regulator_action action);
 
@@ -751,7 +750,7 @@ static int pm8xxx_pldo_set_voltage(struct regulator_dev *rdev, int min_uV,
 	if (prev_reg != vreg->test_reg[4])
 		reg_changed = true;
 
-	/* Write new voltage. */
+	
 	if (reg_changed) {
 		/*
 		 * Force a CTRL register write even if the value hasn't changed.
@@ -762,7 +761,7 @@ static int pm8xxx_pldo_set_voltage(struct regulator_dev *rdev, int min_uV,
 		rc = pm8xxx_vreg_masked_write_forced(vreg, vreg->ctrl_addr,
 			vprog, LDO_CTRL_VPROG_MASK, &vreg->ctrl_reg);
 	} else {
-		/* Only write to control register if new value is different. */
+		
 		rc = pm8xxx_vreg_masked_write(vreg, vreg->ctrl_addr, vprog,
 			LDO_CTRL_VPROG_MASK, &vreg->ctrl_reg);
 	}
@@ -850,7 +849,7 @@ static int pm8xxx_nldo_set_voltage(struct regulator_dev *rdev, int min_uV,
 	if (rc)
 		goto bail;
 
-	/* Write new voltage. */
+	
 	if (prev_reg != vreg->test_reg[2]) {
 		/*
 		 * Force a CTRL register write even if the value hasn't changed.
@@ -860,7 +859,7 @@ static int pm8xxx_nldo_set_voltage(struct regulator_dev *rdev, int min_uV,
 		rc = pm8xxx_vreg_masked_write_forced(vreg, vreg->ctrl_addr,
 			vprog, LDO_CTRL_VPROG_MASK, &vreg->ctrl_reg);
 	} else {
-		/* Only write to control register if new value is different. */
+		
 		rc = pm8xxx_vreg_masked_write(vreg, vreg->ctrl_addr, vprog,
 			LDO_CTRL_VPROG_MASK, &vreg->ctrl_reg);
 	}

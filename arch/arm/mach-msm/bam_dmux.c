@@ -11,9 +11,6 @@
  *
  */
 
-/*
- *  BAM DMUX module.
- */
 
 #define DEBUG
 

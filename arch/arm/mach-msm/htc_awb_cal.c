@@ -1,4 +1,3 @@
-/* arch/arm/mach-msm/htc_awb_cal.c */
 /* Code to extract Camera AWB calibration information from ATAG
 set up by the bootloader.
 

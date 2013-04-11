@@ -497,33 +497,14 @@ static void mdm_hsic_usb_device_add_handler(struct usb_device *udev)
 		mdm_usb1_1_usbdev = udev;
 		mdm_usb1_1_dev = &(udev->dev);
 	}
-	/*
-	mdm_hsic_id = usb_match_id(intf, mdm_hsic_ids);
-	if (mdm_hsic_id) {
-		pr_info("%s(%d) VENDOR_ID:%x PRODUCT_ID:%x found \n", __func__, __LINE__, MDM_HSIC_VENDOR_ID, MDM_HSIC_PRODUCT_ID);
-		mdm_usb1_1_usbdev = udev;
-		mdm_usb1_1_dev = &(udev->dev);
-	}
-	if (mdm_hsic_id || usb1_id) {
-		//enable auto suspend
-		usb_enable_autosuspend(udev);
-		dev_info(&(udev->dev), "%s usb_enable_autosuspend\n", __func__);
-		//print pm info
-		mdm_hsic_print_usb_dev_pm_info(udev);
-	}*/
 }
 static void mdm_hsic_usb_device_remove_handler(struct usb_device *udev)
 {
-	/*if (mdm_usb1_usbdev == udev) {
-		pr_info("Remove device %d <%s %s>\n", udev->devnum,			udev->manufacturer, udev->product);
-		mdm_usb1_usbdev = NULL;
-		mdm_usb1_dev = NULL;
-	}*/
 	if (mdm_usb1_1_usbdev == udev) {
 		usb_device_recongnized = false;
 		pr_info("Remove device %d <%s %s>\n", udev->devnum,	udev->manufacturer, udev->product);
 		mdm_usb1_1_usbdev = NULL;
-		/*mdm_usb1_1_dev = NULL;*/
+		
 	}
 }
 static int mdm_hsic_usb_notify(struct notifier_block *self, unsigned long action,	void *blob)
@@ -1157,14 +1138,24 @@ skip_phy_resume:
 
 	if (mehci->async_int) {
 		mehci->async_int = false;
+		pr_info("%s(%d): pm_runtime_put_noidle\n", __func__, __LINE__);	
 		pm_runtime_put_noidle(mehci->dev);
 		enable_irq(hcd->irq);
 	}
 
+	
+	spin_lock_irqsave(&mehci->wakeup_lock, flags);
+	
+
 	if (atomic_read(&mehci->pm_usage_cnt)) {
 		atomic_set(&mehci->pm_usage_cnt, 0);
+		pr_info("%s(%d): pm_runtime_put_noidle\n", __func__, __LINE__);	
 		pm_runtime_put_noidle(mehci->dev);
 	}
+
+	
+	spin_unlock_irqrestore(&mehci->wakeup_lock, flags);
+	
 
 	dev_info(mehci->dev, "HSIC-USB exited from low power mode\n");
 
@@ -1669,17 +1660,30 @@ static irqreturn_t msm_hsic_wakeup_irq(int irq, void *data)
 		ret = pm_runtime_get(mehci->dev);
 		dev_dbg(mehci->dev, "%s: hsic pm_runtime_get return: %d\n",
 					__func__, ret);
-		/*
-                 * HSIC runtime resume can race with us.
-                 * if we are active (ret == 1) or resuming
-                 * (ret == -EINPROGRESS), decrement the
-                 * PM usage counter before returning.
-                 */
+
+		
+		spin_lock(&mehci->wakeup_lock);
+		
+
                 if ((ret == 1) || (ret == -EINPROGRESS))
                         pm_runtime_put_noidle(mehci->dev);
                 else
                         atomic_set(&mehci->pm_usage_cnt, 1);
 
+		
+		if (!atomic_read(&mehci->in_lpm)) {
+			pr_info("%s(%d): mehci->in_lpm==0 !!!\n", __func__, __LINE__);
+			if (atomic_read(&mehci->pm_usage_cnt)) {
+				atomic_set(&mehci->pm_usage_cnt, 0);
+				pr_info("%s(%d): pm_runtime_put_noidle !!!\n", __func__, __LINE__);
+				pm_runtime_put_noidle(mehci->dev);
+			}
+		}
+		
+
+		
+		spin_unlock(&mehci->wakeup_lock);
+		
 	}
 
 	return IRQ_HANDLED;

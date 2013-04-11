@@ -13,7 +13,6 @@
  * GNU General Public License for more details.
  */
 
-/* This constant is used in bootloader to decide actions. */
 #define RESTART_REASON_BOOT_BASE        0x77665500
 #define RESTART_REASON_BOOTLOADER       (RESTART_REASON_BOOT_BASE | 0x00)
 #define RESTART_REASON_REBOOT           (RESTART_REASON_BOOT_BASE | 0x01)

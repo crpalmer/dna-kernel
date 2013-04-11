@@ -675,39 +675,32 @@ extern char gatewaybuf[8+1]; //HTC_KlocWork
 char ip_str[32];
 bool hasDLNA = false;
 bool allowMulticast = false;
-int dhd_set_keepalive(int value);
 #endif
+int dhd_set_keepalive(int value);
 extern int wl_pattern_atoh(char *src, char *dst);
 int is_screen_off = 0;
-/* HTC_CSP_END */
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
-	//int is_screen_off = value;
-/* HTC_CSP_START */
+	
 #ifdef BCM4329_LOW_POWER
 	int ignore_bcmc = 1;
-	char iovbuf[32];
 #endif
-/* HTC_CSP_END */
+	char iovbuf[32];
 
 #ifdef CUSTOMER_HW2
-//	uint roamvar = 1;
-#endif /* CUSTOMER_HW2 */
-/* HTC_CSP_START */
+#endif 
     char eventmask[WL_EVENTING_MASK_LEN];
     int ret = 0;
     is_screen_off = value;
-/* HTC_CSP_END */
 
 	DHD_TRACE(("%s: enter, value = %d in_suspend=%d\n",
 		__FUNCTION__, value, dhd->in_suspend));
 
-/* HTC_CSP_START */
-	/* indicate wl_iw screen off */
+	
 	wl_android_set_screen_off(is_screen_off);
-	/* wl_iw_set_screen_off(is_screen_off); */
+	
 
-      /* clear p2p indicate event when screen off */
+      
       if (is_screen_off) {
           bcm_mkiovar("event_msgs", eventmask, WL_EVENTING_MASK_LEN, iovbuf, sizeof(iovbuf));
           if ((ret  = dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, iovbuf, sizeof(iovbuf), FALSE, 0)) < 0) {
@@ -740,91 +733,82 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
           setbit(eventmask, WLC_E_P2P_PROBREQ_MSG);
           setbit(eventmask, WLC_E_P2P_DISC_LISTEN_COMPLETE);
 
-          /* Write updated Event mask */
+          
           bcm_mkiovar("event_msgs", eventmask, WL_EVENTING_MASK_LEN, iovbuf, sizeof(iovbuf));
           if ((ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0)) < 0) {
               DHD_ERROR(("%s Set Event mask failed %d\n", __FUNCTION__, ret));
           }
 
       }
-/* HTC_CSP_END */
 
 	if (dhd && dhd->up) {
 		if (value && dhd->in_suspend) {
 #ifdef PKT_FILTER_SUPPORT
 				dhd->early_suspended = 1;
 #endif
-/* HTC_CSP_START */
 #ifdef BCM4329_LOW_POWER
 		if (LowPowerMode == 1) {
 			if (!hasDLNA && !allowMulticast) {
-				/* ignore broadcast and multicast packet*/
+				
+				printf("set ignore_bcmc = %d",ignore_bcmc);
 				bcm_mkiovar("pm_ignore_bcmc", (char *)&ignore_bcmc,
 					4, iovbuf, sizeof(iovbuf));
 				dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
-				/* keep alive packet*/
-				//dhd_set_keepalive(1);
+				
+				
 			}
 		}
 #endif
-/* HTC_CSP_END */
 
-				/* keep alive packet*/
+				
 				dhd_set_keepalive(1);
 
-				/* Kernel suspended */
+				
 				DHD_TRACE(("%s: force extra Suspend setting \n", __FUNCTION__));
 
 #ifdef PNO_SUPPORT
-				/* set pfn */
+				
 				dhd_set_pfn(dhd, 1);
 #endif
 
-/* HTC_CSP_START */
-				/* browser no need active mode in screen off */
+				
 				dhdhtc_set_power_control(0, DHDHTC_POWER_CTRL_BROWSER_LOAD_PAGE);
 				dhdhtc_update_wifi_power_mode(is_screen_off);
 				dhdhtc_update_dtim_listen_interval(is_screen_off);
-/* HTC_CSP_END */
 			} else {
 #ifdef PKT_FILTER_SUPPORT
 				dhd->early_suspended = 0;
 #endif
-/* HTC_CSP_START */
 				dhdhtc_update_wifi_power_mode(is_screen_off);
 				dhdhtc_update_dtim_listen_interval(is_screen_off);
-/* HTC_CSP_END */
 
-				/* Kernel resumed  */
+				
 				DHD_TRACE(("%s: Remove extra suspend setting \n", __FUNCTION__));
 
 #ifdef PNO_SUPPORT
 				dhd_set_pfn(dhd, 0);
 #endif
 
-/* HTC_CSP_START */
 #ifdef BCM4329_LOW_POWER
 				if (LowPowerMode == 1) {
 					ignore_bcmc = 0;
-					/* Not ignore broadcast and multicast packet*/
+					
+					printf("set ignore_bcmc = %d",ignore_bcmc);
 					bcm_mkiovar("pm_ignore_bcmc", (char *)&ignore_bcmc,
 						4, iovbuf, sizeof(iovbuf));
 					dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
-					/* Disable keep alive packet*/
-					//dhd_set_keepalive(0);
+					
+					
 				}
 				
-				/* Disable keep alive packet*/
+				
 				dhd_set_keepalive(0);
 #endif
-/* HTC_CSP_END */
 			}
 	}
 
 	return 0;
 }
-/* HTC_CSP_START */
-#ifdef BCM4329_LOW_POWER
 int dhd_set_keepalive(int value)
 {
     char *str;
@@ -845,23 +829,18 @@ int dhd_set_keepalive(int value)
     buf_len = str_len + 1;
     keep_alive_pktp = (wl_keep_alive_pkt_t *) (buf + str_len + 1);
 
-	keep_alive_pkt.period_msec = htod32(60000); // Default 60s NULL keepalive packet
-	/* Setup keep alive zero for null packet generation */
+	keep_alive_pkt.period_msec = htod32(30000); 
+	
 	keep_alive_pkt.len_bytes = 0;
 	buf_len += WL_KEEP_ALIVE_FIXED_LEN;
 	bzero(keep_alive_pkt.data, sizeof(keep_alive_pkt.data));
 
-    /* Keep-alive attributes are set in local variable (keep_alive_pkt), and
-    * then memcpy'ed into buffer (keep_alive_pktp) since there is no
-    * guarantee that the buffer is properly aligned.
-    */
     memcpy((char*)keep_alive_pktp, &keep_alive_pkt, WL_KEEP_ALIVE_FIXED_LEN);
 
     dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, buf, buf_len, TRUE, 0);
 
     return 0;
 }
-#endif
 
 /* bitmask, bit value: 1 - enable, 0 - disable
  */
@@ -886,8 +865,8 @@ int dhdhtc_update_wifi_power_mode(int is_screen_off)
 		pm_type = PM_OFF;
 		dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&pm_type, sizeof(pm_type), TRUE, 0);
 	}  else if  (dhdcdc_power_active_while_plugin && usb_get_connect_type()) {
-		printf("power active. usb_type:%d\n", usb_get_connect_type());
-		pm_type = PM_OFF;
+		printf("update pm: PM_FAST. usb_type:%d\n", usb_get_connect_type());
+		pm_type = PM_FAST;
 		dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&pm_type, sizeof(pm_type), TRUE, 0);
 	} else {
 		if (is_screen_off && !dhdcdc_wifiLock)
@@ -1556,9 +1535,11 @@ _dhd_sysioc_thread(void *data)
 	unsigned long flags;
 #endif
 
+#ifndef USE_KTHREAD_API
 	DAEMONIZE("dhd_sysioc");
 
 	complete(&tsk->completed);
+#endif
 
 	while (down_interruptible(&tsk->sema) == 0) {
 #ifdef MCAST_LIST_ACCUMULATION
@@ -1812,25 +1793,21 @@ dhd_start_xmit(struct sk_buff *skb, struct net_device *net)
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
-/* HTC_CSP_START */
 	if (module_remove) {
 		printf("%s: module removed.", __FUNCTION__);
-		dev_kfree_skb(skb); /* Add to free skb */
+		dev_kfree_skb(skb); 
 		netif_stop_queue(net);
 		return -ENODEV;
 	}
-/* HTC_CSP_END */
 	DHD_OS_WAKE_LOCK(&dhd->pub);
 
-	/* Reject if down */
+	
 	if (dhd->pub.busstate == DHD_BUS_DOWN || dhd->pub.hang_was_sent) {
 		DHD_ERROR(("%s: xmit rejected pub.up=%d busstate=%d \n",
 			__FUNCTION__, dhd->pub.up, dhd->pub.busstate));
 		netif_stop_queue(net);
-/* HTC_CSP_START */
-		dev_kfree_skb(skb);
-/* HTC_CSP_END */
-		/* Send Event when bus down detected during data session */
+		
+		
 		if (dhd->pub.up) {
 			DHD_ERROR(("%s: Event HANG sent up\n", __FUNCTION__));
 			net_os_send_hang_message(net);
@@ -2376,10 +2353,12 @@ dhd_watchdog_thread(void *data)
 		setScheduler(current, SCHED_FIFO, &param);
 	}
 
+#ifndef USE_KTHREAD_API
 	DAEMONIZE("dhd_watchdog");
 
 	/* Run until signal received */
 	complete(&tsk->completed);
+#endif
 
 	while (1)
 		if (down_interruptible (&tsk->sema) == 0) {
@@ -2489,20 +2468,22 @@ dhd_dpc_thread(void *data)
 		setScheduler(current, SCHED_FIFO, &param);
 	}
 
+#ifndef USE_KTHREAD_API
 	DAEMONIZE("dhd_dpc");
-	/* DHD_OS_WAKE_LOCK is called in dhd_sched_dpc[dhd_linux.c] down below  */
+	
 
-	/*  signal: thread has started */
+	
 	complete(&tsk->completed);
+#endif
 
-	/* Run until signal received */
+	
 	while (1) {
-        /* HTC_CSP_START */
+        
         if(prev_wlan_ioprio_idle != wlan_ioprio_idle){
             set_wlan_ioprio();
             prev_wlan_ioprio_idle = wlan_ioprio_idle;
         }
-        /* HTC_CSP_END */
+        
 		if (down_interruptible(&tsk->sema) == 0) {
 			if (dhd->dhd_force_exit== TRUE)
 				break;
@@ -3375,7 +3356,9 @@ dhd_osl_detach(osl_t *osh)
 	dhd_registration_check = FALSE;
 	up(&dhd_registration_sem);
 #if	defined(BCMLXSDMMC)
+#if 0
 	up(&dhd_chipup_sem);
+#endif
 #endif
 #endif 
 }
@@ -3496,18 +3479,23 @@ printf("Read PCBID = %x\n", system_rev);
 	}
 #endif
 
-#ifdef CONFIG_MACH_DELUXE_J
+#ifdef CONFIG_MACH_DUMMY
 	if (system_rev >= PVT){
 		strcpy(nvram_path, "/system/etc/calibration.gpio4");
 	}
 #endif
 
-#ifdef CONFIG_MACH_DELUXE_U
+#ifdef CONFIG_MACH_DUMMY
 	if (system_rev >= PVT){
 		strcpy(nvram_path, "/system/etc/calibration.gpio4");
 	}
 #endif
 
+#ifdef CONFIG_MACH_DUMMY
+	if (system_rev >= XC){
+		strcpy(nvram_path, "/system/etc/calibration.gpio4");
+	}
+#endif
 return 0;
 }
 /*HTC_CSP_END*/
@@ -3519,7 +3507,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	struct net_device *net = NULL;
 
 	dhd_attach_states_t dhd_state = DHD_ATTACH_STATE_INIT;
-	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
+	DHD_ERROR(("%s: Enter\n", __FUNCTION__));
 
 	/* updates firmware nvram path if it was provided as module parameters */
 	if (strlen(firmware_path) != 0) {
@@ -3606,7 +3594,10 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	}
 
 	if (dhd_add_if(dhd, 0, (void *)net, net->name, NULL, 0, 0) == DHD_BAD_IF)
+	{
+		printf("%s : dhd_add_if failed\n", __func__);
 		goto fail;
+	}
 	dhd_state |= DHD_ATTACH_STATE_ADD_IF;
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 31))
@@ -3665,24 +3656,25 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	dhd_state |= DHD_ATTACH_STATE_CFG80211;
 #endif
 #if defined(CONFIG_WIRELESS_EXT)
-	/* Attach and link in the iw */
-	//if (!(dhd_state &  DHD_ATTACH_STATE_CFG80211)) {
+	
+	
 		if (wl_iw_attach(net, (void *)&dhd->pub) != 0) {
 		DHD_ERROR(("wl_iw_attach failed\n"));
+		printf("%s : wl_iw_attach failed\n", __func__);
 		goto fail;
 	}
 	dhd_state |= DHD_ATTACH_STATE_WL_ATTACH;
-	//}
-#endif /* defined(CONFIG_WIRELESS_EXT) */
+	
+#endif 
 
 
-	/* Set up the watchdog timer */
+	
 	init_timer(&dhd->timer);
 	dhd->timer.data = (ulong)dhd;
 	dhd->timer.function = dhd_watchdog;
 
 #ifdef DHDTHREAD
-	/* Initialize thread based operation and lock */
+	
 	sema_init(&dhd->sdsem, 1);
 	if ((dhd_watchdog_prio >= 0) && (dhd_dpc_prio >= 0)) {
 		dhd->threads_only = TRUE;
@@ -3694,29 +3686,44 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	dhd->dhd_force_exit = FALSE; 
     
 	if (dhd_dpc_prio >= 0) {
-		/* Initialize watchdog thread */
+		
+#ifdef USE_KTHREAD_API
+		printf("%s: Initialize watchdog thread\n",__func__);
+		PROC_START2(dhd_watchdog_thread, dhd, &dhd->thr_wdt_ctl, 0, "dhd_watchdog_thread");
+#else
 		PROC_START(dhd_watchdog_thread, dhd, &dhd->thr_wdt_ctl, 0);
+#endif
 	} else {
 		dhd->thr_wdt_ctl.thr_pid = -1;
 	}
 
-	/* Set up the bottom half handler */
+	
 	if (dhd_dpc_prio >= 0) {
-		/* Initialize DPC thread */
+		
+#ifdef USE_KTHREAD_API
+		printf("%s: Initialize DPC thread\n",__func__);
+		PROC_START2(dhd_dpc_thread, dhd, &dhd->thr_dpc_ctl, 0, "dhd_dpc");
+#else
 		PROC_START(dhd_dpc_thread, dhd, &dhd->thr_dpc_ctl, 0);
+#endif
 	} else {
-		/*  use tasklet for dpc */
+		
 		tasklet_init(&dhd->tasklet, dhd_dpc, (ulong)dhd);
 		dhd->thr_dpc_ctl.thr_pid = -1;
 	}
 #else
-	/* Set up the bottom half handler */
+	
 	tasklet_init(&dhd->tasklet, dhd_dpc, (ulong)dhd);
 	dhd->dhd_tasklet_create = TRUE;
-#endif /* DHDTHREAD */
+#endif 
 
 	if (dhd_sysioc) {
+#ifdef USE_KTHREAD_API
+		printf("%s: Initialize sysioc thread\n",__func__);
+		PROC_START2(_dhd_sysioc_thread, dhd, &dhd->thr_sysioc_ctl, 0, "dhd_sysioc");
+#else
 		PROC_START(_dhd_sysioc_thread, dhd, &dhd->thr_sysioc_ctl, 0);
+#endif
 	} else {
 		dhd->thr_sysioc_ctl.thr_pid = -1;
 	}
@@ -3752,10 +3759,12 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen)
 	return &dhd->pub;
 
 fail:
+	printf("%s : fail case\n", __func__);
 	if (dhd_state < DHD_ATTACH_STATE_DHD_ALLOC) {
+		printf("%s : dhd_state < DHD_ATTACH_STATE_DHD_ALLOC\n", __func__);
 		if (net) free_netdev(net);
 	} else {
-		DHD_TRACE(("%s: Calling dhd_detach dhd_state 0x%x &dhd->pub %p\n",
+		DHD_ERROR(("%s: Calling dhd_detach dhd_state 0x%x &dhd->pub %p\n",
 			__FUNCTION__, dhd_state, &dhd->pub));
 		dhd->dhd_state = dhd_state;
 		dhd_detach(&dhd->pub);

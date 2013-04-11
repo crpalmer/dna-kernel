@@ -15,7 +15,6 @@
 
 #include <mach/iommu.h>
 
-/* IOMMU registers and masks */
 #define KGSL_IOMMU_TTBR0			0x10
 #define KGSL_IOMMU_TTBR1			0x14
 #define KGSL_IOMMU_FSR				0x20
@@ -106,6 +105,9 @@ struct kgsl_iommu {
 	unsigned int iommu_last_cmd_ts;
 	bool clk_event_queued;
 	struct kgsl_device *device;
+	struct remote_iommu_petersons_spinlock *sync_lock_vars;
+	struct kgsl_memdesc sync_lock_desc;
+	bool sync_lock_initialized;
 };
 
 /*

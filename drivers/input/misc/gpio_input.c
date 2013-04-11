@@ -139,7 +139,7 @@ static void handle_power_key_state(unsigned int code, int value)
 		ret = schedule_delayed_work(&power_key_state_disable_work, PWRKEY_PRESS_DUE);
 		if (!ret) {
 			KEY_LOGI("[PWR][STATE]Schedule power key pressed due failed, seems already have one, try to cancel...\n");
-			ret = cancel_delayed_work(&power_key_state_disable_work);
+			ret = __cancel_delayed_work(&power_key_state_disable_work);
 			if (!ret) {
 				setPowerKeyState(1);
 				if (schedule_delayed_work(&power_key_state_disable_work, PWRKEY_PRESS_DUE)) {

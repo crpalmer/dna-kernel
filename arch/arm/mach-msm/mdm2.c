@@ -197,6 +197,31 @@ static void power_down_mdm(struct mdm_modem_drv *mdm_drv)
 	//mdm_peripheral_disconnect(mdm_drv);
 }
 
+#define HTC_MDM_HOLD_TIME			2000
+#define HTC_MDM_MODEM_DELTA		1000
+
+static void htc_power_down_mdm(struct mdm_modem_drv *mdm_drv)
+{
+	int i = 0;
+	pr_info("%s+\n", __func__);
+	if ( !mdm_drv ) {
+		pr_err("%s-: mdm_drv = NULL\n", __func__);
+		return;
+	}
+
+	if (mdm_drv->ap2mdm_kpdpwr_n_gpio > 0)
+		gpio_direction_output(mdm_drv->ap2mdm_kpdpwr_n_gpio, 0);
+
+	if (mdm_drv->ap2mdm_pmic_reset_n_gpio > 0)
+		gpio_direction_output(mdm_drv->ap2mdm_pmic_reset_n_gpio, 0);
+
+	for (i = HTC_MDM_HOLD_TIME; i > 0; i -= HTC_MDM_MODEM_DELTA) {
+		mdelay(HTC_MDM_MODEM_DELTA);
+	}
+	pr_info("%s-\n", __func__);
+
+}
+
 static void debug_state_changed(int value)
 {
 	mdm_debug_on = value;
@@ -216,6 +241,7 @@ static void mdm_status_changed(struct mdm_modem_drv *mdm_drv, int value)
 static struct mdm_ops mdm_cb = {
 	.power_on_mdm_cb = power_on_mdm,
 	.power_down_mdm_cb = power_down_mdm,
+	.htc_power_down_mdm_cb = htc_power_down_mdm,
 	.debug_state_changed_cb = debug_state_changed,
 	.status_cb = mdm_status_changed,
 };

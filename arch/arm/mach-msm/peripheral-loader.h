@@ -15,15 +15,6 @@
 struct device;
 struct module;
 
-/**
- * struct pil_desc - PIL descriptor
- * @name: string used for pil_get()
- * @depends_on: booted before this peripheral
- * @dev: parent device
- * @ops: callback functions
- * @owner: module the descriptor belongs to
- * @proxy_timeout: delay in ms until proxy vote is removed
- */
 struct pil_desc {
 	const char *name;
 	const char *depends_on;

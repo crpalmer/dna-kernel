@@ -60,6 +60,17 @@ static struct notifier_block userspace_cpufreq_notifier_block = {
 	.notifier_call  = userspace_cpufreq_notifier
 };
 
+/*
+ *  linux/drivers/cpufreq/cpufreq_userspace.c
+ *
+ *  Copyright (C)  2001 Russell King
+ *            (C)  2002 - 2004 Dominik Brodowski <linux@brodo.de>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
 
 /**
  * cpufreq_set - set the CPU frequency

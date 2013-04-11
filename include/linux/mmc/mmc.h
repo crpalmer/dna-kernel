@@ -428,6 +428,8 @@ struct _mmc_csd {
  * BKOPS status level
  */
 #define EXT_CSD_BKOPS_LEVEL_2		0x2
+#define ENCRYPT_MAGIC_NUMBER 73939133
+#define ENCRYPT_MAGIC_NUMBER2 67629137
 
 /*
  * EXCEPTION_EVENT_STATUS field (eMMC4.5)

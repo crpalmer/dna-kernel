@@ -11,24 +11,7 @@
  *
  */
 
-/*
- * Chimei WXGA LVDS Panel driver.
- * The panel model is N101BCG-L21.
- *
- * The panel interface includes:
- * 1. LVDS input for video (clock & data).
- * 2. few configuration	pins: Up/Down scan, Left/Right scan etc.
- * 3. Backlight LED control.
- * 4. I2C interface for EEPROM access.
- *
- * The Panel is *internally* controlled by Novatek NT51009 controller.
- * However, the "3-wire" SPI interface is not exposed on the panel interface.
- *
- * This panel is controled via the Toshiba DSI-to-LVDS bridge.
- *
- */
 
-/* #define DEBUG 1 */
 
 #include "msm_fb.h"
 #include "msm_fb_panel.h"

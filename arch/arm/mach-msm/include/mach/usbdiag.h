@@ -21,10 +21,8 @@
 #ifndef _DRIVERS_USB_DIAG_H_
 #define _DRIVERS_USB_DIAG_H_
 
-/*-------------------------------------------------------------------------*/
 
 
-/*DRIVER_DIAG_FUNCTION*/
 #define DIAG_ERR(fmt, args...) \
 	printk(KERN_ERR "[USBDIAG:ERR] " fmt, ## args)
 #define DIAG_WARNING(fmt, args...) \

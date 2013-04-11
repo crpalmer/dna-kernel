@@ -11,10 +11,6 @@
  *
  */
 
-/*
- * Part of this this code is based on the standard ARM spinlock
- * implementation (asm/spinlock.h) found in the 2.6.29 kernel.
- */
 
 #ifndef __ASM__ARCH_QC_REMOTE_SPINLOCK_H
 #define __ASM__ARCH_QC_REMOTE_SPINLOCK_H

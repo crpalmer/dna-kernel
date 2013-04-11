@@ -11,22 +11,15 @@
  *
  */
 
-/*
- * SDIO-Abstraction-Layer API.
- */
 
 #ifndef __SDIO_AL__
 #define __SDIO_AL__
 
 #include <linux/mmc/card.h>
 
-struct sdio_channel; /* Forward Declaration */
+struct sdio_channel; 
 
 
-/**
- *  Channel Events.
- *  Available bytes notification.
- */
 #define SDIO_EVENT_DATA_READ_AVAIL      0x01
 #define SDIO_EVENT_DATA_WRITE_AVAIL     0x02
 

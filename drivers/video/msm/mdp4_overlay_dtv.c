@@ -605,20 +605,20 @@ int mdp4_dtv_off(struct platform_device *pdev)
 	pipe = vctrl->base_pipe;
 	if (pipe != NULL) {
 		mdp4_dtv_stop(mfd);
-		/* sanity check, free pipes besides base layer */
+		
 		mdp4_overlay_unset_mixer(pipe->mixer_num);
 		if (hdmi_prim_display && mfd->ref_cnt == 0) {
-			/* adb stop */
+			
 			if (pipe->pipe_type == OVERLAY_TYPE_BF)
 				mdp4_overlay_borderfill_stage_down(pipe);
 
-			/* pipe == rgb2 */
+			
 			vctrl->base_pipe = NULL;
 		} else {
-			mdp4_mixer_stage_down(pipe);
+			mdp4_mixer_stage_down(pipe, 1);
 			mdp4_overlay_pipe_free(pipe);
 			vctrl->base_pipe = NULL;
-			/* add delay to avoid mdp hang */
+			
 			msleep(20);
 		}
 	}
@@ -760,9 +760,10 @@ static void mdp4_overlay_dtv_alloc_pipe(struct msm_fb_data_type *mfd,
 	}
 
 	mdp4_overlay_reg_flush(pipe, 1);
-	mdp4_mixer_stage_up(pipe);
+	mdp4_mixer_stage_up(pipe, 0);
 	mdp4_mixer_stage_commit(pipe->mixer_num);
-	vctrl->base_pipe = pipe; /* keep it */
+
+	vctrl->base_pipe = pipe; 
 }
 
 int mdp4_overlay_dtv_set(struct msm_fb_data_type *mfd,
@@ -925,7 +926,8 @@ void mdp4_dtv_set_black_screen(void)
 	temp_src_format = inpdw(rgb_base + 0x0050);
 	MDP_OUTP(rgb_base + 0x0050, temp_src_format | BIT(22));
 	mdp4_overlay_reg_flush(vctrl->base_pipe, 1);
-	mdp4_mixer_stage_up(vctrl->base_pipe);
+
+	mdp4_mixer_stage_up(vctrl->base_pipe, 0);
 	mdp4_mixer_stage_commit(vctrl->base_pipe->mixer_num);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 }

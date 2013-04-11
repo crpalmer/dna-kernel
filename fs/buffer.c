@@ -8,7 +8,7 @@
  * Start bdflush() with kernel_thread not syscall - Paul Gortmaker, 12/95
  *
  * Removed a lot of unnecessary code and simplified things now that
- * the buffer cache isn't our primary cache - Andrew Tridgell 12/96
++ * the buffer cache isn't our primary cache - Andrew Tridgell 12/96
  *
  * Speed up hash, lru, and free list operations.  Use gfp() for allocating
  * hash table, use SLAB cache for buffer heads. SMP threading.  -DaveM
@@ -1555,12 +1555,12 @@ EXPORT_SYMBOL(unmap_underlying_metadata);
 /*
  * NOTE! All mapped/uptodate combinations are valid:
  *
- *	Mapped	Uptodate	Meaning
+ *     Mapped  Uptodate        Meaning
  *
- *	No	No		"unknown" - must do get_block()
- *	No	Yes		"hole" - zero-filled
- *	Yes	No		"allocated" - allocated on disk, not read in
- *	Yes	Yes		"valid" - allocated and up-to-date in memory.
+ *     No      No              "unknown" - must do get_block()
+ *     No      Yes             "hole" - zero-filled
+ *     Yes     No              "allocated" - allocated on disk, not read in
+ *     Yes     Yes             "valid" - allocated and up-to-date in memory.
  *
  * "Dirty" is valid only with the last case (mapped+uptodate).
  */
@@ -2602,7 +2602,7 @@ int nobh_writepage(struct page *page, get_block_t *get_block,
 	if (page->index < end_index)
 		goto out;
 
-	/* Is the page fully outside i_size? (truncate in progress) */
+	
 	offset = i_size & (PAGE_CACHE_SIZE-1);
 	if (page->index >= end_index+1 || !offset) {
 		/*

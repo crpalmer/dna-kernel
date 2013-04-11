@@ -107,17 +107,8 @@ void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 		pwr->active_pwrlevel = new_level;
 		if ((test_bit(KGSL_PWRFLAGS_CLK_ON, &pwr->power_flags)) ||
 			(device->state == KGSL_STATE_NAP)) {
-			/*
-			 * On some platforms, instability is caused on
-			 * changing clock freq when the core is busy.
-			 * Idle the gpu core before changing the clock freq.
-			 */
 			if (pwr->idle_needed == true)
-				device->ftbl->idle(device,
-						KGSL_TIMEOUT_DEFAULT);
-			/* Don't shift by more than one level at a time to
-			 * avoid glitches.
-			 */
+				device->ftbl->idle(device);
 			while (level != new_level) {
 				level += d;
 				clk_set_rate(pwr->grp_clks[0],
@@ -896,7 +887,7 @@ _nap(struct kgsl_device *device)
 		kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_OFF);
 		kgsl_pwrctrl_clk(device, KGSL_PWRFLAGS_OFF, KGSL_STATE_NAP);
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_NAP);
-#ifdef CONFIG_MACH_DELUXE_J
+#ifdef CONFIG_MACH_DUMMY
 		htc_idle_wake_unlock();
 #endif
 	case KGSL_STATE_NAP:
@@ -942,7 +933,7 @@ _sleep(struct kgsl_device *device)
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_SLEEP);
 		pm_qos_update_request(&device->pm_qos_req_dma,
 					PM_QOS_DEFAULT_VALUE);
-#ifdef CONFIG_MACH_DELUXE_J
+#ifdef CONFIG_MACH_DUMMY
 		htc_idle_wake_unlock();
 #endif
 		break;
@@ -976,7 +967,7 @@ _slumber(struct kgsl_device *device)
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_SLUMBER);
 		pm_qos_update_request(&device->pm_qos_req_dma,
 						PM_QOS_DEFAULT_VALUE);
-#ifdef CONFIG_MACH_DELUXE_J
+#ifdef CONFIG_MACH_DUMMY
 		htc_idle_wake_unlock();
 #endif
 		break;
@@ -1033,24 +1024,23 @@ void kgsl_pwrctrl_wake(struct kgsl_device *device)
 			KGSL_DRV_ERR(device, "start failed %d\n", status);
 			break;
 		}
-		/* fall through */
+		
 	case KGSL_STATE_SLEEP:
 		kgsl_pwrctrl_axi(device, KGSL_PWRFLAGS_ON);
 		kgsl_pwrscale_wake(device);
-		/* fall through */
+		
 	case KGSL_STATE_NAP:
-		/* Turn on the core clocks */
+		
 		kgsl_pwrctrl_clk(device, KGSL_PWRFLAGS_ON, KGSL_STATE_ACTIVE);
-		/* Enable state before turning on irq */
+		
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_ACTIVE);
 		kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_ON);
-		/* Re-enable HW access */
+		
 		mod_timer(&device->idle_timer,
 				jiffies + device->pwrctrl.interval_timeout);
-#ifdef CONFIG_MACH_DELUXE_J
+#ifdef CONFIG_MACH_DUMMY
 		htc_idle_wake_lock();
 #endif
-//		if (device->pwrctrl.restore_slumber == false)
 			pm_qos_update_request(&device->pm_qos_req_dma,
 						GPU_SWFI_LATENCY);
 	case KGSL_STATE_ACTIVE:

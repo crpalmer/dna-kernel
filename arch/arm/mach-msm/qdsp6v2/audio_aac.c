@@ -18,12 +18,10 @@
 #include <linux/msm_audio_aac.h>
 #include "audio_utils_aio.h"
 
-//htc audio ++
 #undef pr_info
 #undef pr_err
 #define pr_info(fmt, ...) pr_aud_info(fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...) pr_aud_err(fmt, ##__VA_ARGS__)
-//htc audio --
 
 #define AUDIO_AAC_DUAL_MONO_INVALID -1
 #define PCM_BUFSZ_MIN_AAC	((8*1024) + sizeof(struct dec_meta_out))

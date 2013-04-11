@@ -175,11 +175,16 @@ typedef struct iscan_info {
 	iscan_buf_t * list_hdr;
 	iscan_buf_t * list_cur;
 
-	
+#ifndef USE_KTHREAD_API
 	long sysioc_pid;
 	struct semaphore sysioc_sem;
 	struct completion sysioc_exited;
-
+#else
+	
+	tsk_ctl_t tsk_ctl;
+	wl_iscan_params_t *iscan_ex_params_p;
+	int iscan_ex_param_size;
+#endif
 
 	char ioctlbuf[WLC_IOCTL_SMLEN];
 } iscan_info_t;
@@ -604,17 +609,15 @@ get_parameter_from_string(
 
                                 param_max_len = param_max_len >> 1;
                                 hstr_2_buf(param_str_begin, buf, param_max_len);
-                                //dhd_print_buf(buf, param_max_len, 0);
+                                
                         }
                         break;
                         default:
 
                                 memcpy(dst, param_str_begin, parm_str_len);
                                 *((char *)dst + parm_str_len) = 0;
-/* HTC_CSP_START */
                                 /* WL_DEFAULT((" written as a string:%s\n", (char *)dst)); */
                                 WL_DEFAULT((" written as a string\n"));
-/* HTC_CSP_END */
                         break;
 
                 }
@@ -1367,7 +1370,11 @@ wl_iw_iscan_get_aplist(
 	if (!extra)
 		return -EINVAL;
 
+#ifndef USE_KTHREAD_API
 	if ((!iscan) || (iscan->sysioc_pid < 0)) {
+#else
+	if ((!iscan) || (iscan->tsk_ctl.thr_pid < 0)) {
+#endif
 		return wl_iw_get_aplist(dev, info, dwrq, extra);
 	}
 
@@ -1474,7 +1481,11 @@ wl_iw_iscan_set_scan(
         }
 #endif
 	
+#ifndef USE_KTHREAD_API
 	if ((!iscan) || (iscan->sysioc_pid < 0)) {
+#else
+	if ((!iscan) || (iscan->tsk_ctl.thr_pid < 0)) {
+#endif
 		return wl_iw_set_scan(dev, info, wrqu, extra);
 	}
 	if (iscan->iscan_state == ISCAN_STATE_SCANING) {
@@ -1830,7 +1841,11 @@ wl_iw_iscan_get_scan(
         }
 #endif
 	
+#ifndef USE_KTHREAD_API
 	if ((!iscan) || (iscan->sysioc_pid < 0)) {
+#else
+	if ((!iscan) || (iscan->tsk_ctl.thr_pid < 0)) {
+#endif
 		return wl_iw_get_scan(dev, info, dwrq, extra);
 	}
 
@@ -4962,9 +4977,17 @@ wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data)
 		cmd = SIOCGIWSCAN;
 #endif
 		WL_TRACE(("event WLC_E_SCAN_COMPLETE\n"));
+#ifndef USE_KTHREAD_API
 		if ((g_iscan) && (g_iscan->sysioc_pid >= 0) &&
+#else
+		if ((g_iscan) && (g_iscan->tsk_ctl.thr_pid >= 0) &&
+#endif
 			(g_iscan->iscan_state != ISCAN_STATE_IDLE))
+#ifndef USE_KTHREAD_API
 			up(&g_iscan->sysioc_sem);
+#else
+			up(&g_iscan->tsk_ctl.sema);
+#endif
 		break;
 
 #ifdef APSTA_CONCURRENT
@@ -5099,7 +5122,11 @@ wl_iw_timerfunc(ulong data)
 	iscan->timer_on = 0;
 	if (iscan->iscan_state != ISCAN_STATE_IDLE) {
 		WL_TRACE(("timer trigger\n"));
+#ifndef USE_KTHREAD_API
 		up(&iscan->sysioc_sem);
+#else
+		up(&iscan->tsk_ctl.sema);
+#endif
 	}
 }
 
@@ -5243,12 +5270,25 @@ static int
 _iscan_sysioc_thread(void *data)
 {
 	uint32 status;
-	iscan_info_t *iscan = (iscan_info_t *)data;
-
-	DAEMONIZE("iscan_sysioc");
+	tsk_ctl_t *tsk_ctl = (tsk_ctl_t *)data;
+	iscan_info_t *iscan = (iscan_info_t *) tsk_ctl->parent;
 
 	status = WL_SCAN_RESULTS_PARTIAL;
+#ifndef USE_KTHREAD_API
+	DAEMONIZE("iscan_sysioc");
+	
+	complete(&tsk_ctl->completed);
+#endif
+
+#ifndef USE_KTHREAD_API
 	while (down_interruptible(&iscan->sysioc_sem) == 0) {
+#else
+	while (down_interruptible(&tsk_ctl->sema) == 0) {
+		SMP_RD_BARRIER_DEPENDS();
+		if (tsk_ctl->terminated) {
+			break;
+		}
+#endif
 #if defined(SOFTAP)
 
                 if (ap_cfg_running && !apsta_enable) {
@@ -5258,8 +5298,8 @@ _iscan_sysioc_thread(void *data)
                 }
 #endif
 		if (iscan->timer_on) {
-			del_timer(&iscan->timer);
 			iscan->timer_on = 0;
+			del_timer(&iscan->timer);
 		}
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27))
@@ -5308,7 +5348,15 @@ _iscan_sysioc_thread(void *data)
 				break;
 		 }
 	}
+#ifndef USE_KTHREAD_API
 	complete_and_exit(&iscan->sysioc_exited, 0);
+#else
+	if (iscan->timer_on) {
+		iscan->timer_on = 0;
+		del_timer_sync(&iscan->timer);
+	}
+	return 0;
+#endif
 }
 
 int
@@ -5335,10 +5383,11 @@ wl_iw_attach(struct net_device *dev, void * dhdp)
 #endif
 
 	iscan = kmalloc(sizeof(iscan_info_t), GFP_KERNEL);
-	if (!iscan)
+	if (!iscan) {
+		printf("%s : NOMEM, so kmalloc failed\n", __func__);
 		return -ENOMEM;
+	}
 	memset(iscan, 0, sizeof(iscan_info_t));
-	iscan->sysioc_pid = -1;
 	
 	g_iscan = iscan;
 	iscan->dev = dev;
@@ -5351,11 +5400,25 @@ wl_iw_attach(struct net_device *dev, void * dhdp)
 	iscan->timer.data = (ulong)iscan;
 	iscan->timer.function = wl_iw_timerfunc;
 
+#if 0
 	sema_init(&iscan->sysioc_sem, 0);
 	init_completion(&iscan->sysioc_exited);
 	iscan->sysioc_pid = kernel_thread(_iscan_sysioc_thread, iscan, 0);
-	if (iscan->sysioc_pid < 0)
+	if (iscan->sysioc_pid < 0) {
+		printf("%s : NOMEM, so kernel_thread failed\n", __func__);
 		return -ENOMEM;
+	}
+#endif
+#ifndef USE_KTHREAD_API
+	PROC_START(_iscan_sysioc_thread, iscan, &iscan->tsk_ctl, 0);
+#else
+	printf("%s: Initialize iscan_sysioc thread\n",__func__);
+	PROC_START2(_iscan_sysioc_thread, iscan, &iscan->tsk_ctl, 0, "_iscan_sysioc_thread");
+	if (iscan->tsk_ctl.thr_pid < 0) {
+		printf("%s : Create thread failed\n",__func__);
+		return -ENOMEM;
+	}
+#endif
 	return 0;
 }
 
@@ -5365,10 +5428,16 @@ void wl_iw_detach(void)
 	iscan_info_t *iscan = g_iscan;
 	if (!iscan)
 		return;
+#ifdef USE_KTHREAD_API
+	if (iscan->tsk_ctl.thr_pid >= 0) {
+		PROC_STOP(&iscan->tsk_ctl);
+	}
+#else
 	if (iscan->sysioc_pid >= 0) {
 		KILL_PROC(iscan->sysioc_pid, SIGTERM);
 		wait_for_completion(&iscan->sysioc_exited);
 	}
+#endif
 
 	while (iscan->list_hdr) {
 		buf = iscan->list_hdr->next;

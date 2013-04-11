@@ -11,11 +11,6 @@
  *       add scatter-gather, multiple outstanding request, and other
  *       enhancements.
  */
-/*
- * NOTE:  this file only contains compatibility glue for old drivers.  All
- * these wrappers will be removed sooner or later.  For new code please use
- * the interfaces declared in the headers in include/scsi/
- */
 
 #ifndef _SCSI_H
 #define _SCSI_H

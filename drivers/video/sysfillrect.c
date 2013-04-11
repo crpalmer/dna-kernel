@@ -17,9 +17,6 @@
 #include <asm/types.h>
 #include "fb_draw.h"
 
-    /*
-     *  Aligned pattern fill using 32/64-bit memory accesses
-     */
 
 static void
 bitfill_aligned(struct fb_info *p, unsigned long *dst, int dst_idx,

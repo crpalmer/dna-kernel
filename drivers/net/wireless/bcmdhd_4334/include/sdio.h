@@ -29,36 +29,34 @@
 #define	_SDIO_H
 
 
-/* CCCR structure for function 0 */
 typedef volatile struct {
-	uint8	cccr_sdio_rev;		/* RO, cccr and sdio revision */
-	uint8	sd_rev;			/* RO, sd spec revision */
-	uint8	io_en;			/* I/O enable */
-	uint8	io_rdy;			/* I/O ready reg */
-	uint8	intr_ctl;		/* Master and per function interrupt enable control */
-	uint8	intr_status;		/* RO, interrupt pending status */
-	uint8	io_abort;		/* read/write abort or reset all functions */
-	uint8	bus_inter;		/* bus interface control */
-	uint8	capability;		/* RO, card capability */
+	uint8	cccr_sdio_rev;		
+	uint8	sd_rev;			
+	uint8	io_en;			
+	uint8	io_rdy;			
+	uint8	intr_ctl;		
+	uint8	intr_status;		
+	uint8	io_abort;		
+	uint8	bus_inter;		
+	uint8	capability;		
 
-	uint8	cis_base_low;		/* 0x9 RO, common CIS base address, LSB */
+	uint8	cis_base_low;		
 	uint8	cis_base_mid;
-	uint8	cis_base_high;		/* 0xB RO, common CIS base address, MSB */
+	uint8	cis_base_high;		
 
-	/* suspend/resume registers */
-	uint8	bus_suspend;		/* 0xC */
-	uint8	func_select;		/* 0xD */
-	uint8	exec_flag;		/* 0xE */
-	uint8	ready_flag;		/* 0xF */
+	
+	uint8	bus_suspend;		
+	uint8	func_select;		
+	uint8	exec_flag;		
+	uint8	ready_flag;		
 
-	uint8	fn0_blk_size[2];	/* 0x10(LSB), 0x11(MSB) */
+	uint8	fn0_blk_size[2];	
 
-	uint8	power_control;		/* 0x12 (SDIO version 1.10) */
+	uint8	power_control;		
 
-	uint8	speed_control;		/* 0x13 */
+	uint8	speed_control;		
 } sdio_regs_t;
 
-/* SDIO Device CCCR offsets */
 #define SDIOD_CCCR_REV			0x00
 #define SDIOD_CCCR_SDREV		0x01
 #define SDIOD_CCCR_IOEN			0x02
