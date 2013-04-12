@@ -88,6 +88,18 @@ config CPU_FREQ_DEFAULT_GOV_ONDEMAND
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
 
+config CPU_FREQ_DEFAULT_GOV_SIMPLEDEMAND
+	bool "ondemand"
+	select CPU_FREQ_GOV_SIMPLEDEMAND
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the CPUFreq governor 'simpledemand' as default. This allows
+	  you to get a full dynamic frequency capable system by simply
+	  loading your cpufreq low-level hardware driver.
+	  Be aware that not all cpufreq drivers support the simpledemand
+	  governor. If unsure have a look at the help section of the
+	  driver. Fallback governor will be the performance governor.
+
 config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	bool "conservative"
 	select CPU_FREQ_GOV_CONSERVATIVE
@@ -163,6 +175,29 @@ config CPU_FREQ_GOV_ONDEMAND
 	  module will be called cpufreq_ondemand.
 
 	  For details, take a look at linux/Documentation/cpu-freq.
+
+	  If in doubt, say N.
+
+config CPU_FREQ_GOV_SIMPLEDEMAND
+	tristate "'simpledemand' cpufreq policy governor"
+	select CPU_FREQ_TABLE
+	help
+	  'simpledemand' - This driver adds a dynamic cpufreq policy governor.
+	  The governor does a periodic polling and changes frequency based
+	  on the CPU utilization.  This governor is specific designed for
+	  devices that have multiple cores (> 2) and will be hot-plugging
+	  cores (for example modern cell phones).
+
+	  All cores are set to the same frequency on the assumption that if
+	  there is insufficient load to keep all cores busy that the hot-plug
+	  driver will turn cores off.  By keeping the frequencies the same
+	  we get two benefits.  First, only 1 core needs to be polling
+	  (instead of having each core poll separately) and second the system
+	  should be more consistently responsive as a process will never bounce
+	  from a high frequency core to a load-frequency core.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called cpufreq_simpledemand.
 
 	  If in doubt, say N.
 
