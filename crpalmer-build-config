@@ -3,13 +3,13 @@ HOST_CC=gcc
 LOCAL_BUILD_DIR=dna
 TARGET_DIR=~/dna/updates
 SYSTEM_PARTITION="/dev/block/mmcblk0p32"
-DEFCONFIG=apq8064_defconfig
+DEFCONFIG=dlx_defconfig
 FLASH_BOOT='package_extract_file("boot.img", "/tmp/boot.img"), write_raw_image("/tmp/boot.img", "boot")'
 
 # ----
 
 N_CORES=4
-VERSION=STOCK_NEVER_BUILDS_AN_ACTUAL_UPDATE_ZIP
+VERSION=crpalmer-cm
 
 # ----
 
