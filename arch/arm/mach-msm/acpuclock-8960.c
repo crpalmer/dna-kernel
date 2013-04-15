@@ -1801,11 +1801,17 @@ static void __init select_freq_plan(void)
 		acpu_freq_tbl = acpu_freq_tbl_8064[pvs_id];
 		l2_freq_tbl = l2_freq_tbl_8064;
 		l2_freq_tbl_size = ARRAY_SIZE(l2_freq_tbl_8064);
-		
+
+#if 0
+		/* We didn't need this boosting in 1.15 based ROMs, I doubt
+		 * we need it now.  If we do, let's just modify the table
+		 * directly instead of a funny across the board hack.
+		 */
 		if (pvs_id != PVS_SLOW) {
 			enable_boost = true;
 			boost_uv = 25000;
 		}
+#endif
 	} else if (cpu_is_msm8627()) {
 		scalable = scalable_8627;
 		acpu_freq_tbl = acpu_freq_tbl_8627;
