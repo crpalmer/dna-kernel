@@ -2145,7 +2145,9 @@ static int __init diagchar_init(void)
 		pr_debug("diagchar initializing ..\n");
 		driver->name = ((void *)driver) + sizeof(struct diagchar_dev);
 		strlcpy(driver->name, "diag", 4);
+#if DIAG_XPST
 		driver->debug_dmbytes_recv = 0;
+#endif
 
 		/* Get major number from kernel and initialize */
 		error = alloc_chrdev_region(&dev, driver->minor_start,

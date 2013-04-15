@@ -143,9 +143,11 @@ static void diag_hsic_read_complete_callback(void *ctxt, char *buf,
 		} else {
 			if (diag9k_debug_mask) {
 				print_out_reason = 1;	/* for debug reason */
+#if DIAG_XPST
 			} else if (driver->debug_dmbytes_recv > 0) {
 				driver->debug_dmbytes_recv--;
 				print_out_reason = 2;		/* DM command */
+#endif
 			} else if(driver->qxdmusb_drop &&
 					driver->logging_mode == USB_MODE) {
 				print_out_reason = 3;	/* receive unknown packets */
