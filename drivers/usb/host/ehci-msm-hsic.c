@@ -1044,7 +1044,7 @@ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
 
 	wake_unlock(&mehci->wlock);
 
-	dev_info(mehci->dev, "HSIC-USB in low power mode\n");
+	dev_dbg(mehci->dev, "HSIC-USB in low power mode\n");
 
 	return 0;
 }
@@ -1138,7 +1138,7 @@ skip_phy_resume:
 
 	if (mehci->async_int) {
 		mehci->async_int = false;
-		pr_info("%s(%d): pm_runtime_put_noidle\n", __func__, __LINE__);	
+		pr_debug("%s(%d): pm_runtime_put_noidle\n", __func__, __LINE__);	
 		pm_runtime_put_noidle(mehci->dev);
 		enable_irq(hcd->irq);
 	}
@@ -1149,7 +1149,7 @@ skip_phy_resume:
 
 	if (atomic_read(&mehci->pm_usage_cnt)) {
 		atomic_set(&mehci->pm_usage_cnt, 0);
-		pr_info("%s(%d): pm_runtime_put_noidle\n", __func__, __LINE__);	
+		pr_debug("%s(%d): pm_runtime_put_noidle\n", __func__, __LINE__);	
 		pm_runtime_put_noidle(mehci->dev);
 	}
 
@@ -1157,7 +1157,7 @@ skip_phy_resume:
 	spin_unlock_irqrestore(&mehci->wakeup_lock, flags);
 	
 
-	dev_info(mehci->dev, "HSIC-USB exited from low power mode\n");
+	dev_dbg(mehci->dev, "HSIC-USB exited from low power mode\n");
 
 	return 0;
 }
@@ -1672,10 +1672,10 @@ static irqreturn_t msm_hsic_wakeup_irq(int irq, void *data)
 
 		
 		if (!atomic_read(&mehci->in_lpm)) {
-			pr_info("%s(%d): mehci->in_lpm==0 !!!\n", __func__, __LINE__);
+			pr_debug("%s(%d): mehci->in_lpm==0 !!!\n", __func__, __LINE__);
 			if (atomic_read(&mehci->pm_usage_cnt)) {
 				atomic_set(&mehci->pm_usage_cnt, 0);
-				pr_info("%s(%d): pm_runtime_put_noidle !!!\n", __func__, __LINE__);
+				pr_debug("%s(%d): pm_runtime_put_noidle !!!\n", __func__, __LINE__);
 				pm_runtime_put_noidle(mehci->dev);
 			}
 		}
@@ -2239,7 +2239,7 @@ static int msm_hsic_pm_resume(struct device *dev)
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct msm_hsic_hcd *mehci = hcd_to_hsic(hcd);
 
-	dev_info(dev, "ehci-msm-hsic PM resume\n");
+	dev_dbg(dev, "ehci-msm-hsic PM resume\n");
 
 	dbg_log_event(NULL, "PM Resume", 0);
 
