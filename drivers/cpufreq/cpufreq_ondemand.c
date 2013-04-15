@@ -765,6 +765,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 			idle_time += jiffies_to_usecs(cur_nice_jiffies);
 		}
 
+#if 0
 		/*
 		 * For the purpose of ondemand, waiting for disk IO is an
 		 * indication that you're performance critical, and not that
@@ -772,8 +773,22 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		 * from the cpu idle time.
 		 */
 
+		/*
+		 * The previous comment may be true, but for the HTC Droid DNA
+		 * (and probably all upcoming cell phones), the ability to switch
+		 * frequencies is fast enough that you're just wasting battery
+		 * staying ramped up while waiting on i/o.
+		 *
+		 * This is also supported by a comment on should_io_be_busy()
+		 * which says that ARM doesn't want it.
+		 *
+		 * But HTC seems to have enabled this in their post boot
+		 * initrc scripts?  Just kill the support entirely.
+		 */
+
 		if (dbs_tuners_ins.io_is_busy && idle_time >= iowait_time)
 			idle_time -= iowait_time;
+#endif
 
 		if (unlikely(!wall_time || wall_time < idle_time))
 			continue;
