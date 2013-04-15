@@ -25,8 +25,7 @@
 
 #define VIB_PWM_DBG(fmt, ...) \
 		({ if (0) printk(KERN_DEBUG "[VIB_PWM]" fmt, ##__VA_ARGS__); })
-#define VIB_PWM_INFO(fmt, ...) \
-		printk(KERN_INFO "[VIB_PWM]" fmt, ##__VA_ARGS__)
+#define VIB_PWM_INFO VIB_PWM_DBG
 #define VIB_PWM_ERR(fmt, ...) \
 		printk(KERN_ERR "[VIB_PWM][ERR]" fmt, ##__VA_ARGS__)
 
