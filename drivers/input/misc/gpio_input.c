@@ -304,20 +304,7 @@ static struct gpio_event_input_info *gis;
 static void handle_power_key_reset(unsigned int code, int value);
 static void power_key_check_reset_work_func(struct work_struct *dummy)
 {
-	struct gpio_event_input_info *aa = gis;
-	int pocket_mode = 0;
 	KEY_LOGI("[PWR] %s\n", __func__);
-	if ((aa->clear_hw_reset)) {
-		/* Check P/L sensor status */
-		pocket_mode = power_key_check_in_pocket();
-		if (pocket_mode) {
-			printk(KERN_INFO "[KEY] power_key_check_in_pocket = %d\n", pocket_mode);
-			aa->clear_hw_reset();
-		}
-	}
-	else {
-		KEY_LOGI("[PWR] No reset  clear function\n");
-	}
 	handle_power_key_reset(KEY_POWER, 1);
 }
 static DECLARE_DELAYED_WORK(power_key_check_reset_work, power_key_check_reset_work_func);
