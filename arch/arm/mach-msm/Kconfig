@@ -1636,6 +1636,21 @@ config MSM_CPU_FREQ_MIN
 	depends on MSM_CPU_FREQ_SET_MIN_MAX
 	default 245760
 
+config MSM_CPU_FREQ_SET_DEFAULT_MIN_MAX
+	bool "Set Default Min/Max CPU frequencies."
+	default n
+	help
+	   Specify a default min/max frequency when
+	   a governor has not been configured to change this.
+
+config MSM_CPU_FREQ_DEFAULT_MAX
+	int "Default Max CPU Frequency"
+	depends on MSM_CPU_FREQ_SET_DEFAULT_MIN_MAX
+
+config MSM_CPU_FREQ_DEFAULT_MIN
+	int "Default Min CPU Frequency"
+	depends on MSM_CPU_FREQ_SET_DEFAULT_MIN_MAX
+
 endif # CPU_FREQ_MSM
 
 config SIMPLE_PLUG
