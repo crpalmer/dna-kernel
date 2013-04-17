@@ -187,6 +187,19 @@ on post-fs
     chown root cw_access /data/data/cwtemp
     chmod 0770 /data/data/cw
     chmod 0770 /data/data/cwtemp
+    // check the permission & group of cw package (JB)
+    chmod 0740 /data/cw.prop
+    chmod 0740 /data/cw.crc
+    chmod 0740 /data/cwpkg.zip
+    chmod 0740 /data/data/cwtemp/cw.prop
+    chmod 0740 /data/data/cwtemp/cw.crc
+    chmod 0740 /data/data/cwtemp/cwpkg.zip
+    chown root cw_access /data/cw.prop
+    chown root cw_access /data/cw.crc
+    chown root cw_access /data/cwpkg.zip
+    chown root cw_access /data/data/cwtemp/cw.prop
+    chown root cw_access /data/data/cwtemp/cw.crc
+    chown root cw_access /data/data/cwtemp/cwpkg.zip
 
     chown root recvy_access /data/data/recovery
     chmod 0775 /data/data/recovery
@@ -558,13 +571,13 @@ service sysinit /system/bin/logwrapper /system/xbin/busybox run-parts /system/et
 service media /system/bin/mediaserver
     class main
     user media
-    group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc qcom_diag sdcard_rw sdcard_r media_rw
+    group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc qcom_diag sdcard_rw sdcard_r media_rw cw_access
     ioprio rt 4
 
 service bootanim /system/bin/bootanimation
     class main
     user graphics
-    group system audio graphics
+    group system audio graphics cw_access
     disabled
     oneshot
 
