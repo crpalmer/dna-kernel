@@ -4857,11 +4857,6 @@ static void __init monarudo_common_init(void)
 
 	monarudo_init_keypad();
 
-	if (get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) {
-		htc_monitor_init();
-		htc_pm_monitor_init();
-	}
-
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
 	pm_qos_add_request(&pm_qos_req_dma, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
 #endif

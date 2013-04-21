@@ -896,11 +896,6 @@ int msm_pm_idle_prepare(struct cpuidle_device *dev,
 				break;
 			}
 
-			if (has_htc_idle_wakelock()) {
-				allow = false;
-				break;
-			}
-
 			/* fall through */
 		case MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE:
 			if (!allow)
@@ -1092,8 +1087,6 @@ int msm_pm_idle_enter(enum msm_pm_sleep_mode sleep_mode)
 	time = ktime_to_ns(ktime_get()) - time;
 	msm_pm_add_stat(exit_stat, time);
 	do_div(time, 1000);
-	if ((get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) || !(get_kernel_flag() & KERNEL_FLAG_TEST_PWR_SUPPLY))
-		htc_idle_stat_add(sleep_mode, (u32)time);
 
 	return (int) time;
 
@@ -1501,10 +1494,6 @@ static int __init msm_pm_init(void)
 	store_pm_boot_vector_addr(addr);
 
 	keep_dig_voltage_low_in_idle(true);
-
-	if(board_mfg_mode() == 6 || board_mfg_mode() == 8)
-		htc_idle_wake_lock();
-
 
 	return 0;
 }
