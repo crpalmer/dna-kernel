@@ -1,6 +1,6 @@
 /*
    BlueZ - Bluetooth protocol stack for Linux
-   Copyright (c) 2000-2001, 2010-2012 Code Aurora Forum.  All rights reserved.
+   Copyright (c) 2000-2001, 2010-2012 The Linux Foundation.  All rights reserved.
 
    Written 2000,2001 by Maxim Krasnyansky <maxk@qualcomm.com>
 
@@ -53,7 +53,6 @@
 #include <net/bluetooth/hci_core.h>
 
 #define AUTO_OFF_TIMEOUT 2000
-
 
 static void hci_cmd_task(unsigned long arg);
 static void hci_rx_task(unsigned long arg);
@@ -306,6 +305,12 @@ static void hci_le_init_req(struct hci_dev *hdev, unsigned long opt)
 
 	/* Read LE buffer size */
 	hci_send_cmd(hdev, HCI_OP_LE_READ_BUFFER_SIZE, 0, NULL);
+
+	/* Read LE clear white list */
+	hci_send_cmd(hdev, HCI_OP_LE_CLEAR_WHITE_LIST, 0, NULL);
+
+	/* Read LE white list size */
+	hci_send_cmd(hdev, HCI_OP_LE_READ_WHITE_LIST_SIZE, 0, NULL);
 }
 
 static void hci_scan_req(struct hci_dev *hdev, unsigned long opt)
@@ -709,10 +714,8 @@ static int hci_dev_do_close(struct hci_dev *hdev, u8 is_process)
 
 int hci_dev_close(__u16 dev)
 {
-
 	struct hci_dev *hdev;
 	int err;
-	BT_DBG(" hci_Dev_close ");
 
 	hdev = hci_dev_get(dev);
 	if (!hdev)
@@ -1011,55 +1014,13 @@ static void hci_power_on(struct work_struct *work)
 		mgmt_index_added(hdev->id);
 }
 
-static void dev_close_timer ( unsigned long arg)
-{
-	struct hci_dev *hdev = (void *) arg;
-	queue_work(hdev->workqueue, &hdev->dev_close);
-
-}
-static void hci_disc_all_conn(__u16 dev)
-{
-	struct hci_dev *hdev = NULL;
-	struct hci_conn_hash *h = NULL;
-	bool active_conn = false;
-	struct list_head *p;
-
-	hdev = hci_dev_get(dev);
-	h = &hdev->conn_hash;
-
-	p = h->list.next;
-	while (p != &h->list) {
-		struct hci_conn *c;
-		active_conn = true;
-		c = list_entry(p, struct hci_conn, list);
-		p = p->next;
-		if(c->state == BT_CONNECTED){
-			__u8 reason;
-			reason = hci_proto_disconn_ind(c);
-			hci_acl_disconn(c, reason);
-		}
-	}
-	// will call hci_dev_close after 1 sec of all disconnection
-	if( active_conn){
-		mod_timer(&hdev->dev_close_timer, jiffies + msecs_to_jiffies(1000));
-	} else {
-		hci_dev_close(dev);
-	}
-
-}
-
-static void hci_dev_close_final ( struct work_struct *work)
-{
-	struct hci_dev *hdev = container_of(work, struct hci_dev, dev_close);
-	hci_dev_close(hdev->id);
-
-}
 static void hci_power_off(struct work_struct *work)
 {
 	struct hci_dev *hdev = container_of(work, struct hci_dev, power_off);
 
 	BT_DBG("%s", hdev->name);
-	hci_disc_all_conn(hdev->id);
+
+	hci_dev_close(hdev->id);
 }
 
 static void hci_auto_off(unsigned long data)
@@ -1513,6 +1474,8 @@ int hci_register_dev(struct hci_dev *hdev)
 	hdev->sniff_max_interval = 800;
 	hdev->sniff_min_interval = 80;
 
+	set_bit(HCI_SETUP, &hdev->flags);
+
 	tasklet_init(&hdev->cmd_task, hci_cmd_task, (unsigned long) hdev);
 	tasklet_init(&hdev->rx_task, hci_rx_task, (unsigned long) hdev);
 	tasklet_init(&hdev->tx_task, hci_tx_task, (unsigned long) hdev);
@@ -1549,11 +1512,9 @@ int hci_register_dev(struct hci_dev *hdev)
 	INIT_LIST_HEAD(&hdev->adv_entries);
 	rwlock_init(&hdev->adv_entries_lock);
 	setup_timer(&hdev->adv_timer, hci_adv_clear, (unsigned long) hdev);
-	setup_timer(&hdev->dev_close_timer, dev_close_timer, (unsigned long) hdev);
 
 	INIT_WORK(&hdev->power_on, hci_power_on);
 	INIT_WORK(&hdev->power_off, hci_power_off);
-	INIT_WORK(&hdev->dev_close, hci_dev_close_final);
 	setup_timer(&hdev->off_timer, hci_auto_off, (unsigned long) hdev);
 
 	memset(&hdev->stat, 0, sizeof(struct hci_dev_stats));
@@ -1583,7 +1544,6 @@ int hci_register_dev(struct hci_dev *hdev)
 	}
 
 	set_bit(HCI_AUTO_OFF, &hdev->flags);
-	set_bit(HCI_SETUP, &hdev->flags);
 	queue_work(hdev->workqueue, &hdev->power_on);
 
 	hci_notify(hdev, HCI_DEV_REG);
@@ -1610,7 +1570,7 @@ int hci_unregister_dev(struct hci_dev *hdev)
 	list_del(&hdev->list);
 	write_unlock_bh(&hci_dev_list_lock);
 
-	hci_dev_do_close(hdev, 0);
+	hci_dev_do_close(hdev, hdev->bus == HCI_SMD);
 
 	for (i = 0; i < NUM_REASSEMBLY; i++)
 		kfree_skb(hdev->reassembly[i]);
@@ -1641,7 +1601,7 @@ int hci_unregister_dev(struct hci_dev *hdev)
 	del_timer(&hdev->cmd_timer);
 	del_timer(&hdev->disco_timer);
 	del_timer(&hdev->disco_le_timer);
-	del_timer(&hdev->dev_close_timer);
+
 	destroy_workqueue(hdev->workqueue);
 
 	hci_dev_lock_bh(hdev);
@@ -2171,6 +2131,55 @@ void hci_send_sco(struct hci_conn *conn, struct sk_buff *skb)
 EXPORT_SYMBOL(hci_send_sco);
 
 /* ---- HCI TX task (outgoing data) ---- */
+/* HCI ACL Connection scheduler */
+static inline struct hci_conn *hci_low_sent_acl(struct hci_dev *hdev,
+								int *quote)
+{
+	struct hci_conn_hash *h = &hdev->conn_hash;
+	struct hci_conn *conn = NULL;
+	int num = 0, min = ~0, conn_num = 0;
+	struct list_head *p;
+
+	/* We don't have to lock device here. Connections are always
+	 * added and removed with TX task disabled. */
+	list_for_each(p, &h->list) {
+		struct hci_conn *c;
+		c = list_entry(p, struct hci_conn, list);
+		if (c->type == ACL_LINK)
+			conn_num++;
+
+		if (skb_queue_empty(&c->data_q))
+			continue;
+
+		if (c->state != BT_CONNECTED && c->state != BT_CONFIG)
+			continue;
+
+		num++;
+
+		if (c->sent < min) {
+			min  = c->sent;
+			conn = c;
+		}
+	}
+
+	if (conn) {
+		int cnt, q;
+		cnt = hdev->acl_cnt;
+		q = cnt / num;
+		*quote = q ? q : 1;
+	} else
+		*quote = 0;
+
+	if ((*quote == hdev->acl_cnt) &&
+		(conn->sent == (hdev->acl_pkts - 1)) &&
+		(conn_num > 1)) {
+			*quote = 0;
+			conn = NULL;
+	}
+
+	BT_DBG("conn %p quote %d", conn, *quote);
+	return conn;
+}
 
 /* HCI Connection scheduler */
 static inline struct hci_conn *hci_low_sent(struct hci_dev *hdev, __u8 type, int *quote)
@@ -2264,8 +2273,10 @@ static inline void hci_sched_acl(struct hci_dev *hdev)
 	}
 
 	while (hdev->acl_cnt > 0 &&
-		(conn = hci_low_sent(hdev, ACL_LINK, &quote))) {
-		while (quote > 0 && (skb = skb_dequeue(&conn->data_q))) {
+		((conn = hci_low_sent_acl(hdev, &quote)) != NULL)) {
+
+		while (quote > 0 &&
+			  (skb = skb_dequeue(&conn->data_q))) {
 			int count = 1;
 
 			BT_DBG("skb %p len %d", skb, skb->len);
