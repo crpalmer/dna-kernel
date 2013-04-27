@@ -34,22 +34,10 @@ struct kgsl_process_private;
 
 extern struct kgsl_memdesc_ops kgsl_page_alloc_ops;
 
-//HTC_START
-int kgsl_sharedmem_ion_alloc(struct kgsl_memdesc *memdesc,
-				struct kgsl_pagetable *pagetable, size_t size);
-
-int kgsl_sharedmem_ion_alloc_user(struct kgsl_memdesc *memdesc,
-				struct kgsl_process_private *private,
-				struct kgsl_pagetable *pagetable,
-				size_t size, int flags);
-//HTC_END
-
-
 int kgsl_sharedmem_page_alloc(struct kgsl_memdesc *memdesc,
 			   struct kgsl_pagetable *pagetable, size_t size);
 
 int kgsl_sharedmem_page_alloc_user(struct kgsl_memdesc *memdesc,
-				struct kgsl_process_private *private,
 				struct kgsl_pagetable *pagetable,
 				size_t size, int flags);
 
@@ -129,6 +117,8 @@ memdesc_sg_phys(struct kgsl_memdesc *memdesc,
 		unsigned int physaddr, unsigned int size)
 {
 	memdesc->sg = kgsl_sg_alloc(1);
+	if (!memdesc->sg)
+		return -ENOMEM;
 
 	kmemleak_not_leak(memdesc->sg);
 
@@ -144,35 +134,20 @@ static inline int
 kgsl_allocate(struct kgsl_memdesc *memdesc,
 		struct kgsl_pagetable *pagetable, size_t size)
 {
-	int ret = 1;
 	if (kgsl_mmu_get_mmutype() == KGSL_MMU_TYPE_NONE)
 		return kgsl_sharedmem_ebimem(memdesc, pagetable, size);
-
-	if(size >= SZ_4M)
-		ret = kgsl_sharedmem_ion_alloc(memdesc, pagetable, size);
-
-	if(ret)
-		return kgsl_sharedmem_page_alloc(memdesc, pagetable, size);
-	return ret;
+	return kgsl_sharedmem_page_alloc(memdesc, pagetable, size);
 }
 
 static inline int
 kgsl_allocate_user(struct kgsl_memdesc *memdesc,
-		struct kgsl_process_private *private,
 		struct kgsl_pagetable *pagetable,
 		size_t size, unsigned int flags)
 {
-	int ret = 1;
 	if (kgsl_mmu_get_mmutype() == KGSL_MMU_TYPE_NONE)
 		return kgsl_sharedmem_ebimem_user(memdesc, pagetable, size,
 						  flags);
-	if(size >= SZ_4M)
-		ret = kgsl_sharedmem_ion_alloc_user(memdesc, private, pagetable, size, flags);
-
-	if(ret)
-		return kgsl_sharedmem_page_alloc_user(memdesc, private, pagetable, size, flags);
-
-	return ret;
+	return kgsl_sharedmem_page_alloc_user(memdesc, pagetable, size, flags);
 }
 
 static inline int

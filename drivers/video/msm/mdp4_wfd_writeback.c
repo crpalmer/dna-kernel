@@ -21,7 +21,6 @@
 
 #include "mdp4_wfd_writeback_util.h"
 #include "msm_fb.h"
-#include <mach/msm_rtb_enable.h>
 
 static int writeback_on(struct platform_device *pdev)
 {

@@ -1249,6 +1249,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 			critical_low_enter = 1;
 			/* batt voltage is under critical low condition */
 			
+			/* batt voltage is under critical low condition */
 			pr_info("[BATT] battery level force decreses 6%% from %d%%"
 					" (soc=%d)on critical low (%d mV)\n", prev_level,
 						htc_batt_info.rep.level,

@@ -4771,7 +4771,7 @@ static void __init monarudo_common_init(void)
 	if (system_rev >= XC) {
 		bt_export_bd_address();
 		msm_uart_dm6_pdata.wakeup_irq = PM8921_GPIO_IRQ(PM8921_IRQ_BASE, BT_HOST_WAKE_XC);
-		msm_device_uart_dm6.name = "msm_serial_hs_brcm";
+		msm_device_uart_dm6.name = "msm_serial_hs";
 		msm_device_uart_dm6.dev.platform_data = &msm_uart_dm6_pdata;
 	}
 #endif
@@ -4898,7 +4898,7 @@ static void __init monarudo_cdp_init(void)
 
 	msm_rotator_update_bus_vectors(1920, 1080);
 	monarudo_init_fb();
-	monarudo_init_gpu();
+	apq8064_init_gpu();
 
 	platform_add_devices(apq8064_footswitch, apq8064_num_footswitch);
 #ifdef CONFIG_MSM_CAMERA

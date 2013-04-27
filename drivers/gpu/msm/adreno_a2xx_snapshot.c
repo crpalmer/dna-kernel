@@ -14,7 +14,6 @@
 #include "kgsl.h"
 #include "adreno.h"
 #include "kgsl_snapshot.h"
-#include <mach/msm_rtb_enable.h>
 
 #define DEBUG_SECTION_SZ(_dwords) (((_dwords) * sizeof(unsigned int)) \
 		+ sizeof(struct kgsl_snapshot_debug))

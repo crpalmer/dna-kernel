@@ -22,7 +22,6 @@
 #include "kgsl_device.h"
 #include "kgsl_sharedmem.h"
 #include "kgsl_trace.h"
-#include <mach/msm_rtb_enable.h>
 
 #define KGSL_PAGETABLE_SIZE \
 	ALIGN(KGSL_PAGETABLE_ENTRIES(CONFIG_MSM_KGSL_PAGE_TABLE_SIZE) * \
@@ -552,7 +551,7 @@ static int kgsl_gpummu_start(struct kgsl_mmu *mmu)
 	
 	kgsl_regwrite(device, MH_MMU_CONFIG, mmu->config);
 
-	
+	/* idle device */
 	kgsl_idle(device);
 
 	
@@ -682,7 +681,6 @@ kgsl_gpummu_map(void *mmu_specific_pt,
 
 static void kgsl_gpummu_stop(struct kgsl_mmu *mmu)
 {
-	kgsl_regwrite(mmu->device, MH_MMU_CONFIG, 0x00000000);
 	mmu->flags &= ~KGSL_FLAGS_STARTED;
 }
 

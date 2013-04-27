@@ -32,7 +32,7 @@ static void ddl_get_dec_profile_level(struct ddl_decoder_data *decoder,
 static void ddl_handle_enc_frame_done(struct ddl_client_context *ddl,
 	u32 eos_present);
 static void ddl_handle_slice_done_slice_batch(struct ddl_client_context *ddl);
-static u32 ddl_handle_enc_frame_done_slice_mode(
+static void ddl_handle_enc_frame_done_slice_mode(
 		struct ddl_client_context *ddl, u32 eos_present);
 static void ddl_handle_enc_skipframe_slice_mode(
 		struct ddl_client_context *ddl, u32 eos_present);
@@ -340,10 +340,8 @@ static u32 ddl_decoder_seq_done_callback(struct ddl_context *ddl_context,
 		parse_hdr_crop_data(ddl, &seq_hdr_info);
 		if (decoder->codec.codec == VCD_CODEC_H264 &&
 			seq_hdr_info.level > VIDC_1080P_H264_LEVEL4) {
-/* HTC START */
-			DDL_MSG_HIGH("Warning: H264 LEVEL(%d) > LEVEL4",
+			DDL_MSG_ERROR("WARNING: H264MaxLevelExceeded : %d",
 				seq_hdr_info.level);
-/* HTC END */
 		}
 		ddl_set_default_decoder_buffer_req(decoder, false);
 		if (decoder->header_in_start) {
@@ -493,7 +491,7 @@ static u32 ddl_dpb_buffers_set_done_callback(
 	return ret_status;
 }
 
-static u32 ddl_encoder_frame_run_callback(
+static void ddl_encoder_frame_run_callback(
 	struct ddl_client_context *ddl)
 {
 	struct ddl_context *ddl_context = ddl->ddl_context;
@@ -502,7 +500,6 @@ static u32 ddl_encoder_frame_run_callback(
 	struct vcd_frame_data *output_frame =
 		&(ddl->output_frame.vcd_frm);
 	u32 eos_present = false;
-	u32 status = true;
 
 	DDL_MSG_MED("ddl_encoder_frame_run_callback\n");
 	if (!DDLCLIENT_STATE_IS(ddl, DDL_CLIENT_WAIT_FOR_FRAME_DONE) &&
@@ -535,7 +532,6 @@ static u32 ddl_encoder_frame_run_callback(
 					ddl_handle_enc_skipframe_slice_mode(
 							ddl, eos_present);
 				else
-					status =
 					ddl_handle_enc_frame_done_slice_mode(
 							ddl, eos_present);
 			} else {
@@ -609,8 +605,6 @@ static u32 ddl_encoder_frame_run_callback(
 			ddl->command_channel);
 		}
 	}
-
-	return status;
 }
 
 static void get_dec_status(struct ddl_client_context *ddl,
@@ -827,7 +821,7 @@ static u32 ddl_frame_run_callback(struct ddl_context *ddl_context)
 		if (ddl->cmd_state == DDL_CMD_DECODE_FRAME)
 			return_status = ddl_decoder_frame_run_callback(ddl);
 		else if (ddl->cmd_state == DDL_CMD_ENCODE_FRAME)
-			return_status = ddl_encoder_frame_run_callback(ddl);
+			ddl_encoder_frame_run_callback(ddl);
 		else if (ddl->cmd_state == DDL_CMD_EOS)
 			return_status = ddl_eos_frame_done_callback(ddl);
 		else {
@@ -1034,9 +1028,6 @@ void ddl_read_and_clear_interrupt(void)
 				VIDC_1080P_RISC2HOST_CMD_SLICE_DONE_RET)
 			|| (ddl_hw_response->cmd ==
 				VIDC_1080P_RISC2HOST_CMD_FRAME_DONE_RET))) {
-				vidc_sm_get_num_slices_comp(
-				&ddl->shared_mem[ddl->command_channel],
-				&encoder->num_slices_comp);
 				vidc_sm_set_encoder_slice_batch_int_ctrl(
 				&ddl->shared_mem[ddl->command_channel],
 				1);
@@ -1810,11 +1801,27 @@ static void ddl_handle_slice_done_slice_batch(struct ddl_client_context *ddl)
 		vidc_sm_get_frame_tags(&ddl->shared_mem
 			[ddl->command_channel],
 			&output_frame->ip_frm_tag, &bottom_frame_tag);
-		if (!output_frame->ip_frm_tag) {
-			DDL_MSG_ERROR("%s: zero frame tag rcvd, index = %d",
-				__func__, index);
-			output_frame->ip_frm_tag = (u32)ddl->client_data;
+
+		if (start_bfr_idx == 0) {
+			encoder->batch_frame.first_output_frame_tag =
+				output_frame->ip_frm_tag;
+			DDL_MSG_LOW("%s: first_output_frame_tag[0x%x]",
+				__func__, output_frame->ip_frm_tag);
+			if (!output_frame->ip_frm_tag) {
+				DDL_MSG_ERROR("%s: first_output_frame_tag "\
+					"is zero", __func__);
+			}
 		}
+		if (output_frame->ip_frm_tag !=
+			encoder->batch_frame.first_output_frame_tag) {
+			DDL_MSG_ERROR("%s: output_frame->ip_frm_tag[0x%x] is "\
+				"not equal to the first_output_frame_tag[0x%x]\n",
+				__func__, output_frame->ip_frm_tag,
+				encoder->batch_frame.first_output_frame_tag);
+			output_frame->ip_frm_tag =
+				encoder->batch_frame.first_output_frame_tag;
+		}
+
 		ddl_get_encoded_frame(output_frame,
 				encoder->codec.codec,
 				encoder->enc_frame_info.enc_frame);
@@ -1837,7 +1844,7 @@ static void ddl_handle_slice_done_slice_batch(struct ddl_client_context *ddl)
 			0);
 }
 
-static u32 ddl_handle_enc_frame_done_slice_mode(
+static void ddl_handle_enc_frame_done_slice_mode(
 		struct ddl_client_context *ddl, u32 eos_present)
 {
 	struct ddl_context       *ddl_context = ddl->ddl_context;
@@ -1851,7 +1858,6 @@ static u32 ddl_handle_enc_frame_done_slice_mode(
 	u32 start_bfr_idx = 0;
 	u32 actual_idx = 0;
 	struct vcd_transc *transc;
-	u32 status = true;
 
 	DDL_MSG_LOW("%s\n", __func__);
 	vidc_sm_get_num_slices_comp(
@@ -1877,7 +1883,6 @@ static u32 ddl_handle_enc_frame_done_slice_mode(
 		DDL_MSG_ERROR("ERROR : %d %d\n",
 		encoder->slice_delivery_info.num_slices_enc,
 		encoder->batch_frame.num_output_frames);
-		status = false;
 	}
 	for (index = 0; index < num_slices_comp; index++) {
 		actual_idx =
@@ -1899,11 +1904,27 @@ static u32 ddl_handle_enc_frame_done_slice_mode(
 		vidc_sm_get_frame_tags(&ddl->shared_mem
 			[ddl->command_channel],
 			&output_frame->ip_frm_tag, &bottom_frame_tag);
-		if (!output_frame->ip_frm_tag) {
-			DDL_MSG_ERROR("%s: zero frame tag rcvd, index = %d",
-				__func__, index);
-			output_frame->ip_frm_tag = (u32)ddl->client_data;
+
+		if (start_bfr_idx == 0) {
+			encoder->batch_frame.first_output_frame_tag =
+				output_frame->ip_frm_tag;
+			DDL_MSG_LOW("%s: first_output_frame_tag[0x%x]",
+				__func__, output_frame->ip_frm_tag);
+			if (!output_frame->ip_frm_tag) {
+				DDL_MSG_ERROR("%s: first_output_frame_tag "\
+					"is zero", __func__);
+			}
 		}
+		if (output_frame->ip_frm_tag !=
+			encoder->batch_frame.first_output_frame_tag) {
+			DDL_MSG_ERROR("%s: output_frame->ip_frm_tag[0x%x] is "\
+				"not equal to the first_output_frame_tag[0x%x]\n",
+				__func__, output_frame->ip_frm_tag,
+				encoder->batch_frame.first_output_frame_tag);
+			output_frame->ip_frm_tag =
+				encoder->batch_frame.first_output_frame_tag;
+		}
+
 		ddl_get_encoded_frame(output_frame,
 				encoder->codec.codec,
 				encoder->enc_frame_info.enc_frame);
@@ -1945,8 +1966,6 @@ static u32 ddl_handle_enc_frame_done_slice_mode(
 				sizeof(struct ddl_frame_data_tag),
 				(u32 *) ddl, ddl->client_data);
 	}
-
-	return status;
 }
 
 static void ddl_handle_enc_skipframe_slice_mode(
@@ -1976,9 +1995,8 @@ static void ddl_handle_enc_skipframe_slice_mode(
 				&output_frame->ip_frm_tag,
 				&bottom_frame_tag);
 		if (!output_frame->ip_frm_tag) {
-			DDL_MSG_ERROR("%s: zero frame tag rcvd, index = %d",
-				__func__, index);
-			output_frame->ip_frm_tag = (u32)ddl->client_data;
+			DDL_MSG_ERROR("%s: output frame tag is zero",
+				__func__);
 		}
 		ddl_get_encoded_frame(
 				output_frame,

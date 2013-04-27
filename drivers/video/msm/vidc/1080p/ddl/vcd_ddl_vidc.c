@@ -260,12 +260,6 @@ void ddl_vidc_decode_init_codec(struct ddl_client_context *ddl)
 		vidc_sm_set_mpeg4_profile_override(
 			&ddl->shared_mem[ddl->command_channel],
 			VIDC_SM_PROFILE_INFO_ASP);
-	if (VCD_CODEC_MPEG2 == decoder->codec.codec)
-		vidc_sm_set_mp2datadumpbuffer(
-			&ddl->shared_mem[ddl->command_channel],
-			DDL_ADDR_OFFSET(ddl_context->dram_base_a,
-			ddl->codec_data.decoder.hw_bufs.extnuserdata),
-			DDL_KILO_BYTE(2));
 	if (VCD_CODEC_H264 == decoder->codec.codec)
 		vidc_sm_set_decoder_sei_enable(
 			&ddl->shared_mem[ddl->command_channel],
@@ -873,6 +867,7 @@ void ddl_vidc_encode_slice_batch_run(struct ddl_client_context *ddl)
 	DDL_MEMSET(encoder->batch_frame.slice_batch_in.align_virtual_addr, 0,
 		sizeof(struct vidc_1080p_enc_slice_batch_in_param));
 	encoder->batch_frame.out_frm_next_frmindex = 0;
+	encoder->batch_frame.first_output_frame_tag = 0;
 	bitstream_size = encoder->batch_frame.output_frame[0].vcd_frm.alloc_len;
 	encoder->output_buf_req.sz = bitstream_size;
 	y_addr = DDL_OFFSET(ddl_context->dram_base_b.align_physical_addr,
@@ -965,7 +960,6 @@ void ddl_vidc_encode_slice_batch_run(struct ddl_client_context *ddl)
 		ddl_update_core_start_time(__func__, ENC_SLICE_OP_TIME);
 		ddl_set_core_start_time(__func__, ENC_OP_TIME);
 	}
-	encoder->num_slices_comp = 0;
 	ddl_vidc_encode_set_batch_slice_info(ddl);
 	ddl_context->vidc_encode_slice_batch_start[ddl->command_channel] (
 			&enc_param);

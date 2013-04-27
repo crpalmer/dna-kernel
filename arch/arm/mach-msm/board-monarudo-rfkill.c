@@ -28,6 +28,7 @@
 /* CXO workaround for DLX_XC end */
 
 #include "board-monarudo.h"
+#include "devices.h"
 
 static struct rfkill *bt_rfk;
 static const char bt_name[] = "bcm4334";
@@ -290,6 +291,45 @@ static struct platform_driver monarudo_rfkill_driver = {
 	},
 };
 
+static struct resource bluesleep_resources[] = {
+	{
+		.name	= "gpio_host_wake",
+		.start	= -1,
+		.end	= -1,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "gpio_ext_wake",
+		.start	= -1,
+		.end	= -1,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "host_wake",
+		.start	= -1,
+		.end	= -1,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device msm_bluesleep_device = {
+	.name = "bluesleep_bcm",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(bluesleep_resources),
+	.resource	= bluesleep_resources,
+};
+
+static void gpio_rev_init(void)
+{
+	bluesleep_resources[0].start = PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC);
+	bluesleep_resources[0].end = PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC);
+	bluesleep_resources[1].start = PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC);
+	bluesleep_resources[1].end = PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC);
+	bluesleep_resources[2].start = MSM_GPIO_TO_INT(PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC));
+	bluesleep_resources[2].end = MSM_GPIO_TO_INT(PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC));
+}
+
+extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
 static int __init monarudo_rfkill_init(void)
 {
 	if (system_rev < XC) {
@@ -304,6 +344,9 @@ static int __init monarudo_rfkill_init(void)
 		}
 	}
 /* CXO workaround for DLX_XC end*/
+	gpio_rev_init();
+	platform_device_register(&msm_bluesleep_device);
+	bluesleep_setup_uart_port(&msm_device_uart_dm6);
 	return platform_driver_register(&monarudo_rfkill_driver);
 }
 
@@ -313,6 +356,7 @@ static void __exit monarudo_rfkill_exit(void)
 	if(system_rev == XC)
 		 msm_xo_put(xo_handle);
 /* CXO workaround for DLX_XC end*/
+	platform_device_unregister(&msm_bluesleep_device);
 	platform_driver_unregister(&monarudo_rfkill_driver);
 }
 

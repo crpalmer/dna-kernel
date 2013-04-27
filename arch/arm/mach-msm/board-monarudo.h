@@ -299,7 +299,7 @@ void monarudo_init_fb(void);
 void monarudo_allocate_fb_region(void);
 void monarudo_mdp_writeback(struct memtype_reserve *reserve_table);
 
-void monarudo_init_gpu(void);
+void apq8064_init_gpu(void);
 void monarudo_pm8xxx_gpio_mpp_init(void);
 void monarudo_usb_uart_switch(int nvbus);
 

@@ -53,7 +53,7 @@
 #define MDP_PRIM_VSYNC_OUT_CTRL	0x318
 #define MDP_PRIM_VSYNC_INIT_VAL	0x328
 #endif
-#include <mach/msm_rtb_enable.h>
+
 extern mddi_lcd_type mddi_lcd_idx;
 extern spinlock_t mdp_spin_lock;
 extern struct workqueue_struct *mdp_vsync_wq;

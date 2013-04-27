@@ -32,7 +32,6 @@
 
 #include "msm_fb.h"
 #include "mdp4.h"
-#include <mach/msm_rtb_enable.h>
 
 static int dtv_probe(struct platform_device *pdev);
 static int dtv_remove(struct platform_device *pdev);

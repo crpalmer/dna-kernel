@@ -16,4 +16,3 @@
 
 #define CREATE_TRACE_POINTS
 #include "adreno_a2xx_trace.h"
-#include <mach/msm_rtb_enable.h>

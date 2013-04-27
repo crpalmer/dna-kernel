@@ -98,6 +98,11 @@ struct kgsl_iommu_unit {
  * @clk_event_queued: Indicates whether an event to disable clocks
  * is already queued or not
  * @device: Pointer to kgsl device
+ * @sync_lock_vars: Pointer to the IOMMU spinlock for serializing access to the
+ * IOMMU registers
+ * @sync_lock_desc: GPU Memory descriptor for the memory containing the
+ * spinlocks
+ * @sync_lock_initialized: True if the sync_lock feature is enabled
  */
 struct kgsl_iommu {
 	struct kgsl_iommu_unit iommu_units[KGSL_IOMMU_MAX_UNITS];
