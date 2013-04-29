@@ -1,6 +1,7 @@
 CROSS_COMPILE="ccache /opt/toolchains/linaro-4.7/bin/arm-eabi-"
 HOST_CC="ccache gcc"
 LOCAL_BUILD_DIR=dna
+INITRD_FROM=dna/boot.img
 TARGET_DIR=~/dna/updates
 SYSTEM_PARTITION="/dev/block/mmcblk0p32"
 DEFCONFIG=crpalmer_defconfig
@@ -10,7 +11,7 @@ FLASH_BOOT='package_extract_file("boot.img", "/tmp/boot.img"), write_raw_image("
 # ----
 
 N_CORES=4
-VERSION=crpalmer-cm
+VERSION=crpalmer-cm-exp
 
 # ----
 
