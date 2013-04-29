@@ -533,12 +533,17 @@ struct platform_device apq_cpudai_hdmi_rx = {
 
 struct platform_device apq_cpudai_bt_rx = {
 	.name   = "msm-dai-q6",
-	.id     = 0x3000,
+	.id     = INT_BT_SCO_RX,
 };
 
 struct platform_device apq_cpudai_bt_tx = {
 	.name   = "msm-dai-q6",
-	.id     = 0x3001,
+	.id     = INT_BT_SCO_TX,
+};
+
+struct platform_device apq_cpudai_bt_a2dp_rx = {
+	.name   = "msm-dai-q6",
+	.id     = INT_BT_A2DP_RX,
 };
 
 struct platform_device apq_cpudai_fm_rx = {
