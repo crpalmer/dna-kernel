@@ -1827,6 +1827,7 @@ int binder_thread_write(struct binder_proc *proc, struct binder_thread *thread,
 			uint32_t target;
 			struct binder_ref *ref;
 			const char *debug_string;
+			bool has_context_mgr = binder_context_mgr_node != NULL;
 
 			if (get_user(target, (uint32_t __user *)ptr))
 				return -EFAULT;
@@ -1849,7 +1850,8 @@ int binder_thread_write(struct binder_proc *proc, struct binder_thread *thread,
 				binder_user_error("binder: %d:%d refcou"
 					"nt change on invalid ref %d\n",
 					proc->pid, thread->pid, target);
-				break;
+				if (! has_context_mgr) return -EAGAIN;
+				else break;
 			}
 			switch (cmd) {
 			case BC_INCREFS:
@@ -2689,6 +2691,7 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case BINDER_WRITE_READ: {
 		struct binder_write_read bwr;
+
 		if (size != sizeof(struct binder_write_read)) {
 			ret = -EINVAL;
 			goto err;
