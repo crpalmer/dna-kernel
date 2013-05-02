@@ -25,9 +25,9 @@
 #include <linux/cpufreq.h>
 
 #define SIMPLE_PLUG_MAJOR_VERSION	1
-#define SIMPLE_PLUG_MINOR_VERSION	1
+#define SIMPLE_PLUG_MINOR_VERSION	2
 
-#define STARTUP_DELAY_MS		5000
+#define STARTUP_DELAY_MS		100000
 #define DEF_SAMPLING_MS			10
 #define DEF_VERIFY_MS			120000	/* 3 mins on average to fix */
 #define HISTORY_SIZE			10
@@ -60,8 +60,8 @@ static unsigned int nr_last_i;
  * first invocation, this replaces the need for special startup checking
  * of cores.
  */
-static unsigned int n_until_verify;
-static bool verify_needed = false;
+static unsigned int n_until_verify = 1;
+static bool verify_needed = true;
 static unsigned int n_online;
 
 module_param(simple_plug_active, uint, 0644);
@@ -285,6 +285,13 @@ static int __init simple_plug_init(void)
 	 * is initialized, it will crash.  The race window seems to be in the
 	 * order 10s of ms, so 5 seconds gives tons of time for it to
 	 * resolve itself.
+	 *
+	 * In addition to the need for this hack, let's let the system get
+	 * itself booted up as quickly as possible.  Instead of trying to
+	 * plug/unplug as we boot, wait long enough for the system to
+	 * stabilize.
+	 *
+	 * We will then immediately force the state that we want onto the system.
 	 */
 	
 	INIT_DELAYED_WORK(&simple_plug_work, simple_plug_work_fn);
