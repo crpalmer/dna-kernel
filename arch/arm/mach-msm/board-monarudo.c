@@ -2890,7 +2890,8 @@ static struct cm3629_platform_data cm36282_pdata = {
 	.model = CAPELLA_CM36282,
 	.ps_select = CM3629_PS1_ONLY,
 	.intr = PM8921_GPIO_PM_TO_SYS(PROXIMITY_INT),
-	.levels = { 1, 3, 33, 929, 1440, 5614, 8553, 12415, 16278, 65535},
+	//.levels = { 1, 3, 33, 929, 1440, 5614, 8553, 12415, 16278, 65535},
+	.levels = { 0x21, 0x3a1, 0x5a0, 0x15ee, 0x2169, 0x307f, 0x3f96, 0x63d3, 0xae13, 0xffff },
 	.golden_adc = 0x1900,
 	.power = NULL,
 	.cm3629_slave_address = 0xC0>>1,
@@ -4857,11 +4858,6 @@ static void __init monarudo_common_init(void)
 	headset_device_register();
 
 	monarudo_init_keypad();
-
-	if (get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) {
-		htc_monitor_init();
-		htc_pm_monitor_init();
-	}
 
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
 	pm_qos_add_request(&pm_qos_req_dma, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);

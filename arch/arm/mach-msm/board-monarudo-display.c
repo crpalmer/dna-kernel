@@ -971,12 +971,13 @@ static void monarudo_display_off(struct msm_fb_data_type *mfd)
 	PR_DISP_INFO("%s\n", __func__);
 }
 
-#define PWM_MIN                   13
-#define PWM_DEFAULT               82
+
+#define PWM_MIN                   6
+#define PWM_DEFAULT               102
 #define PWM_MAX                   255
 
 #define BRI_SETTING_MIN                 30
-#define BRI_SETTING_DEF                 142
+#define BRI_SETTING_DEF                 143
 #define BRI_SETTING_MAX                 255
 
 static unsigned char monarudo_shrink_pwm(int val)
