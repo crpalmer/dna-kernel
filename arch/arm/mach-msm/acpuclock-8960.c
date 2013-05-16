@@ -1730,7 +1730,7 @@ unsigned long acpuclk_8960_power_collapse(void)
 	return rate;
 }
 
-static enum pvs __init get_pvs(void)
+static enum pvs get_pvs(void)
 {
 	uint32_t pte_efuse, pvs;
 	unsigned int kernel_flag = get_kernel_flag();
@@ -1773,6 +1773,17 @@ static enum pvs __init get_pvs(void)
 	default:
 		pr_warn("ACPU PVS: Unknown. Defaulting to slow\n");
 		return PVS_SLOW;
+	}
+}
+
+const char *acpuclk_8960_get_pvs_string(void)
+{
+	switch(get_pvs()) {
+	case PVS_SLOW: return "slow";
+	case PVS_NOM: return "nom";
+	case PVS_FAST: return "fast";
+	case PVS_FASTER: return "faster";
+	default: return "unknown";
 	}
 }
 
