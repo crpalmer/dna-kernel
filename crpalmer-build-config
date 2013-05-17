@@ -11,7 +11,7 @@ FLASH_BOOT='package_extract_file("boot.img", "/tmp/boot.img"), write_raw_image("
 # ----
 
 N_CORES=4
-VERSION=crpalmer-2.0.23-cm1
+VERSION=crpalmer-2.0.24-cm1
 
 # ----
 
