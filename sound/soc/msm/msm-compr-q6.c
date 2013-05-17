@@ -27,6 +27,7 @@
 #include <sound/control.h>
 #include <sound/q6asm.h>
 #include <sound/q6adm.h>
+#include <sound/pcm_params.h>
 #include <asm/dma.h>
 #include <linux/dma-mapping.h>
 #include <linux/android_pmem.h>
@@ -99,11 +100,11 @@ static struct snd_pcm_hardware msm_compr_hardware_playback = {
 	.rate_max =	     48000,
 	.channels_min =	 1,
 	.channels_max =	 2,
-	.buffer_bytes_max =     2 * 1024 * 1024,
-	.period_bytes_min =	8 * 1024,
-	.period_bytes_max =     1024 * 1024,
-	.periods_min =	  2,
-	.periods_max =	  256,
+	.buffer_bytes_max =     1024 * 1024,
+	.period_bytes_min =	128 * 1024,
+	.period_bytes_max =     256 * 1024,
+	.periods_min =	  4,
+	.periods_max =	  8,
 	.fifo_size =	    0,
 };
 
@@ -928,7 +929,17 @@ static int msm_compr_hw_params(struct snd_pcm_substream *substream,
 		pr_err("[%p] %s: Set IO mode failed\n", prtd, __func__);
 		return -ENOMEM;
 	}
-
+	/* Modifying kernel hardware params based on userspace config */
+	if (params_periods(params) > 0 &&
+		(params_periods(params) != runtime->hw.periods_max)) {
+		runtime->hw.periods_max = params_periods(params);
+	}
+	if (params_period_bytes(params) > 0 &&
+		(params_period_bytes(params) != runtime->hw.period_bytes_min)) {
+		runtime->hw.period_bytes_min = params_period_bytes(params);
+	}
+	runtime->hw.buffer_bytes_max =
+			runtime->hw.period_bytes_min * runtime->hw.periods_max;
 	ret = q6asm_audio_client_buf_alloc_contiguous(dir,
 			prtd->audio_client,
 			runtime->hw.period_bytes_min,
