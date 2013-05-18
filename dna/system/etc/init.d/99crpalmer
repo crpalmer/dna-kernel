@@ -1,0 +1,10 @@
+#!/system/bin/sh
+
+if grep crpalmer /proc/version > /dev/null
+then
+   echo "** crpalmer's boot configuration:"
+   stop mpdecision
+   stop thermald
+else
+   echo "!! crpalmer's boot configuration not running, this isn't my kernel !!"
+fi
