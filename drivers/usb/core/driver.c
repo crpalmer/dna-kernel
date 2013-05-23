@@ -1756,7 +1756,7 @@ static int autosuspend_check(struct usb_device *udev)
 			if (intf->dev.power.disable_depth)
 				continue;
 			if (atomic_read(&intf->dev.power.usage_count) > 0) {
-				dev_info(&intf->dev, "%s: EBUSY, cnt %d\n",
+				dev_dbg(&intf->dev, "%s: EBUSY, cnt %d\n",
 				__func__, atomic_read(&intf->dev.power.usage_count));
 				return -EBUSY;
 			}
@@ -1800,7 +1800,7 @@ int usb_runtime_suspend(struct device *dev)
 	ret = autosuspend_check(udev);
 	/* --SSD_RIL */
 	if (ret != 0) {
-		dev_info(dev, "%s : autosuspend_check ret %d\n", __func__, ret);
+		dev_dbg(dev, "%s : autosuspend_check ret %d\n", __func__, ret);
 		return -EAGAIN;
 	}
 	status = usb_suspend_both(udev, PMSG_AUTO_SUSPEND);
