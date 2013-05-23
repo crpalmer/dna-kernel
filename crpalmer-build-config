@@ -5,6 +5,7 @@ TARGET_DIR=~/dna/updates
 SYSTEM_PARTITION="/dev/block/mmcblk0p32"
 DEFCONFIG=crpalmer_defconfig
 FLASH_BOOT='write_raw_image("/tmp/boot.img", "boot")'
+INITRD=dna/initrd.img
 
 # ----
 
