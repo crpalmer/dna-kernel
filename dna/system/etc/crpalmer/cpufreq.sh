@@ -28,6 +28,21 @@ do
    fi
 done
 
+Fgov=$F"governor"
+if [ -r "$Fgov" ]
+then
+    did_anything="yes"
+    cpugov=`head -1 $Fgov`
+    for cpu in 0 1 2 3
+    do
+	echo "Setting governor to $cpugov"
+	echo "$cpugov" > $SYS$cpu/cpufreq/scaling_governor
+	cat $SYS$cpu/cpufreq/scaling_governor
+    done
+else
+    echo "Not changing the governor"
+fi
+
 # On stock-based ROMs, HTC overrides the minimum clock
 # speed in a boot complete hook which is obnoxiou and
 # so we will just lock down the cpufreq entirely.
