@@ -1,4 +1,4 @@
-CROSS_COMPILE="/opt/toolchains/linaro-4.8/bin/arm-eabi-"
+CROSS_COMPILE="ccache /opt/toolchains/linaro-4.8/bin/arm-eabi-"
 HOST_CC=gcc
 LOCAL_BUILD_DIR=dna
 TARGET_DIR=~/dna/updates
