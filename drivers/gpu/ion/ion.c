@@ -324,7 +324,6 @@ static struct ion_handle *ion_handle_create(struct ion_client *client,
 
 static void ion_handle_kmap_put(struct ion_handle *);
 
-/* Client lock must be locked when calling */
 static void ion_handle_destroy(struct kref *kref)
 {
 	struct ion_handle *handle = container_of(kref, struct ion_handle, ref);
@@ -1030,9 +1029,7 @@ void ion_client_destroy(struct ion_client *client)
 	while ((n = rb_first(&client->handles))) {
 		struct ion_handle *handle = rb_entry(n, struct ion_handle,
 						     node);
-		mutex_lock(&client->lock);
 		ion_handle_destroy(&handle->ref);
-		mutex_unlock(&client->lock);
 	}
 	mutex_lock(&dev->lock);
 	if (client->task)
