@@ -1032,10 +1032,6 @@ static int usb_suspend_device(struct usb_device *udev, pm_message_t msg)
 
  done:
 	dev_dbg(&udev->dev, "%s: status %d\n", __func__, status);
-	/* ++SSD_RIL */
-	if (status != 0)
-		dev_info(&udev->dev, "%s: status %d\n", __func__, status);
-	/* --SSD_RIL */
 	return status;
 }
 
