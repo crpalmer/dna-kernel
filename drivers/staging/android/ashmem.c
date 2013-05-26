@@ -135,12 +135,8 @@ static int range_alloc(struct ashmem_area *asma,
 	struct ashmem_range *range;
 
 	range = kmem_cache_zalloc(ashmem_range_cachep, GFP_KERNEL);
-	if (unlikely(!range)) {
-		printk(KERN_INFO "ashmem: %s failed on %s(%d)\n", __func__, current->comm, current->pid);
-		show_mem(SHOW_MEM_FILTER_NODES);
-		dump_stack();
+	if (unlikely(!range))
 		return -ENOMEM;
-	}
 
 	range->asma = asma;
 	range->pgstart = start;
@@ -190,12 +186,8 @@ static int ashmem_open(struct inode *inode, struct file *file)
 		return ret;
 
 	asma = kmem_cache_zalloc(ashmem_area_cachep, GFP_KERNEL);
-	if (unlikely(!asma)) {
-		printk(KERN_INFO "ashmem: %s failed on %s(%d)\n", __func__, current->comm, current->pid);
-		show_mem(SHOW_MEM_FILTER_NODES);
-		dump_stack();
+	if (unlikely(!asma))
 		return -ENOMEM;
-	}
 
 	INIT_LIST_HEAD(&asma->unpinned_list);
 	memcpy(asma->name, ASHMEM_NAME_PREFIX, ASHMEM_NAME_PREFIX_LEN);
@@ -365,10 +357,7 @@ static int ashmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	if (!sc->nr_to_scan)
 		return lru_count;
 
-	/* If our mutex is held, we are recursing into ourselves, so bail out */
-	if (!mutex_trylock(&ashmem_mutex)) {
-                return -1;
-	}
+	mutex_lock(&ashmem_mutex);
 	list_for_each_entry_safe(range, next, &ashmem_lru_list, lru) {
 		struct inode *inode = range->asma->file->f_dentry->d_inode;
 		loff_t start = range->pgstart * PAGE_SIZE;
