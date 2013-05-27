@@ -68,8 +68,8 @@
 #define MTP_RESPONSE_DEVICE_BUSY    0x2019
 
 static int htc_mtp_performance_debug;
-static int mtp_qos;
 #ifdef CONFIG_PERFLOCK
+static int mtp_qos;
 #include <mach/perflock.h>
 #endif
 
@@ -1033,6 +1033,7 @@ static long mtp_ioctl(struct file *fp, unsigned code, unsigned long value)
 			ret = mtp_send_event(dev, &event);
 		goto out;
 		}
+#ifdef CONFIG_PERFLOCK
 		case MTP_SET_CPU_PERF:
 		{
 			if (value > 0) {
@@ -1041,6 +1042,7 @@ static long mtp_ioctl(struct file *fp, unsigned code, unsigned long value)
 			}
 			break;
 	}
+#endif
 	}
 
 fail:
