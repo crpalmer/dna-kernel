@@ -10,7 +10,7 @@ INITRD=dna/initrd.img
 # ----
 
 N_CORES=4
-VERSION=crpalmer-2.0.27
+VERSION=crpalmer-2.0.28
 
 # ----
 
