@@ -1033,6 +1033,7 @@ static long mtp_ioctl(struct file *fp, unsigned code, unsigned long value)
 			ret = mtp_send_event(dev, &event);
 		goto out;
 		}
+#ifdef CONFIG_PERFLOCK
 		case MTP_SET_CPU_PERF:
 		{
 			if (value > 0) {
@@ -1043,6 +1044,7 @@ static long mtp_ioctl(struct file *fp, unsigned code, unsigned long value)
 			}
 			break;
 	}
+#endif
 	}
 
 fail:
