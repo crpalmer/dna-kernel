@@ -1218,6 +1218,16 @@ static struct htc_battery_cell htc_battery_cells[] = {
 };
 #endif /* CONFIG_HTC_BATT_8960 */
 
+#define _GET_REGULATOR(var, name) do {                          \
+        var = regulator_get(NULL, name);                        \
+        if (IS_ERR(var)) {                                      \
+                pr_err("'%s' regulator not found, rc=%ld\n",    \
+                        name, IS_ERR(var));                     \
+                var = NULL;                                     \
+                return -ENODEV;                                 \
+        }                                                       \
+} while (0)
+
 #ifdef CONFIG_FB_MSM_HDMI_MHL
 static struct pm8xxx_gpio_init switch_to_usb_pmic_gpio_table[] = {
         PM8XXX_GPIO_INIT(AUDIOz_MHL_SW, PM_GPIO_DIR_OUT,
@@ -1313,16 +1323,6 @@ static void monarudo_usb_dpdn_switch(int path)
 static struct regulator *reg_8921_l12;
 static struct regulator *reg_8921_s4;
 static struct regulator *reg_8921_l11;
-
-#define _GET_REGULATOR(var, name) do {				\
-	var = regulator_get(NULL, name);			\
-	if (IS_ERR(var)) {					\
-		pr_err("'%s' regulator not found, rc=%ld\n",	\
-			name, IS_ERR(var));			\
-		var = NULL;					\
-		return -ENODEV;					\
-	}							\
-} while (0)
 
 uint32_t msm_hdmi_off_gpio[] = {
         GPIO_CFG(HDMI_DDC_CLK,  0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),

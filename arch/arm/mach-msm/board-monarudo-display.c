@@ -817,7 +817,7 @@ static struct dsi_cmd_desc sharp_video_on_cmds[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_control_display), write_control_display},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(CABC), CABC},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(TE_OUT), TE_OUT},
-	//{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
+	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(exit_sleep), exit_sleep},
 };
 
@@ -1005,9 +1005,12 @@ static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
 {
 	int rc;
 
+/*
 	if (mdp4_overlay_dsi_state_get() <= ST_DSI_SUSPEND) {
 		return;
 	}
+*/
+
 	write_display_brightness[2] = monarudo_shrink_pwm((unsigned char)(mfd->bl_level));
 
 	if (resume_blk) {

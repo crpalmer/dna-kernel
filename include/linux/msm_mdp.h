@@ -1,7 +1,7 @@
 /* include/linux/msm_mdp.h
  *
  * Copyright (C) 2007 Google Incorporated
- * Copyright (c) 2012 Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -31,8 +31,6 @@
 #define MSMFB_SET_CCS_MATRIX  _IOW(MSMFB_IOCTL_MAGIC, 134, struct mdp_ccs)
 #define MSMFB_OVERLAY_SET       _IOWR(MSMFB_IOCTL_MAGIC, 135, \
 						struct mdp_overlay)
-#define MSMFB_OVERLAY_SET_VERIZON_HTC       _IOWR(MSMFB_IOCTL_MAGIC, 135, \
-						struct mdp_overlay_verizon_htc)
 #define MSMFB_OVERLAY_UNSET     _IOW(MSMFB_IOCTL_MAGIC, 136, unsigned int)
 
 #define MSMFB_OVERLAY_PLAY      _IOW(MSMFB_IOCTL_MAGIC, 137, \
@@ -73,9 +71,11 @@
 #define MSMFB_OVERLAY_VSYNC_CTRL _IOW(MSMFB_IOCTL_MAGIC, 160, unsigned int)
 #define MSMFB_VSYNC_CTRL  _IOW(MSMFB_IOCTL_MAGIC, 161, unsigned int)
 #define MSMFB_BUFFER_SYNC  _IOW(MSMFB_IOCTL_MAGIC, 162, struct mdp_buf_sync)
-
 #define MSMFB_DISPLAY_COMMIT      _IOW(MSMFB_IOCTL_MAGIC, 164, \
 						struct mdp_display_commit)
+#define MSMFB_WRITEBACK_SET_MIRRORING_HINT _IOW(MSMFB_IOCTL_MAGIC, 165, \
+						unsigned int)
+#define MSMFB_METADATA_GET  _IOW(MSMFB_IOCTL_MAGIC, 166, struct msmfb_metadata)
 
 #define FB_TYPE_3D_PANEL 0x10101010
 #define MDP_IMGTYPE2_START 0x10000
@@ -333,31 +333,6 @@ struct mdp_overlay {
 	struct mdp_overlay_pp_params overlay_pp_cfg;
 };
 
-struct dpp_ctrl {
-	/*
-	 *'sharp_strength' has inputs = -128 <-> 127
-	 *  Increasingly positive values correlate with increasingly sharper
-	 *  picture. Increasingly negative values correlate with increasingly
-	 *  smoothed picture.
-	 */
-	int8_t sharp_strength;
-	int8_t hsic_params[NUM_HSIC_PARAM];
-};
-
-struct mdp_overlay_verizon_htc {
-	struct msmfb_img src;
-	struct mdp_rect src_rect;
-	struct mdp_rect dst_rect;
-	uint32_t z_order;	/* stage number */
-	uint32_t is_fg;		/* control alpha & transp */
-	uint32_t alpha;
-	uint32_t transp_mask;
-	uint32_t flags;
-	uint32_t id;
-	uint32_t user_data[8];
-	struct dpp_ctrl dpp;
-};
-
 struct msmfb_overlay_3d {
 	uint32_t is_3d;
 	uint32_t width;
@@ -384,11 +359,14 @@ struct mdp_histogram {
 
 /*
 
-	mdp_block_type defines the identifiers for each of pipes in MDP 4.3
+	mdp_block_type defines the identifiers for pipes in MDP 4.3 and up
 
 	MDP_BLOCK_RESERVED is provided for backward compatibility and is
 	deprecated. It corresponds to DMA_P. So MDP_BLOCK_DMA_P should be used
 	instead.
+
+	MDP_LOGICAL_BLOCK_DISP_0 identifies the display pipe which fb0 uses,
+	same for others.
 
 */
 
@@ -404,6 +382,9 @@ enum {
 	MDP_BLOCK_DMA_S,
 	MDP_BLOCK_DMA_E,
 	MDP_BLOCK_OVERLAY_2,
+	MDP_LOGICAL_BLOCK_DISP_0 = 0x1000,
+	MDP_LOGICAL_BLOCK_DISP_1,
+	MDP_LOGICAL_BLOCK_DISP_2,
 	MDP_BLOCK_MAX,
 };
 
@@ -516,6 +497,26 @@ struct msmfb_mdp_pp {
 	} data;
 };
 
+enum {
+	metadata_op_none,
+	metadata_op_base_blend,
+	metadata_op_frame_rate,
+	metadata_op_max
+};
+
+struct mdp_blend_cfg {
+	uint32_t is_premultiplied;
+};
+
+struct msmfb_metadata {
+	uint32_t op;
+	uint32_t flags;
+	union {
+		struct mdp_blend_cfg blend_cfg;
+		uint32_t panel_frame_rate;
+	} data;
+};
+
 #define MDP_MAX_FENCE_FD	10
 #define MDP_BUF_SYNC_FLAG_WAIT	1
 
@@ -539,7 +540,6 @@ struct mdp_display_commit {
 	uint32_t flags;
 	uint32_t wait_for_finish;
 	struct fb_var_screeninfo var;
-	struct mdp_buf_fence buf_fence;
 };
 
 struct mdp_page_protection {
@@ -555,7 +555,7 @@ struct mdp_mixer_info {
 	int z_order;
 };
 
-#define MAX_PIPE_PER_MIXER  5
+#define MAX_PIPE_PER_MIXER  4
 
 struct msmfb_mixer_info_req {
 	int mixer_num;
@@ -566,6 +566,13 @@ struct msmfb_mixer_info_req {
 enum {
 	DISPLAY_SUBSYSTEM_ID,
 	ROTATOR_SUBSYSTEM_ID,
+};
+
+enum {
+	MDP_WRITEBACK_MIRROR_OFF,
+	MDP_WRITEBACK_MIRROR_ON,
+	MDP_WRITEBACK_MIRROR_PAUSE,
+	MDP_WRITEBACK_MIRROR_RESUME,
 };
 
 #ifdef __KERNEL__
