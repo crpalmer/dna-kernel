@@ -25,14 +25,6 @@ enum {
 	PLL_END,
 };
 
-/**
- * struct pll_shared_clk -  PLL shared with other processors without
- * any HW voting
- * @id: PLL ID
- * @mode_reg: enable register
- * @parent: clock source
- * @c: clock
- */
 struct pll_shared_clk {
 	unsigned int id;
 	void __iomem *const mode_reg;
@@ -47,22 +39,8 @@ static inline struct pll_shared_clk *to_pll_shared_clk(struct clk *c)
 	return container_of(c, struct pll_shared_clk, c);
 }
 
-/**
- * msm_shared_pll_control_init() - Initialize shared pll control structure
- */
 void msm_shared_pll_control_init(void);
 
-/**
- * struct pll_vote_clk - phase locked loop (HW voteable)
- * @soft_vote: soft voting variable for multiple PLL software instances
- * @soft_vote_mask: soft voting mask for multiple PLL software instances
- * @en_reg: enable register
- * @en_mask: ORed with @en_reg to enable the clock
- * @status_mask: ANDed with @status_reg to determine if PLL is active.
- * @status_reg: status register
- * @parent: clock source
- * @c: clock
- */
 struct pll_vote_clk {
 	u32 *soft_vote;
 	const u32 soft_vote_mask;
@@ -83,14 +61,6 @@ static inline struct pll_vote_clk *to_pll_vote_clk(struct clk *c)
 	return container_of(c, struct pll_vote_clk, c);
 }
 
-/**
- * struct pll_clk - phase locked loop
- * @mode_reg: enable register
- * @status_reg: status register, contains the lock detection bit
- * @parent: clock source
- * @c: clk
- * @base: pointer to base address of ioremapped registers.
- */
 struct pll_clk {
 	void __iomem *const mode_reg;
 	void __iomem *const status_reg;
@@ -108,11 +78,8 @@ static inline struct pll_clk *to_pll_clk(struct clk *c)
 }
 
 int sr_pll_clk_enable(struct clk *c);
-int msm8974_pll_clk_enable(struct clk *c);
+int sr_hpm_lp_pll_clk_enable(struct clk *c);
 
-/*
- * PLL vote clock APIs
- */
 int pll_vote_clk_enable(struct clk *c);
 void pll_vote_clk_disable(struct clk *c);
 struct clk *pll_vote_clk_get_parent(struct clk *c);
@@ -143,6 +110,8 @@ struct pll_config_regs {
 	void *const __iomem *base;
 };
 
-void __init configure_pll(struct pll_config *, struct pll_config_regs *, u32);
-
+void configure_sr_pll(struct pll_config *config, struct pll_config_regs *regs,
+				u32 ena_fsm_mode);
+void configure_sr_hpm_lp_pll(struct pll_config *config,
+				struct pll_config_regs *, u32 ena_fsm_mode);
 #endif

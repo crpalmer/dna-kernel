@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -116,6 +116,11 @@ struct msm_iommu_ctx_drvdata {
 	unsigned int nsid;
 };
 
+/*
+ * Interrupt handler for the IOMMU context fault interrupt. Hooking the
+ * interrupt is not supported in the API yet, but this will print an error
+ * message and dump useful IOMMU registers.
+ */
 irqreturn_t msm_iommu_fault_handler(int irq, void *dev_id);
 irqreturn_t msm_iommu_fault_handler_v2(int irq, void *dev_id);
 
@@ -173,6 +178,11 @@ void msm_iommu_remote_p0_spin_unlock(void);
 	} while (0)
 
 #ifdef CONFIG_MSM_IOMMU
+/*
+ * Look up an IOMMU context device by its context name. NULL if none found.
+ * Useful for testing and drivers that do not yet fully have IOMMU stuff in
+ * their platform devices.
+ */
 struct device *msm_iommu_get_ctx(const char *ctx_name);
 #else
 static inline struct device *msm_iommu_get_ctx(const char *ctx_name)

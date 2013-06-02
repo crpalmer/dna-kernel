@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -836,8 +836,10 @@ static u32 ddl_set_enc_property(struct ddl_client_context *ddl,
 			property_hdr->sz &&
 			((buffer_format->buffer_format ==
 			VCD_BUFFER_FORMAT_NV12_16M2KA) ||
-			(VCD_BUFFER_FORMAT_TILE_4x2 ==
-			buffer_format->buffer_format))) {
+			(buffer_format->buffer_format ==
+			VCD_BUFFER_FORMAT_TILE_4x2) ||
+			(buffer_format->buffer_format ==
+			VCD_BUFFER_FORMAT_NV21_16M2KA))) {
 			if (buffer_format->buffer_format !=
 				encoder->buf_format.buffer_format) {
 				encoder->buf_format = *buffer_format;
@@ -1047,6 +1049,34 @@ static u32 ddl_set_enc_property(struct ddl_client_context *ddl,
 	case VCD_REQ_PERF_LEVEL:
 		vcd_status = VCD_S_SUCCESS;
 		break;
+	case VCD_I_ENABLE_DELIMITER_FLAG:
+	{
+		struct vcd_property_avc_delimiter_enable *delimiter_enable =
+			(struct vcd_property_avc_delimiter_enable *)
+				property_value;
+		if (sizeof(struct vcd_property_avc_delimiter_enable) ==
+			property_hdr->sz &&
+			encoder->codec.codec == VCD_CODEC_H264) {
+			encoder->avc_delimiter_enable =
+			delimiter_enable->avc_delimiter_enable_flag;
+			vcd_status = VCD_S_SUCCESS;
+		}
+		break;
+	}
+	case VCD_I_ENABLE_VUI_TIMING_INFO:
+	{
+		struct vcd_property_vui_timing_info_enable *vui_timing_enable =
+			(struct vcd_property_vui_timing_info_enable *)
+				property_value;
+		if (sizeof(struct vcd_property_vui_timing_info_enable) ==
+			property_hdr->sz &&
+			encoder->codec.codec == VCD_CODEC_H264) {
+			encoder->vui_timinginfo_enable =
+			vui_timing_enable->vui_timing_info;
+			vcd_status = VCD_S_SUCCESS;
+		}
+		break;
+	}
 	default:
 		DDL_MSG_ERROR("INVALID ID %d\n", (int)property_hdr->prop_id);
 		vcd_status = VCD_ERR_ILLEGAL_OP;
@@ -1530,6 +1560,24 @@ static u32 ddl_get_enc_property(struct ddl_client_context *ddl,
 			vcd_status = VCD_S_SUCCESS;
 		}
 		break;
+	case VCD_I_ENABLE_DELIMITER_FLAG:
+		if (sizeof(struct vcd_property_avc_delimiter_enable) ==
+			property_hdr->sz) {
+			((struct vcd_property_avc_delimiter_enable *)
+				property_value)->avc_delimiter_enable_flag =
+					encoder->avc_delimiter_enable;
+			vcd_status = VCD_S_SUCCESS;
+		}
+		break;
+	case VCD_I_ENABLE_VUI_TIMING_INFO:
+		if (sizeof(struct vcd_property_vui_timing_info_enable) ==
+			property_hdr->sz) {
+			((struct vcd_property_vui_timing_info_enable *)
+				property_value)->vui_timing_info =
+					encoder->vui_timinginfo_enable;
+			vcd_status = VCD_S_SUCCESS;
+		}
+		break;
 	default:
 		vcd_status = VCD_ERR_ILLEGAL_OP;
 		break;
@@ -1691,6 +1739,8 @@ static void ddl_set_default_enc_property(struct ddl_client_context *ddl)
 	encoder->slice_delivery_info.enable = 0;
 	encoder->slice_delivery_info.num_slices = 0;
 	encoder->slice_delivery_info.num_slices_enc = 0;
+	encoder->avc_delimiter_enable = 0;
+	encoder->vui_timinginfo_enable = 0;
 }
 
 static void ddl_set_default_enc_profile(struct ddl_encoder_data *encoder)
@@ -1827,12 +1877,14 @@ void ddl_set_default_encoder_buffer_req(struct ddl_encoder_data *encoder)
 		encoder->input_buf_req.min_count;
 	encoder->input_buf_req.max_count    = DDL_MAX_BUFFER_COUNT;
 	encoder->input_buf_req.sz = y_cb_cr_size;
-	if (encoder->buf_format.buffer_format ==
-		VCD_BUFFER_FORMAT_NV12_16M2KA)
+	if ((encoder->buf_format.buffer_format ==
+		VCD_BUFFER_FORMAT_NV12_16M2KA) ||
+		(encoder->buf_format.buffer_format ==
+		VCD_BUFFER_FORMAT_NV21_16M2KA))
 		encoder->input_buf_req.align =
 			DDL_LINEAR_BUFFER_ALIGN_BYTES;
-	else if (VCD_BUFFER_FORMAT_TILE_4x2 ==
-		encoder->buf_format.buffer_format)
+	else if (encoder->buf_format.buffer_format ==
+		VCD_BUFFER_FORMAT_TILE_4x2)
 		encoder->input_buf_req.align = DDL_TILE_BUFFER_ALIGN_BYTES;
 	encoder->client_input_buf_req = encoder->input_buf_req;
 	memset(&encoder->output_buf_req , 0 ,
@@ -1879,7 +1931,6 @@ u32 ddl_set_default_decoder_buffer_req(struct ddl_decoder_data *decoder,
 		output_buf_req = &decoder->actual_output_buf_req;
 		input_buf_req = &decoder->actual_input_buf_req;
 		min_dpb = decoder->min_dpb_num;
-		y_cb_cr_size = decoder->y_cb_cr_size;
 		if ((decoder->buf_format.buffer_format ==
 			VCD_BUFFER_FORMAT_TILE_4x2) &&
 			(frame_size->height < MDP_MIN_TILE_HEIGHT)) {
@@ -1891,6 +1942,7 @@ u32 ddl_set_default_decoder_buffer_req(struct ddl_decoder_data *decoder,
 				&decoder->buf_format,
 				(!decoder->progressive_only),
 				decoder->hdr.decoding, NULL);
+			decoder->y_cb_cr_size = y_cb_cr_size;
 		} else
 			y_cb_cr_size = decoder->y_cb_cr_size;
 	}
