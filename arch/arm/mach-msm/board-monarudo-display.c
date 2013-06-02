@@ -817,7 +817,7 @@ static struct dsi_cmd_desc sharp_video_on_cmds[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_control_display), write_control_display},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(CABC), CABC},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(TE_OUT), TE_OUT},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
+//	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(exit_sleep), exit_sleep},
 };
 
@@ -899,8 +899,13 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 	mipi  = &mfd->panel_info.mipi;
 	if(!first_init_lcd) {
 		if (mipi->mode == DSI_VIDEO_MODE) {
-			mipi_dsi_cmds_tx(&monarudo_panel_tx_buf, sharp_video_on_cmds,
-				ARRAY_SIZE(sharp_video_on_cmds));
+                        cmdreq.cmds = sharp_video_on_cmds;
+                        cmdreq.cmds_cnt = ARRAY_SIZE(sharp_video_on_cmds);
+                        cmdreq.flags = CMD_REQ_COMMIT;
+                        cmdreq.rlen = 0;
+                        cmdreq.cb = NULL;
+
+                        mipi_dsi_cmdlist_put(&cmdreq);
 
 		        PR_DISP_INFO("%s\n", __func__);
 		}
@@ -1041,7 +1046,13 @@ static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
 			pr_err("i2c write fail\n");
 	}
 
-        mipi_dsi_cmds_tx(&monarudo_panel_tx_buf, (struct dsi_cmd_desc*)&renesas_cmd_backlight_cmds, 1);
+        cmdreq.cmds = (struct dsi_cmd_desc*)&renesas_cmd_backlight_cmds;
+        cmdreq.cmds_cnt = 1;
+        cmdreq.flags = CMD_REQ_COMMIT;
+        cmdreq.rlen = 0;
+        cmdreq.cb = NULL;
+
+        mipi_dsi_cmdlist_put(&cmdreq);
 
 	if((mfd->bl_level) == 0) {
 		if (system_rev == XB) {
