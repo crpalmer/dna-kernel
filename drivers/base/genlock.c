@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -57,7 +57,6 @@ struct genlock_handle {
 	struct file *file;        /* File structure associated with handle */
 	int active;		  /* Number of times the active lock has been
 				     taken */
-	struct genlock_info info;
 };
 
 /*
@@ -117,6 +116,7 @@ static const struct file_operations genlock_fops = {
 struct genlock *genlock_create_lock(struct genlock_handle *handle)
 {
 	struct genlock *lock;
+	void *ret;
 
 	if (IS_ERR_OR_NULL(handle)) {
 		GENLOCK_LOG_ERR("Invalid handle\n");
@@ -146,8 +146,13 @@ struct genlock *genlock_create_lock(struct genlock_handle *handle)
 	 * other processes
 	 */
 
-	lock->file = anon_inode_getfile("genlock", &genlock_fops,
-		lock, O_RDWR);
+	ret = anon_inode_getfile("genlock", &genlock_fops, lock, O_RDWR);
+	if (IS_ERR_OR_NULL(ret)) {
+		GENLOCK_LOG_ERR("Unable to create lock inode\n");
+		kfree(lock);
+		return ret;
+	}
+	lock->file = ret;
 
 	/* Attach the new lock to the handle */
 	handle->lock = lock;
@@ -414,15 +419,6 @@ static int _genlock_lock(struct genlock *lock, struct genlock_handle *handle,
 		spin_lock_irqsave(&lock->lock, irqflags);
 
 		if (elapsed <= 0) {
-			if(list_empty(&lock->active)) {
-				pr_info("[genlock] lock failed, but list_empty\n");
-			} else {
-				struct genlock_handle *h;
-				pr_info("[genlock] lock failed %d, the follows hold lock %d\n", op, lock->state);
-				list_for_each_entry(h, &lock->active, entry) {
-					printk("[genlock] handle %p pid %d\n", h, h->info.pid);
-				}
-			}
 			ret = (elapsed < 0) ? elapsed : -ETIMEDOUT;
 			goto done;
 		}
@@ -670,12 +666,19 @@ static struct genlock_handle *_genlock_get_handle(void)
 
 struct genlock_handle *genlock_get_handle(void)
 {
+	void *ret;
 	struct genlock_handle *handle = _genlock_get_handle();
 	if (IS_ERR(handle))
 		return handle;
 
-	handle->file = anon_inode_getfile("genlock-handle",
+	ret = anon_inode_getfile("genlock-handle",
 		&genlock_handle_fops, handle, O_RDWR);
+	if (IS_ERR_OR_NULL(ret)) {
+		GENLOCK_LOG_ERR("Unable to create handle inode\n");
+		kfree(handle);
+		return ret;
+	}
+	handle->file = ret;
 
 	return handle;
 }
@@ -792,13 +795,6 @@ static long genlock_dev_ioctl(struct file *filep, unsigned int cmd,
 		GENLOCK_LOG_ERR("Deprecated RELEASE ioctl called\n");
 		return -EINVAL;
 	}
-	case GENLOCK_IOC_SETINFO: {
-		if (copy_from_user(&(handle->info), (void __user *) arg, sizeof(handle->info))) {
-			GENLOCK_LOG_ERR("invalid param size");
-			return -EINVAL;
-		}
-		return 0;
-	}
 	default:
 		GENLOCK_LOG_ERR("Invalid ioctl\n");
 		return -EINVAL;
@@ -808,16 +804,6 @@ static long genlock_dev_ioctl(struct file *filep, unsigned int cmd,
 static int genlock_dev_release(struct inode *inodep, struct file *file)
 {
 	struct genlock_handle *handle = file->private_data;
-
-	if (handle->info.fd) {
-		char task_name[FIELD_SIZEOF(struct task_struct, comm) + 1];
-		get_task_comm(task_name, current);
-
-		pr_warn("[GENLOCK] Unexpected! genlock fd was closed before detached. "
-		    "owner={fd=%d, pid:%d, res=[0x%x, 0x%x]} current thread = %d (%s)\n",
-			handle->info.fd, handle->info.pid,
-			handle->info.rsvd[0], handle->info.rsvd[1], current->pid, task_name);
-	}
 
 	genlock_release_lock(handle);
 	kfree(handle);
