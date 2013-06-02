@@ -443,7 +443,7 @@ static int msm_compr_playback_prepare(struct snd_pcm_substream *substream)
 
 	prtd->enabled = 1;
 	prtd->cmd_ack = 0;
-
+	prtd->cmd_interrupt = 0;
 	return 0;
 }
 
@@ -513,6 +513,7 @@ static int msm_compr_trigger(struct snd_pcm_substream *substream, int cmd)
 				soc_prtd->dai_link->be_id,
 				prtd->session_id, substream->stream, 1);
 		}
+                atomic_set(&prtd->pending_buffer, 1);
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 		pr_debug("[%p] %s: Trigger start/resume\n", prtd, __func__);
@@ -1073,7 +1074,7 @@ static int msm_compr_ioctl(struct snd_pcm_substream *substream,
 			eos_flush_check = 0;
 			
 			if (atomic_read(&prtd->eos)) {
-				prtd->cmd_ack = 1;
+				prtd->cmd_interrupt = 1;
 				wake_up(&the_locks.eos_wait);
 				atomic_set(&prtd->eos, 0);
 				
@@ -1113,11 +1114,16 @@ static int msm_compr_ioctl(struct snd_pcm_substream *substream,
 
 		/* Wait indefinitely for  DRAIN. Flush can also signal this*/
 		rc = wait_event_interruptible(the_locks.eos_wait,
-			prtd->cmd_ack);
+			(prtd->cmd_ack || prtd->cmd_interrupt));
 		if (rc < 0)
 			pr_err("[%p] SNDRV_COMPRESS_DRAIN EOS cmd timeout, rc = %d\n", prtd, rc);
 		pr_debug("[%p] %s: SNDRV_COMPRESS_DRAIN	out of wait\n", prtd, __func__);
-		return 0;
+
+                if (prtd->cmd_interrupt)
+                        rc = -EINTR;
+
+                prtd->cmd_interrupt = 0;
+                return rc;
 	case SNDRV_PCM_IOCTL1_ENABLE_EFFECT:
 	{
 		struct param {
