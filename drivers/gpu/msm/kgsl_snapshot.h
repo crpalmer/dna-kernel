@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -16,25 +16,33 @@
 
 #include <linux/types.h>
 
+/* Snapshot header */
 
+/* High word is static, low word is snapshot version ID */
 #define SNAPSHOT_MAGIC 0x504D0002
 
+/* GPU ID scheme:
+ * [16:31] - core identifer (0x0002 for 2D or 0x0003 for 3D)
+ * [00:16] - GPU specific identifier
+ */
 
 struct kgsl_snapshot_header {
-	__u32 magic; 
-	__u32 gpuid; 
-	
-	__u32 chipid; 
+	__u32 magic; /* Magic identifier */
+	__u32 gpuid; /* GPU ID - see above */
+	/* Added in snapshot version 2 */
+	__u32 chipid; /* Chip ID from the GPU */
 } __packed;
 
+/* Section header */
 #define SNAPSHOT_SECTION_MAGIC 0xABCD
 
 struct kgsl_snapshot_section_header {
-	__u16 magic; 
-	__u16 id;    
-	__u32 size;  
+	__u16 magic; /* Magic identifier */
+	__u16 id;    /* Type of section */
+	__u32 size;  /* Size of the section including this header */
 } __packed;
 
+/* Section identifiers */
 #define KGSL_SNAPSHOT_SECTION_OS           0x0101
 #define KGSL_SNAPSHOT_SECTION_REGS         0x0201
 #define KGSL_SNAPSHOT_SECTION_RB           0x0301
@@ -136,6 +144,7 @@ struct kgsl_snapshot_istore {
 #define SNAPSHOT_DEBUG_CP_PFP_RAM 9
 #define SNAPSHOT_DEBUG_CP_ROQ     10
 #define SNAPSHOT_DEBUG_SHADER_MEMORY 11
+#define SNAPSHOT_DEBUG_CP_MERCIU 12
 
 struct kgsl_snapshot_debug {
 	int type;    /* Type identifier for the attached tata */
@@ -232,12 +241,22 @@ static inline void *kgsl_snapshot_add_section(struct kgsl_device *device,
 /* A common helper function to dump a range of registers.  This will be used in
  * the GPU specific devices like this:
  *
- * struct kgsl_snapshot_registers priv;
- * priv.regs = registers_array;;
- * priv.count = num_registers;
+ * struct kgsl_snapshot_registers_list list;
+ * struct kgsl_snapshot_registers priv[2];
+ *
+ * priv[0].regs = registers_array;;
+ * priv[o].count = num_registers;
+ * priv[1].regs = registers_array_new;;
+ * priv[1].count = num_registers_new;
+ *
+ * list.registers = priv;
+ * list.count = 2;
  *
  * kgsl_snapshot_add_section(device, KGSL_SNAPSHOT_SECTION_REGS, snapshot,
- *	remain, kgsl_snapshot_dump_regs, &priv).
+ *	remain, kgsl_snapshot_dump_regs, &list).
+ *
+ * Pass in a struct pointing to a list of register definitions as described
+ * below:
  *
  * Pass in an array of register range pairs in the form of:
  * start reg, stop reg
@@ -247,6 +266,13 @@ static inline void *kgsl_snapshot_add_section(struct kgsl_device *device,
 struct kgsl_snapshot_registers {
 	unsigned int *regs;  /* Pointer to the array of register ranges */
 	int count;	     /* Number of entries in the array */
+};
+
+struct kgsl_snapshot_registers_list {
+	/* Pointer to an array of register lists */
+	struct kgsl_snapshot_registers *registers;
+	/* Number of registers lists in the array */
+	int count;
 };
 
 int kgsl_snapshot_dump_regs(struct kgsl_device *device, void *snapshot,
@@ -284,6 +310,9 @@ void *kgsl_snapshot_indexed_registers(struct kgsl_device *device,
 /* Freeze a GPU buffer so it can be dumped in the snapshot */
 int kgsl_snapshot_get_object(struct kgsl_device *device, unsigned int ptbase,
 	unsigned int gpuaddr, unsigned int size, unsigned int type);
+
+int kgsl_snapshot_have_object(struct kgsl_device *device, unsigned int ptbase,
+	unsigned int gpuaddr, unsigned int size);
 
 #endif
 #endif
