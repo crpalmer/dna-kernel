@@ -270,7 +270,12 @@ obj-$(CONFIG_MACH_MSM7X25_SURF) += board-msm7x27.o devices-msm7x25.o
 obj-$(CONFIG_MACH_MSM7X25_FFA) += board-msm7x27.o devices-msm7x25.o
 obj-$(CONFIG_ARCH_MSM8960) += clock-local.o clock-dss-8960.o clock-8960.o clock-rpm.o clock-pll.o
 obj-$(CONFIG_ARCH_MSM8960) += footswitch-8x60.o
+ifdef CONFIG_ARCH_APQ8064
+obj-$(CONFIG_ARCH_APQ8064) += acpuclock-8064.o acpuclock-krait.o acpuclock-krait-debug.o
+obj-$(CONFIG_MSM_CPU_PWRCTL) += msm_cpu_pwrctl.o
+else
 obj-$(CONFIG_ARCH_MSM8960) += acpuclock-8960.o
+endif
 obj-$(CONFIG_ARCH_MSM8960) += memory_topology.o
 obj-$(CONFIG_ARCH_MSM8960) += saw-regulator.o
 obj-$(CONFIG_ARCH_MSM8960) += devices-8960.o htc_wifi_nvs.o devices_htc.o htc_awb_cal.o
