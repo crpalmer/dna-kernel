@@ -1089,7 +1089,7 @@ static int c_show(struct seq_file *m, void *v)
 
 	seq_printf(m, "Processor\t: %s rev %d (%s)\n",
 		   cpu_name, read_cpuid_id() & 15, elf_platform);
-	seq_printf(m, "Processor PVS\t: %s\n", acpuclk_8960_get_pvs_string());
+	//seq_printf(m, "Processor PVS\t: %s\n", acpuclk_8960_get_pvs_string());
 
 #if defined(CONFIG_SMP)
 	for_each_present_cpu(i) {
