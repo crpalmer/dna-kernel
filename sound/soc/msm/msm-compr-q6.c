@@ -556,8 +556,8 @@ static void populate_codec_list(struct compr_audio *compr,
 		struct snd_pcm_runtime *runtime)
 {
 	pr_debug("%s\n", __func__);
-	/* MP3 Block */
-	compr->info.compr_cap.num_codecs = 1;
+	
+	compr->info.compr_cap.num_codecs = 8;
 	compr->info.compr_cap.min_fragment_size = runtime->hw.period_bytes_min;
 	compr->info.compr_cap.max_fragment_size = runtime->hw.period_bytes_max;
 	compr->info.compr_cap.min_fragments = runtime->hw.periods_min;
