@@ -562,7 +562,8 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.cont_splash_enabled = 0x01,
 	.mdp_iommu_split_domain = 1,
 	.mdp_gamma = monarudo_mdp_gamma,
-	.mdp_max_clk = 200000000,
+	.mdp_max_clk = 266667000,
+	.mdp_max_bw = 3000000000UL,
 };
 
 void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
