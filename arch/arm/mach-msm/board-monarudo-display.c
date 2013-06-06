@@ -251,12 +251,6 @@ static struct lcdc_platform_data dtv_pdata = {
 };
 #endif
 
-static int mdp_core_clk_rate_table[] = {
-	200000000,
-	200000000,
-	200000000,
-	200000000,
-};
 struct mdp_reg mdp_gamma[] = {
         {0x94800, 0x000000, 0x0},
         {0x94804, 0x010101, 0x0},
@@ -547,9 +541,8 @@ int monarudo_mdp_gamma(void)
 
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
-	.mdp_core_clk_rate = 200000000,
-	.mdp_core_clk_table = mdp_core_clk_rate_table,
-	.num_mdp_clk = ARRAY_SIZE(mdp_core_clk_rate_table),
+        .mdp_max_clk = 266667000,
+        .mdp_max_bw = 4000000000UL,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
@@ -562,8 +555,6 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.cont_splash_enabled = 0x01,
 	.mdp_iommu_split_domain = 1,
 	.mdp_gamma = monarudo_mdp_gamma,
-	.mdp_max_clk = 266667000,
-	.mdp_max_bw = 3000000000UL,
 };
 
 void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
