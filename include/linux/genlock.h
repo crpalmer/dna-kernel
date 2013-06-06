@@ -31,12 +31,6 @@ struct genlock_lock {
 	int timeout;
 };
 
-struct genlock_info {
-	int fd;
-	int pid;
-	int rsvd[2];
-};
-
 #define GENLOCK_IOC_MAGIC     'G'
 
 #define GENLOCK_IOC_NEW _IO(GENLOCK_IOC_MAGIC, 0)
@@ -55,9 +49,4 @@ struct genlock_info {
 	struct genlock_lock)
 #define GENLOCK_IOC_DREADLOCK _IOW(GENLOCK_IOC_MAGIC, 6, \
 	struct genlock_lock)
-
-/* HTC: Add optional ioctl for fd leak debugging */
-#define GENLOCK_IOC_SETINFO _IOW(GENLOCK_IOC_MAGIC, 32, \
-    struct genlock_info)
-
 #endif

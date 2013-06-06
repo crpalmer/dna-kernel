@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2010, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -273,21 +273,29 @@ typedef struct GCC_PACKED {
 	uint8 Year_of_Manufacture;
 
 	uint16 parameter_CRC;
-	
+	/* 16-bit CRC of all the bytes in the packet including Packet Length. */
 
 } mddi_client_capability_type;
 
 typedef struct GCC_PACKED {
 	uint16 packet_length;
-	
+	/* total # of bytes in the packet not including the packet_length field. */
 
 	uint16 packet_type;
-	
+	/* A Packet Type of 16 identifies the packet as a Video Stream Packet. */
 
 	uint16 bClient_ID;
-	
+	/* This field is reserved for future use and shall be set to zero. */
 
 	uint16 video_data_format_descriptor;
+	/* format of each pixel in the Pixel Data in the present stream in the
+	 * present packet.
+	 * If bits [15:13] = 000 monochrome
+	 * If bits [15:13] = 001 color pixels (palette).
+	 * If bits [15:13] = 010 color pixels in raw RGB
+	 * If bits [15:13] = 011 data in 4:2:2 Y Cb Cr format
+	 * If bits [15:13] = 100 Bayer pixels
+	 */
 
 	uint16 pixel_data_attributes;
 	/* interpreted as follows:
@@ -316,48 +324,55 @@ typedef struct GCC_PACKED {
 
 	uint16 x_left_edge;
 	uint16 y_top_edge;
-	
+	/* X,Y coordinate of the top left edge of the screen window */
 
 	uint16 x_right_edge;
 	uint16 y_bottom_edge;
-	
+	/*  X,Y coordinate of the bottom right edge of the window being updated. */
 
 	uint16 x_start;
 	uint16 y_start;
-	
+	/*  (X Start, Y Start) is the first pixel in the Pixel Data field below. */
 
 	uint16 pixel_count;
-	
+	/*  number of pixels in the Pixel Data field below. */
 
 	uint16 parameter_CRC;
-	
+	/*  16-bit CRC of all bytes from the Packet Length to the Pixel Count. */
 
 	uint16 reserved;
-	
+	/* 16-bit variable to make structure align on 4 byte boundary */
 
 } mddi_video_stream_packet_type;
 
 typedef struct GCC_PACKED {
 	uint16 packet_length;
-	
+	/* total # of bytes in the packet not including the packet_length field. */
 
 	uint16 packet_type;
-	
+	/* A Packet Type of 146 identifies the packet as a Register Access Packet. */
 
 	uint16 bClient_ID;
-	
+	/* This field is reserved for future use and shall be set to zero. */
 
 	uint16 read_write_info;
+	/* Bits 13:0  a 14-bit unsigned integer that specifies the number of
+	 *            32-bit Register Data List items to be transferred in the
+	 *            Register Data List field.
+	 * Bits[15:14] = 00  Write to register(s);
+	 * Bits[15:14] = 10  Read from register(s);
+	 * Bits[15:14] = 11  Response to a Read.
+	 * Bits[15:14] = 01  this value is reserved for future use. */
 
 	uint32 register_address;
 	/* the register address that is to be written to or read from. */
 
 	uint16 parameter_CRC;
-	
+	/* 16-bit CRC of all bytes from the Packet Length to the Register Address. */
 
 	uint32 register_data_list[MDDI_HOST_MAX_CLIENT_REG_IN_SAME_ADDR];
-	
-	
+	/* list of 4-byte register data values for/from client registers */
+	/* For multi-read/write, 512(128 * 4) bytes of data available */
 
 } mddi_register_access_packet_type;
 

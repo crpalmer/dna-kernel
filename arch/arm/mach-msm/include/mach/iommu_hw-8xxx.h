@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -16,20 +16,13 @@
 #define CTX_SHIFT 12
 
 #define GET_GLOBAL_REG(reg, base) (readl_relaxed((base) + (reg)))
+#define GET_CTX_REG(reg, base, ctx) \
+			(readl_relaxed((base) + (reg) + ((ctx) << CTX_SHIFT)))
 
-#define GET_CTX_REG(reg, base, ctx) (readl_relaxed((base) + (reg) + ((ctx) << CTX_SHIFT)))
-
-#define SET_GLOBAL_REG(reg, base, val) \
-do {\
-	writel_relaxed((val), ((base) + (reg)));\
-	mb();\
-} while (0);
+#define SET_GLOBAL_REG(reg, base, val)	writel_relaxed((val), ((base) + (reg)))
 
 #define SET_CTX_REG(reg, base, ctx, val) \
-do {\
-	writel_relaxed((val), ((base) + (reg) + ((ctx) << CTX_SHIFT)));\
-	mb();\
-} while (0);
+		writel_relaxed((val), ((base) + (reg) + ((ctx) << CTX_SHIFT)))
 
 /* Wrappers for numbered registers */
 #define SET_GLOBAL_REG_N(b, n, r, v) SET_GLOBAL_REG(b, ((r) + (n << 2)), (v))
@@ -45,16 +38,15 @@ do {\
 #define SET_CONTEXT_FIELD(b, c, r, F, v)	\
 	SET_FIELD(((b) + (r) + ((c) << CTX_SHIFT)), F##_MASK, F##_SHIFT, (v))
 
-#define GET_FIELD(addr, mask, shift) \
-	((readl_relaxed(addr) >> (shift)) & (mask))
+#define GET_FIELD(addr, mask, shift) ((readl_relaxed(addr) >> (shift)) & (mask))
 
 #define SET_FIELD(addr, mask, shift, v) \
 do { \
 	int t = readl_relaxed(addr); \
 	writel_relaxed((t & ~((mask) << (shift))) + (((v) & \
 		       (mask)) << (shift)), addr);\
-	mb();\
-} while (0);
+} while (0)
+
 
 #define NUM_FL_PTE	4096
 #define NUM_SL_PTE	256

@@ -15,7 +15,7 @@
 #include <linux/ioport.h>
 #include <linux/platform_device.h>
 #include <linux/bootmem.h>
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <asm/mach-types.h>
 #include <mach/msm_memtypes.h>
 #include <mach/board.h>
@@ -251,12 +251,6 @@ static struct lcdc_platform_data dtv_pdata = {
 };
 #endif
 
-static int mdp_core_clk_rate_table[] = {
-	200000000,
-	200000000,
-	200000000,
-	200000000,
-};
 struct mdp_reg mdp_gamma[] = {
         {0x94800, 0x000000, 0x0},
         {0x94804, 0x010101, 0x0},
@@ -547,9 +541,8 @@ int monarudo_mdp_gamma(void)
 
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
-	.mdp_core_clk_rate = 200000000,
-	.mdp_core_clk_table = mdp_core_clk_rate_table,
-	.num_mdp_clk = ARRAY_SIZE(mdp_core_clk_rate_table),
+        .mdp_max_clk = 266667000,
+        .mdp_max_bw = 4000000000UL,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
@@ -562,7 +555,6 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.cont_splash_enabled = 0x01,
 	.mdp_iommu_split_domain = 1,
 	.mdp_gamma = monarudo_mdp_gamma,
-	.mdp_max_clk = 200000000,
 };
 
 void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
@@ -817,7 +809,7 @@ static struct dsi_cmd_desc sharp_video_on_cmds[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_control_display), write_control_display},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(CABC), CABC},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(TE_OUT), TE_OUT},
-	//{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
+//	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(display_on), display_on},
 	{DTYPE_DCS_WRITE, 1, 0, 0, 0, sizeof(exit_sleep), exit_sleep},
 };
 
@@ -899,8 +891,13 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 	mipi  = &mfd->panel_info.mipi;
 	if(!first_init_lcd) {
 		if (mipi->mode == DSI_VIDEO_MODE) {
-			mipi_dsi_cmds_tx(&monarudo_panel_tx_buf, sharp_video_on_cmds,
-				ARRAY_SIZE(sharp_video_on_cmds));
+                        cmdreq.cmds = sharp_video_on_cmds;
+                        cmdreq.cmds_cnt = ARRAY_SIZE(sharp_video_on_cmds);
+                        cmdreq.flags = CMD_REQ_COMMIT;
+                        cmdreq.rlen = 0;
+                        cmdreq.cb = NULL;
+
+                        mipi_dsi_cmdlist_put(&cmdreq);
 
 		        PR_DISP_INFO("%s\n", __func__);
 		}
@@ -1005,9 +1002,12 @@ static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
 {
 	int rc;
 
+/*
 	if (mdp4_overlay_dsi_state_get() <= ST_DSI_SUSPEND) {
 		return;
 	}
+*/
+
 	write_display_brightness[2] = monarudo_shrink_pwm((unsigned char)(mfd->bl_level));
 
 	if (resume_blk) {
@@ -1038,7 +1038,13 @@ static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
 			pr_err("i2c write fail\n");
 	}
 
-        mipi_dsi_cmds_tx(&monarudo_panel_tx_buf, (struct dsi_cmd_desc*)&renesas_cmd_backlight_cmds, 1);
+        cmdreq.cmds = (struct dsi_cmd_desc*)&renesas_cmd_backlight_cmds;
+        cmdreq.cmds_cnt = 1;
+        cmdreq.flags = CMD_REQ_COMMIT;
+        cmdreq.rlen = 0;
+        cmdreq.cb = NULL;
+
+        mipi_dsi_cmdlist_put(&cmdreq);
 
 	if((mfd->bl_level) == 0) {
 		if (system_rev == XB) {

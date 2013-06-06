@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,8 +11,57 @@
  *
  */
 
+/*
+ * Toshiba MIPI-DSI-to-LVDS Bridge driver.
+ * Device Model TC358764XBG/65XBG.
+ * Reference document: TC358764XBG_65XBG_V119.pdf
+ *
+ * The Host sends a DSI Generic Long Write packet (Data ID = 0x29) over the
+ * DSI link for each write access transaction to the chip configuration
+ * registers.
+ * Payload of this packet is 16-bit register address and 32-bit data.
+ * Multiple data values are allowed for sequential addresses.
+ *
+ * The Host sends a DSI Generic Read packet (Data ID = 0x24) over the DSI
+ * link for each read request transaction to the chip configuration
+ * registers. Payload of this packet is further defined as follows:
+ * 16-bit address followed by a 32-bit value (Generic Long Read Response
+ * packet).
+ *
+ * The bridge supports 5 GPIO lines controlled via the GPC register.
+ *
+ * The bridge support I2C Master/Slave.
+ * The I2C slave can be used for read/write to the bridge register instead of
+ * using the DSI interface.
+ * I2C slave address is 0x0F (read/write 0x1F/0x1E).
+ * The I2C Master can be used for communication with the panel if
+ * it has an I2C slave.
+ *
+ * NOTE: The I2C interface is not used in this driver.
+ * Only the DSI interface is used for read/write the bridge registers.
+ *
+ * Pixel data can be transmitted in non-burst or burst fashion.
+ * Non-burst refers to pixel data packet transmission time on DSI link
+ * being roughly the same (to account for packet overhead time)
+ * as active video line time on LVDS output (i.e. DE = 1).
+ * And burst refers to pixel data packet transmission time on DSI link
+ * being less than the active video line time on LVDS output.
+ * Video mode transmission is further differentiated by the types of
+ * timing events being transmitted.
+ * Video pulse mode refers to the case where both sync start and sync end
+ * events (for frame and line) are transmitted.
+ * Video event mode refers to the case where only sync start events
+ * are transmitted.
+ * This is configured via register bit VPCTRL.EVTMODE.
+ *
+ */
 
+/* #define DEBUG 1 */
 
+/**
+ * Use the I2C master to control the panel.
+ */
+/* #define TC358764_USE_I2C_MASTER */
 
 #define DRV_NAME "mipi_tc358764"
 
