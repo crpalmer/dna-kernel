@@ -621,6 +621,20 @@ void hdmi_msm_cec_one_touch_play(void)
 }
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_CEC_SUPPORT */
 
+void hdmi_set_switch_state(bool enable)
+{
+        /*
+        if(enable)
+                mod_timer(&hdmi_msm_state->hpd_state_timer, jiffies + HZ/2);
+        else
+                del_timer(&hdmi_msm_state->hpd_state_timer);
+        */
+        if(!enable)
+                switch_set_state(&external_common_state->sdev, 0);
+        DEV_INFO("%s, %s\n", __func__, (enable)? "on" : "off");
+
+}
+
 uint32 hdmi_msm_get_io_base(void)
 {
 	return (uint32)MSM_HDMI_BASE;
@@ -4510,6 +4524,29 @@ static bool hdmi_msm_cable_connected(void)
 {
 	return hdmi_msm_state->hpd_initialized &&
 			external_common_state->hpd_state;
+}
+
+void hdmi_hpd_feature(int enable)
+{
+        if (external_common_state->hpd_feature) {
+                if (enable) {
+                        external_common_state->hpd_feature(1);
+                        mutex_lock(&external_common_state_hpd_mutex);
+                        external_common_state->hpd_feature_on = 1;
+                        mutex_unlock(&external_common_state_hpd_mutex);
+                } else {
+                        if (hdmi_msm_state->panel_power_on == FALSE) {
+                                external_common_state->hpd_feature(0);
+                                DEV_INFO("HDMI HPD: sense DISCONNECTED: send OFFLINE\n");
+                                switch_set_state(&external_common_state->sdev, 0);
+                                kobject_uevent(external_common_state->uevent_kobj,
+                                        KOBJ_OFFLINE);
+                        }
+                        mutex_lock(&external_common_state_hpd_mutex);
+                        external_common_state->hpd_feature_on = 0;
+                        mutex_unlock(&external_common_state_hpd_mutex);
+                }
+        }
 }
 
 static int __devinit hdmi_msm_probe(struct platform_device *pdev)

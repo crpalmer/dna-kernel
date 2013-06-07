@@ -193,5 +193,7 @@ endif
 
 obj-$(CONFIG_MSM_VIDC_1080P) += vidc/
 obj-$(CONFIG_MSM_VIDC_720P) += vidc/
+obj-$(CONFIG_FB_MSM_HDMI_MHL_SII9234)  += sii9234/
+
 clean:
 	rm *.o .*cmd
