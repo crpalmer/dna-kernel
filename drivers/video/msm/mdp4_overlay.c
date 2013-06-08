@@ -2781,8 +2781,9 @@ static int mdp4_calc_pipe_mdp_bw(struct msm_fb_data_type *mfd,
 	quota = pipe->src_w * pipe->src_h * fps * pipe->bpp;
 
 	quota >>= shift;
-	/* factor 1.15 for ab */
+
 	quota = quota * mdp_bw_ab_factor / 100;
+
 	/* downscaling factor for ab */
 	if ((pipe->dst_h) && (pipe->src_h) &&
 	    (pipe->src_h > pipe->dst_h)) {
@@ -2790,19 +2791,18 @@ static int mdp4_calc_pipe_mdp_bw(struct msm_fb_data_type *mfd,
 		pr_debug("%s: src_h=%d dst_h=%d mdp ab %llu\n",
 			__func__, pipe->src_h, pipe->dst_h, ((u64)quota << 16));
 	}
-	pipe->bw_ab_quota = quota;
 
-	/* factor 1.5 for ib */
+	pipe->bw_ab_quota = quota;
 	pipe->bw_ib_quota = quota * mdp_bw_ib_factor / 100;
 
 	pipe->bw_ab_quota <<= shift;
 	pipe->bw_ib_quota <<= shift;
 
-	pr_debug("%s: pipe ndx=%d src(h,w)(%d, %d) fps=%d bpp=%d\n",
+	pr_debug("%s: pipe ndx=%d src(h,w)(%d, %d) fps=%d bpp=%d type=%d flags=%x\n",
 		 __func__, pipe->pipe_ndx,  pipe->src_h, pipe->src_w,
-		 fps, pipe->bpp);
+		 fps, pipe->bpp, pipe->pipe_type, pipe->flags);
 	pr_debug("%s: ab_quota=%llu ib_quota=%llu\n", __func__,
-		 pipe->bw_ab_quota, pipe->bw_ib_quota);
+		 pipe->bw_ab_quota >> 20, pipe->bw_ib_quota >> 20);
 
 	return 0;
 }
@@ -3083,7 +3083,7 @@ void mdp4_overlay_mdp_perf_upd(struct msm_fb_data_type *mfd,
 	if (flag) {
 		if (perf_req->mdp_clk_rate > perf_cur->mdp_clk_rate) {
 			mdp_set_core_clk(perf_req->mdp_clk_rate);
-			pr_info("%s mdp clk is changed [%d] from %d to %d\n",
+			pr_debug("%s mdp clk is changed [%d] from %d to %d\n",
 				__func__,
 				flag,
 				perf_cur->mdp_clk_rate,
@@ -3101,13 +3101,13 @@ void mdp4_overlay_mdp_perf_upd(struct msm_fb_data_type *mfd,
 			pr_debug("%s mdp ab_bw is changed [%d] from %llu to %llu\n",
 				__func__,
 				flag,
-				perf_cur->mdp_ab_bw,
-				perf_req->mdp_ab_bw);
+				perf_cur->mdp_ab_bw >> 20,
+				perf_req->mdp_ab_bw >> 20);
 			pr_debug("%s mdp ib_bw is changed [%d] from %llu to %llu\n",
 				__func__,
 				flag,
-				perf_cur->mdp_ib_bw,
-				perf_req->mdp_ib_bw);
+				perf_cur->mdp_ib_bw >> 20,
+				perf_req->mdp_ib_bw >> 20);
 			perf_cur->mdp_ab_bw = perf_req->mdp_ab_bw;
 			perf_cur->mdp_ib_bw = perf_req->mdp_ib_bw;
 		}
@@ -3121,7 +3121,7 @@ void mdp4_overlay_mdp_perf_upd(struct msm_fb_data_type *mfd,
 				mdp4_dsi_video_blt_start(mfd);
 			else if (ctrl->panel_mode & MDP4_PANEL_DSI_CMD)
 				mdp4_dsi_cmd_blt_start(mfd);
-			pr_info("%s mixer0 start blt [%d] from %d to %d.\n",
+			pr_debug("%s mixer0 start blt [%d] from %d to %d.\n",
 				__func__,
 				flag,
 				perf_cur->use_ov_blt[0],
@@ -3130,7 +3130,7 @@ void mdp4_overlay_mdp_perf_upd(struct msm_fb_data_type *mfd,
 		}
 	} else {
 		if (perf_req->mdp_clk_rate < perf_cur->mdp_clk_rate) {
-			pr_info("%s mdp clk is changed [%d] from %d to %d\n",
+			pr_debug("%s mdp clk is changed [%d] from %d to %d\n",
 				__func__,
 				flag,
 				perf_cur->mdp_clk_rate,
@@ -3149,13 +3149,13 @@ void mdp4_overlay_mdp_perf_upd(struct msm_fb_data_type *mfd,
 			pr_debug("%s mdp ab bw is changed [%d] from %llu to %llu\n",
 				__func__,
 				flag,
-				perf_cur->mdp_ab_bw,
-				perf_req->mdp_ab_bw);
+				perf_cur->mdp_ab_bw >> 20,
+				perf_req->mdp_ab_bw >> 20);
 			pr_debug("%s mdp ib bw is changed [%d] from %llu to %llu\n",
 				__func__,
 				flag,
-				perf_cur->mdp_ib_bw,
-				perf_req->mdp_ib_bw);
+				perf_cur->mdp_ib_bw >> 20,
+				perf_req->mdp_ib_bw >> 20);
 			perf_cur->mdp_ab_bw = perf_req->mdp_ab_bw;
 			perf_cur->mdp_ib_bw = perf_req->mdp_ib_bw;
 		}
@@ -3169,7 +3169,7 @@ void mdp4_overlay_mdp_perf_upd(struct msm_fb_data_type *mfd,
 				mdp4_dsi_video_blt_stop(mfd);
 			else if (ctrl->panel_mode & MDP4_PANEL_DSI_CMD)
 				mdp4_dsi_cmd_blt_stop(mfd);
-			pr_info("%s mixer0 stop blt [%d] from %d to %d.\n",
+			pr_debug("%s mixer0 stop blt [%d] from %d to %d.\n",
 				__func__,
 				flag,
 				perf_cur->use_ov_blt[0],
