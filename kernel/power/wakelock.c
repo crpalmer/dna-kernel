@@ -33,7 +33,7 @@ enum {
 	DEBUG_EXPIRE = 1U << 3,
 	DEBUG_WAKE_LOCK = 1U << 4,
 };
-static int debug_mask = DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP;
+static int debug_mask = 0; // DEBUG_EXIT_SUSPEND | DEBUG_WAKEUP;
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 #define WAKE_LOCK_TYPE_MASK              (0x0f)
@@ -235,33 +235,6 @@ static void print_active_locks(int type)
 				print_expired = false;
 		}
 	}
-}
-
-void htc_print_active_wake_locks(int type)
-{
-	struct wake_lock *lock;
-	unsigned long irqflags;
-	spin_lock_irqsave(&list_lock, irqflags);
-	if((!list_empty(&active_wake_locks[type]))){
-#if 0 /* Kernel 3.4 removes WAKE_LOCK_IDLE */
-		if(type==WAKE_LOCK_IDLE)
-			printk("idle lock: ");
-		else
-#endif
-		printk("wakelock: ");
-		list_for_each_entry(lock, &active_wake_locks[type], link) {
-			if (lock->flags & WAKE_LOCK_AUTO_EXPIRE) {
-				long timeout = lock->expires - jiffies;
-				if (timeout > 0)
-					printk(" '%s', time left %ld; ",
-						lock->name, timeout);
-			} else {
-				printk(" '%s' ", lock->name);
-			}
-		}
-		printk("\n");
-	}
-	spin_unlock_irqrestore(&list_lock, irqflags);
 }
 
 static long has_wake_lock_locked(int type)
