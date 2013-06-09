@@ -672,7 +672,7 @@ static void monitor_tsens_status(struct work_struct *work)
 			+ (i << TSENS_STATUS_ADDR_OFFSET));
 		enable = cntl & (0x1 << i);
 		if(enable > 0)
-			pr_info("msm_thermal: Sensor %d = %d C\n", i, tsens_tz_code_to_degC(code, i));
+			pr_debug("msm_thermal: Sensor %d = %d C\n", i, tsens_tz_code_to_degC(code, i));
 	}
 
 	if (monitor_tsense_wq) {
