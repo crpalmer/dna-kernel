@@ -1804,7 +1804,7 @@ void pm8921_bms_charging_end(int is_battery_full)
 			last_charge_increase = last_charge_increase % 100;
 		}
 	}
-	pr_info("end_percent = %d%% last_charge_increase = %d"
+	pr_debug("end_percent = %d%% last_charge_increase = %d"
 			"last_chargecycles = %d\n",
 			the_chip->end_percent,
 			last_charge_increase,
@@ -1844,7 +1844,7 @@ int pm8921_bms_start_ocv_updates(void)
 		return -EINVAL;
 	}
 	is_ocv_update_start = 1;
-	pr_info("starting ocv updates, is_ocv_update_start=%d", is_ocv_update_start);
+	pr_debug("starting ocv updates, is_ocv_update_start=%d", is_ocv_update_start);
 	return pm_bms_masked_write(the_chip, BMS_TOLERANCES,
 			OCV_TOL_MASK, OCV_TOL_DEFAULT);
 }

@@ -274,7 +274,7 @@ static void batt_lower_voltage_alarm_handler(int status)
 static void unknown_usb_detect_worker(struct work_struct *work)
 {
 	mutex_lock(&cable_notifier_lock);
-	pr_info("[BATT] %s\n", __func__);
+	pr_debug("[BATT] %s\n", __func__);
 	if (latest_chg_src == CHARGER_DETECTING)
 	{
 		htc_charger_event_notify(HTC_CHARGER_EVENT_SRC_UNKNOWN_USB);
@@ -1472,7 +1472,7 @@ static void batt_worker(struct work_struct *work)
 										htc_batt_info.rep.charging_source;
 
 		/* STEP 5.3. control charger if state changed */
-		pr_info("[BATT] prev_chg_src=%d, prev_chg_en=%d,"
+		pr_debug("[BATT] prev_chg_src=%d, prev_chg_en=%d,"
 				" chg_dis_reason/control/active=0x%x/0x%x/0x%x,"
 				" chg_limit_reason=0x%x,"
 				" pwrsrc_dis_reason=0x%x, prev_pwrsrc_enabled=%d,"
