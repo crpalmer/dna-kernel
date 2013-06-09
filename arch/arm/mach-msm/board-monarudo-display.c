@@ -82,14 +82,14 @@ static int monarudo_detect_panel(const char *name)
 		if (!strncmp(name, MIPI_RENESAS_PANEL_NAME,
 			strnlen(MIPI_RENESAS_PANEL_NAME,
 				PANEL_NAME_MAX_LEN))){
-			PR_DISP_INFO("monarudo_%s\n", name);
+			PR_DISP_DEBUG("monarudo_%s\n", name);
 			return 0;
 		}
 	} else if (panel_type == PANEL_ID_DLX_SHARP_RENESAS) {
 		if (!strncmp(name, MIPI_RENESAS_PANEL_NAME,
 			strnlen(MIPI_RENESAS_PANEL_NAME,
 				PANEL_NAME_MAX_LEN))){
-			PR_DISP_INFO("monarudo_%s\n", name);
+			PR_DISP_DEBUG("monarudo_%s\n", name);
 			return 0;
 		}
 	}
@@ -901,7 +901,7 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 
                         mipi_dsi_cmdlist_put(&cmdreq);
 
-		        PR_DISP_INFO("%s\n", __func__);
+		        PR_DISP_DEBUG("%s\n", __func__);
 		}
 	}
 	first_init_lcd = 0;
@@ -921,7 +921,7 @@ static int monarudo_lcd_off(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-        PR_DISP_INFO("%s\n", __func__);
+        PR_DISP_DEBUG("%s\n", __func__);
 
 	resume_blk = 1;
 	return 0;
@@ -935,7 +935,7 @@ static int __devinit monarudo_lcd_probe(struct platform_device *pdev)
 
 	msm_fb_add_device(pdev);
 
-	PR_DISP_INFO("%s\n", __func__);
+	PR_DISP_DEBUG("%s\n", __func__);
 	return 0;
 }
 static void monarudo_display_on(struct msm_fb_data_type *mfd)
@@ -952,7 +952,7 @@ static void monarudo_display_on(struct msm_fb_data_type *mfd)
 
 		mipi_dsi_cmdlist_put(&cmdreq);
 
-		PR_DISP_INFO("%s\n", __func__);
+		PR_DISP_DEBUG("%s\n", __func__);
 	}
 	first_init_display = 0;
 }
@@ -967,7 +967,7 @@ static void monarudo_display_off(struct msm_fb_data_type *mfd)
 
         mipi_dsi_cmdlist_put(&cmdreq);
 
-	PR_DISP_INFO("%s\n", __func__);
+	PR_DISP_DEBUG("%s\n", __func__);
 }
 
 
@@ -996,7 +996,7 @@ static unsigned char monarudo_shrink_pwm(int val)
 	} else if (val > BRI_SETTING_MAX)
 		shrink_br = PWM_MAX;
 
-	PR_DISP_INFO("brightness orig=%d, transformed=%d\n", val, shrink_br);
+	PR_DISP_DEBUG("brightness orig=%d, transformed=%d\n", val, shrink_br);
 
 	return shrink_br;
 }
