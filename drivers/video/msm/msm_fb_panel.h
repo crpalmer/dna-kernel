@@ -194,7 +194,6 @@ struct msm_fb_panel_data {
 
 	/* function entry chain */
         void (*display_on) (struct msm_fb_data_type *);
-        void (*display_off) (struct msm_fb_data_type *);
 	int (*on) (struct platform_device *pdev);
 	int (*off) (struct platform_device *pdev);
 	int (*late_init) (struct platform_device *pdev);
