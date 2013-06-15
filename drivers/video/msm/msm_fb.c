@@ -948,18 +948,6 @@ void msm_fb_display_on(struct msm_fb_data_type *mfd)
         }
 }
 
-void msm_fb_display_off(struct msm_fb_data_type *mfd)
-{
-        struct msm_fb_panel_data *pdata;
-        pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
-
-        if ((pdata) && (pdata->display_off)) {
-                down(&mfd->sem);
-                pdata->display_off(mfd);
-                up(&mfd->sem);
-        }
-}
-
 static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 			    boolean op_enable)
 {
