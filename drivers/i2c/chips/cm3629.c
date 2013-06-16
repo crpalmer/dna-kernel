@@ -1261,8 +1261,12 @@ static int lightsensor_update_table(struct cm3629_info *lpi)
 	int i;
 	for (i = 0; i < 10; i++) {
 		if (*(lpi->adc_table + i) < 0xFFFF) {
-			data[i] = *(lpi->adc_table + i)
+			unsigned val = ((unsigned) *(lpi->adc_table + i))
 					* lpi->als_kadc / lpi->als_gadc;
+			if (val > 0xffff)
+				data[i] = data[i-1] + (0xffff - data[i-1])/2;
+			else
+				data[i] = val;
 		} else {
 			data[i] = *(lpi->adc_table + i);
 		}
