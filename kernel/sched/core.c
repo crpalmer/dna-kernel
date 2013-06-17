@@ -6407,7 +6407,6 @@ static void init_sched_groups_power(int cpu, struct sched_domain *sd)
 {
 	struct sched_group *sg;
 
-	BUG_ON(!sd);
 	sg = sd->groups;
 	BUG_ON(!sg);
 
