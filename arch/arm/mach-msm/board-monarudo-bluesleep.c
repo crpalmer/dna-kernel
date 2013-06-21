@@ -17,7 +17,7 @@
 #include <linux/platform_device.h>
 #include <mach/irqs.h>
 
-#include "board-m7.h"
+#include "board-monarudo.h"
 #include "devices.h"
 
 extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
@@ -25,20 +25,20 @@ extern void bluesleep_setup_uart_port(struct platform_device *uart_dev);
 static struct resource bluesleep_resources[] = {
 	{
 		.name = "gpio_host_wake",
-		.start = PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE),
-		.end = PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE),
+		.start = PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC),
+		.end = PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC),
 		.flags = IORESOURCE_IO,
 	},
 	{
 		.name = "gpio_ext_wake",
-		.start = PM8921_GPIO_PM_TO_SYS(BT_WAKE),
-		.end = PM8921_GPIO_PM_TO_SYS(BT_WAKE),
+		.start = PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC),
+		.end = PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC),
 		.flags = IORESOURCE_IO,
 	},
 	{
 		.name = "host_wake",
-		.start = MSM_GPIO_TO_INT(PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE)),
-		.end = MSM_GPIO_TO_INT(PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE)),
+		.start = MSM_GPIO_TO_INT(PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC)),
+		.end = MSM_GPIO_TO_INT(PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC)),
 		.flags = IORESOURCE_IRQ,
 	},
 };
