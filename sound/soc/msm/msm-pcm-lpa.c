@@ -660,14 +660,6 @@ static int msm_pcm_ioctl(struct snd_pcm_substream *substream,
 			pr_err("Flush cmd timeout\n");
 		prtd->pcm_irq_pos = 0;
 		break;
-	case SNDRV_COMPRESS_METADATA_MODE:
-		if (!atomic_read(&prtd->start)) {
-			pr_debug("Metadata mode enabled\n");
-			prtd->meta_data_mode = true;
-			return 0;
-		}
-		pr_debug("Metadata mode not enabled\n");
-		return -EPERM;
 	case SNDRV_PCM_IOCTL1_ENABLE_EFFECT:
 	{
 		struct param {
