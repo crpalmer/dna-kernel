@@ -273,7 +273,8 @@ static void vid_dec_output_frame_done(struct video_client_ctx *client_ctx,
 		(vcd_frame_data->flags & VCD_FRAME_FLAG_EOS)) {
 
 		if (res_trk_check_for_sec_session() &&
-				event == VCD_EVT_RESP_OUTPUT_DONE) {
+			res_trk_get_enable_sec_metadata() &&
+			event == VCD_EVT_RESP_OUTPUT_DONE) {
 			DBG("Buffer Index = %d", buffer_index);
 			if (buffer_index != -1) {
 				if (client_ctx->meta_addr_table[buffer_index].
@@ -677,24 +678,49 @@ static u32 vid_dec_set_frame_resolution(struct video_client_ctx *client_ctx,
 		return true;
 }
 
+static u32 vid_dec_get_curr_perf_level(struct video_client_ctx *client_ctx,
+	u32 *perf_level)
+{
+	struct vcd_property_hdr vcd_property_hdr;
+	u32 vcd_status = VCD_ERR_FAIL;
+	u32 perf_lvl = 0;
+
+	if (!client_ctx)
+		return false;
+
+	vcd_property_hdr.prop_id = VCD_I_GET_CURR_PERF_LEVEL;
+	vcd_property_hdr.sz = sizeof(u32);
+	vcd_status = vcd_get_property(client_ctx->vcd_handle,
+				      &vcd_property_hdr, &perf_lvl);
+	if (vcd_status) {
+		ERR("VCD_I_GET_PERF_LEVEL failed!!");
+		*perf_level = 0;
+		return false;
+	} else {
+		*perf_level = perf_lvl;
+		return true;
+	}
+}
+
 static u32 vid_dec_set_turbo_clk(struct video_client_ctx *client_ctx)
 {
 	struct vcd_property_hdr vcd_property_hdr;
 	u32 vcd_status = VCD_ERR_FAIL;
-	u32 dummy = 0;
+	struct vcd_property_perf_level perf_level;
+	perf_level.level = VCD_PERF_LEVEL_TURBO;
 
 	if (!client_ctx)
 		return false;
-	vcd_property_hdr.prop_id = VCD_I_SET_TURBO_CLK;
-	vcd_property_hdr.sz = sizeof(struct vcd_property_frame_size);
-
+	vcd_property_hdr.prop_id = VCD_REQ_PERF_LEVEL;
+	vcd_property_hdr.sz = sizeof(struct vcd_property_perf_level);
 	vcd_status = vcd_set_property(client_ctx->vcd_handle,
-				      &vcd_property_hdr, &dummy);
-
-	if (vcd_status)
+				      &vcd_property_hdr, &perf_level);
+	if (vcd_status) {
+		ERR("%s: set turbo perf_level failed", __func__);
 		return false;
-	else
+	} else {
 		return true;
+	}
 }
 
 static u32 vid_dec_get_frame_resolution(struct video_client_ctx *client_ctx,
@@ -734,6 +760,22 @@ static u32 vid_dec_get_progressive_only(struct video_client_ctx *client_ctx,
 	vcd_property_hdr.sz = sizeof(u32);
 	if (vcd_get_property(client_ctx->vcd_handle, &vcd_property_hdr,
 						 progressive_only))
+		return false;
+	else
+		return true;
+}
+
+static u32 vid_dec_get_enable_secure_metadata(struct video_client_ctx
+				*client_ctx, u32 *enable_sec_metadata)
+{
+
+	struct vcd_property_hdr vcd_property_hdr;
+	if (!client_ctx || !enable_sec_metadata)
+		return false;
+	vcd_property_hdr.prop_id = VCD_I_ENABLE_SEC_METADATA;
+	vcd_property_hdr.sz = sizeof(u32);
+	if (vcd_get_property(client_ctx->vcd_handle, &vcd_property_hdr,
+						 enable_sec_metadata))
 		return false;
 	else
 		return true;
@@ -2086,6 +2128,24 @@ static long vid_dec_ioctl(struct file *file,
 		}
 		break;
 	}
+	case VDEC_IOCTL_GET_PERF_LEVEL:
+	{
+		u32 curr_perf_level;
+		if (copy_from_user(&vdec_msg, arg, sizeof(vdec_msg)))
+			return -EFAULT;
+		result = vid_dec_get_curr_perf_level(client_ctx,
+			&curr_perf_level);
+		if (!result) {
+			ERR("get_curr_perf_level failed!!");
+			return -EIO;
+		}
+		DBG("VDEC_IOCTL_GET_PERF_LEVEL %u\n",
+			curr_perf_level);
+		if (copy_to_user(vdec_msg.out,
+			&curr_perf_level, sizeof(u32)))
+			return -EFAULT;
+		break;
+	}
 	case VDEC_IOCTL_SET_PERF_CLK:
 	{
 		DBG("VDEC_IOCTL_SET_PERF_CLK\n");
@@ -2272,6 +2332,23 @@ static long vid_dec_ioctl(struct file *file,
 		break;
 	}
 
+	case VDEC_IOCTL_GET_ENABLE_SEC_METADATA:
+	{
+		u32 enable_sec_metadata;
+		DBG("VDEC_IOCTL_GET_ENABLE_SEC_METADATA\n");
+		if (copy_from_user(&vdec_msg, arg, sizeof(vdec_msg)))
+			return -EFAULT;
+		result = vid_dec_get_enable_secure_metadata(client_ctx,
+					&enable_sec_metadata);
+		if (result) {
+			if (copy_to_user(vdec_msg.out, &enable_sec_metadata,
+					sizeof(u32)))
+				return -EFAULT;
+		} else
+			return -EIO;
+		break;
+	}
+
 	case VDEC_IOCTL_GET_DISABLE_DMX_SUPPORT:
 	{
 		u32 disable_dmx;
@@ -2364,7 +2441,11 @@ static long vid_dec_ioctl(struct file *file,
 		if (copy_from_user(&meta_buffers, vdec_msg.in,
 						   sizeof(meta_buffers)))
 			return -EFAULT;
-		result = vid_dec_set_meta_buffers(client_ctx, &meta_buffers);
+		if (res_trk_get_enable_sec_metadata())
+			result =
+			vid_dec_set_meta_buffers(client_ctx, &meta_buffers);
+		else
+			ERR("ERROR : Meta data is not enabled.\n");
 
 		if (!result)
 			return -EIO;
@@ -2373,7 +2454,10 @@ static long vid_dec_ioctl(struct file *file,
 	case VDEC_IOCTL_FREE_META_BUFFERS:
 	{
 		DBG("VDEC_IOCTL_FREE_META_BUFFERS\n");
-		result = vid_dec_free_meta_buffers(client_ctx);
+		if (res_trk_get_enable_sec_metadata())
+			result = vid_dec_free_meta_buffers(client_ctx);
+		else
+			ERR("ERROR : Can't free. Meta data is not enabled.\n");
 		if (!result)
 			return -EIO;
 		break;

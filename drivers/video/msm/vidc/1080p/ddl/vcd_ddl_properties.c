@@ -515,6 +515,7 @@ static u32 ddl_set_dec_property(struct ddl_client_context *ddl,
 	}
 	break;
 	case VCD_REQ_PERF_LEVEL:
+		DDL_MSG_LOW("%s: VCD_REQ_PERF_LEVEL (do nithing)", __func__);
 		vcd_status = VCD_S_SUCCESS;
 		break;
 	default:
@@ -1122,6 +1123,7 @@ static u32 ddl_set_enc_property(struct ddl_client_context *ddl,
 		break;
 	}
 	case VCD_REQ_PERF_LEVEL:
+		DDL_MSG_LOW("%s: VCD_REQ_PERF_LEVEL (do nithing)", __func__);
 		vcd_status = VCD_S_SUCCESS;
 		break;
 	case VCD_I_ENABLE_DELIMITER_FLAG:
@@ -1347,6 +1349,13 @@ static u32 ddl_get_dec_property(struct ddl_client_context *ddl,
 	case VCD_I_DISABLE_DMX_SUPPORT:
 		if (sizeof(u32) == property_hdr->sz) {
 			*(u32 *)property_value = res_trk_get_disable_dmx();
+			vcd_status = VCD_S_SUCCESS;
+		}
+	break;
+	case VCD_I_ENABLE_SEC_METADATA:
+		if (sizeof(u32) == property_hdr->sz) {
+			*(u32 *)property_value =
+				res_trk_get_enable_sec_metadata();
 			vcd_status = VCD_S_SUCCESS;
 		}
 	break;
