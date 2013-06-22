@@ -460,7 +460,9 @@ int lpa_set_volume(unsigned volume)
 {
 	int rc = 0;
 	if (lpa_audio.prtd && lpa_audio.prtd->audio_client) {
-		rc = q6asm_set_volume(lpa_audio.prtd->audio_client, volume);
+		rc = q6asm_set_lrgain(lpa_audio.prtd->audio_client,
+					(volume >> 16) & 0xFFFF,
+					volume & 0xFFFF);
 		if (rc < 0) {
 			pr_err("%s: Send Volume command failed"
 					" rc=%d\n", __func__, rc);
@@ -658,6 +660,14 @@ static int msm_pcm_ioctl(struct snd_pcm_substream *substream,
 			pr_err("Flush cmd timeout\n");
 		prtd->pcm_irq_pos = 0;
 		break;
+	case SNDRV_COMPRESS_METADATA_MODE:
+		if (!atomic_read(&prtd->start)) {
+			pr_debug("Metadata mode enabled\n");
+			prtd->meta_data_mode = true;
+			return 0;
+		}
+		pr_debug("Metadata mode not enabled\n");
+		return -EPERM;
 	case SNDRV_PCM_IOCTL1_ENABLE_EFFECT:
 	{
 		struct param {
@@ -744,14 +754,6 @@ static int msm_pcm_ioctl(struct snd_pcm_substream *substream,
 		kfree(payload);
 		return rc;
 	}
-       case SNDRV_COMPRESS_METADATA_MODE:
-               if (!atomic_read(&prtd->start)) {
-                       pr_debug("Metadata mode enabled\n");
-                       prtd->meta_data_mode = true;
-                       return 0;
-               }
-               pr_debug("Metadata mode not enabled\n");
-               return -EPERM;
 	default:
 		break;
 	}
