@@ -791,6 +791,7 @@ struct msm_vidc_platform_data vidc_platform_data = {
 	.cont_mode_dpb_count = 18,
 	.fw_addr = 0x9fe00000,
 	.enable_sec_metadata = 0,
+	.disable_turbo = 1,
 };
 
 struct platform_device msm_device_vidc = {
