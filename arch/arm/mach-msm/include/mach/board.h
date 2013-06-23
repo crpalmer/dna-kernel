@@ -522,8 +522,6 @@ struct msm_panel_common_pdata {
 	u32 splash_screen_addr;
 	u32 splash_screen_size;
 	char mdp_iommu_split_domain;
-	int (*mdp_color_enhance)(void);
-	int (*mdp_gamma)(void);
 };
 
 
