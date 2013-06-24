@@ -1931,6 +1931,7 @@ static struct snd_soc_ops msm_slimbus_2_be_ops = {
 static struct snd_soc_dai_link msm_dai[] = {
 	/* FrontEnd DAI Links */
 	{
+		// 0
 		.name = "MSM8960 Media1",
 		.stream_name = "MultiMedia1",
 		.cpu_dai_name	= "MultiMedia1",
@@ -1944,6 +1945,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA1
 	},
 	{
+		// 1
 		.name = "MSM8960 Media2",
 		.stream_name = "MultiMedia2",
 		.cpu_dai_name	= "MultiMedia2",
@@ -1957,6 +1959,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA2,
 	},
 	{
+		// 2
 		.name = "Circuit-Switch Voice",
 		.stream_name = "CS-Voice",
 		.cpu_dai_name   = "CS-VOICE",
@@ -1972,6 +1975,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_CS_VOICE,
 	},
 	{
+		// 3
 		.name = "MSM VoIP",
 		.stream_name = "VoIP",
 		.cpu_dai_name	= "VoIP",
@@ -1985,6 +1989,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_VOIP,
 	},
 	{
+		// 4
 		.name = "MSM8960 LPA",
 		.stream_name = "LPA",
 		.cpu_dai_name	= "MultiMedia3",
@@ -1999,6 +2004,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* Hostless PMC purpose */
 	{
+		// 5
 		.name = "SLIMBUS_0 Hostless",
 		.stream_name = "SLIMBUS_0 Hostless",
 		.cpu_dai_name	= "SLIMBUS0_HOSTLESS",
@@ -2019,6 +2025,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.stream_name = "INT_FM Hostless",
 		.cpu_dai_name	= "INT_FM_HOSTLESS",
 #endif
+		// 6
 		.name = "PRI_I2S_TX Hostless",
 		.stream_name = "PRI_I2S Hostless",
 		.cpu_dai_name	= "PRI_I2S_HOSTLESS",
@@ -2034,6 +2041,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		/* .be_id = do not care */
 	},
 	{
+		// 7
 		.name = "MSM AFE-PCM RX",
 		.stream_name = "AFE-PROXY RX",
 		.cpu_dai_name = "msm-dai-q6.241",
@@ -2044,6 +2052,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 8
 		.name = "MSM AFE-PCM TX",
 		.stream_name = "AFE-PROXY TX",
 		.cpu_dai_name = "msm-dai-q6.240",
@@ -2053,6 +2062,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_suspend = 1,
 	},
 	{
+		// 9
 		.name = "Voice Stub",
 		.stream_name = "Voice Stub",
 		.cpu_dai_name = "VOICE_STUB",
@@ -2066,6 +2076,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_name = "snd-soc-dummy",
 	},
 	{
+		// 10
 		.name = "VoLTE",
 		.stream_name = "VoLTE",
 		.cpu_dai_name   = "VoLTE",
@@ -2082,6 +2093,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_VOLTE,
 	},
 	{
+		// 11
 		.name = "MSM8960 LowLatency",
 		.stream_name = "MultiMedia5",
 		.cpu_dai_name   = "MultiMedia5",
@@ -2098,6 +2110,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* Backend DAI Links */
 	{
+		// 12
 		.name = LPASS_BE_SLIMBUS_0_RX,
 		.stream_name = "Slimbus Playback",
 		.cpu_dai_name = "msm-dai-q6.16384",
@@ -2112,6 +2125,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 13
 		.name = LPASS_BE_SLIMBUS_0_TX,
 		.stream_name = "Slimbus Capture",
 		.cpu_dai_name = "msm-dai-q6.16385",
@@ -2125,6 +2139,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* Backend BT/FM DAI Links */
 	{
+		// 14
 		.name = LPASS_BE_INT_BT_SCO_RX,
 		.stream_name = "Internal BT-SCO Playback",
 		.cpu_dai_name = "msm-dai-q6.12288",
@@ -2137,6 +2152,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 15
 		.name = LPASS_BE_INT_BT_SCO_TX,
 		.stream_name = "Internal BT-SCO Capture",
 		.cpu_dai_name = "msm-dai-q6.12289",
@@ -2148,6 +2164,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_hw_params_fixup = msm_btsco_be_hw_params_fixup,
 	},
 	{
+		// 16
 		.name = LPASS_BE_INT_FM_RX,
 		.stream_name = "Internal FM Playback",
 		.cpu_dai_name = "msm-dai-q6.12292",
@@ -2160,6 +2177,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 17
 		.name = LPASS_BE_INT_FM_TX,
 		.stream_name = "Internal FM Capture",
 		.cpu_dai_name = "msm-dai-q6.12293",
@@ -2172,6 +2190,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* HDMI BACK END DAI Link */
 	{
+		// 18
 		.name = LPASS_BE_HDMI,
 		.stream_name = "HDMI Playback",
 		.cpu_dai_name = "msm-dai-q6-hdmi.8",
@@ -2183,6 +2202,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_hw_params_fixup = msm_hdmi_be_hw_params_fixup,
 	},
 	{
+		// 19
 		.name = LPASS_BE_PRI_I2S_TX,
 		.stream_name = "Primary I2S Capture",
 		.cpu_dai_name = "msm-dai-q6.1",
@@ -2195,6 +2215,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ops = &msm8960_i2s_be_ops,
 	},
 	{
+		// 20
 		.name = LPASS_BE_MI2S_RX,
 		.stream_name = "MI2S Playback",
 		.cpu_dai_name = "msm-dai-q6-mi2s",
@@ -2207,6 +2228,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ops = &msm8960_mi2s_be_ops,
 	},
 	{
+		// 21
 		.name = LPASS_BE_MI2S_TX,
 		.stream_name = "MI2S Capture",
 		.cpu_dai_name = "msm-dai-q6-mi2s",
@@ -2220,6 +2242,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* Backend AFE DAI Links */
 	{
+		// 22
 		.name = LPASS_BE_AFE_PCM_RX,
 		.stream_name = "AFE Playback",
 		.cpu_dai_name = "msm-dai-q6.224",
@@ -2232,6 +2255,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 23
 		.name = LPASS_BE_AFE_PCM_TX,
 		.stream_name = "AFE Capture",
 		.cpu_dai_name = "msm-dai-q6.225",
@@ -2244,6 +2268,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* AUX PCM Backend DAI Links */
 	{
+		// 24
 		.name = LPASS_BE_AUXPCM_RX,
 		.stream_name = "AUX PCM Playback",
 		.cpu_dai_name = "msm-dai-q6.2",
@@ -2257,6 +2282,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 25
 		.name = LPASS_BE_AUXPCM_TX,
 		.stream_name = "AUX PCM Capture",
 		.cpu_dai_name = "msm-dai-q6.3",
@@ -2269,6 +2295,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_hw_params_fixup = msm_auxpcm_be_params_fixup,
 	},
 	{
+		// 26
 		.name = LPASS_BE_STUB_RX,
 		.stream_name = "Stub Playback",
 		.cpu_dai_name = "msm-dai-stub",
@@ -2283,6 +2310,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 27
 		.name = LPASS_BE_STUB_TX,
 		.stream_name = "Stub Capture",
 		.cpu_dai_name = "msm-dai-stub",
@@ -2295,6 +2323,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ops = &msm_be_ops,
 	},
 	{
+		// 28
 		.name = LPASS_BE_SLIMBUS_1_RX,
 		.stream_name = "Slimbus1 Playback",
 		.cpu_dai_name = "msm-dai-q6.16386",
@@ -2309,6 +2338,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 
 	},
 	{
+		// 29
 		.name = LPASS_BE_SLIMBUS_1_TX,
 		.stream_name = "Slimbus1 Capture",
 		.cpu_dai_name = "msm-dai-q6.16387",
@@ -2322,6 +2352,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* Ultrasound TX Back End DAI Link */
 	{
+		// 30
 		.name = "SLIMBUS_2 Hostless",
 		.stream_name = "SLIMBUS_2 Hostless",
 		.cpu_dai_name = "msm-dai-q6.16389",
@@ -2335,6 +2366,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 
 	/* Incall Music Back End DAI Link */
 	{
+		// 31
 		.name = LPASS_BE_SLIMBUS_4_RX,
 		.stream_name = "Slimbus4 Playback",
 		.cpu_dai_name = "msm-dai-q6.16392",
@@ -2349,6 +2381,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* Incall Record Back End DAI Link */
 	{
+		// 32
 		.name = LPASS_BE_SLIMBUS_4_TX,
 		.stream_name = "Slimbus4 Capture",
 		.cpu_dai_name = "msm-dai-q6.16393",
@@ -2361,6 +2394,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ops = &msm_slimbus_4_be_ops,
 	},
 	{
+		// 33
 		.name = LPASS_BE_STUB_1_TX,
 		.stream_name = "Stub1 Capture",
 		.cpu_dai_name = "msm-dai-stub",
@@ -2377,7 +2411,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ops = &msm_be_ops,
 	},
 	{
-
+		// 34
 		.name = LPASS_BE_SLIMBUS_3_RX,
 		.stream_name = "Slimbus3 Playback",
 		.cpu_dai_name = "msm-dai-q6.16390",
@@ -2391,6 +2425,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
+		// 35
 		.name = "MI2S Hostless",
 		.stream_name = "SLIMBUS_0 Hostless",
 		.cpu_dai_name	= "SLIMBUS0_HOSTLESS",
@@ -2406,6 +2441,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 	},
 	/* HTC_AUD_START LPA5 */
 	{
+		// 36
 		.name = "MSM8960 Media5",
 		.stream_name = "MultiMedia5",
 		.cpu_dai_name	= "MultiMedia5",
@@ -2420,6 +2456,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA5
 	},
 	{
+		// 37
 		.name = "MSM8960 Media6",
 		.stream_name = "MultiMedia6",
 		.cpu_dai_name	= "MultiMedia6",
@@ -2434,6 +2471,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA6
 	},
 	{
+		// 38
 		.name = "MSM8960 Compr",
 		.stream_name = "COMPR",
 		.cpu_dai_name	= "MultiMedia4",
@@ -2447,6 +2485,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA4,
 	},
 	{
+		// 39
 		.name = "MSM8960 Compr2",
 		.stream_name = "COMPR2",
 		.cpu_dai_name	= "MultiMedia7",
@@ -2461,6 +2500,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA7,
 	},
 	{
+		// 40
 		.name = "MSM8960 Compr3",
 		.stream_name = "COMPR3",
 		.cpu_dai_name	= "MultiMedia8",
