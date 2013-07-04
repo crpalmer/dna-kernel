@@ -3328,8 +3328,8 @@ static struct rcg_clk gfx2d0_clk = {
 		.dbg_name = "gfx2d0_clk",
 		.ops = &clk_ops_rcg,
 		.flags = CLKFLAG_SKIP_HANDOFF,
-		VDD_DIG_FMAX_MAP3(LOW,  100000000, NOMINAL, 200000000,
-				  HIGH, 228571000),
+		VDD_DIG_FMAX_MAP3(LOW,  128000000, NOMINAL, 300000000,
+				  HIGH, 400000000),
 		CLK_INIT(gfx2d0_clk.c),
 	},
 };
