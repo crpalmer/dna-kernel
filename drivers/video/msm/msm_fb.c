@@ -2011,6 +2011,16 @@ static void bl_workqueue_handler(struct work_struct *work)
 	struct msm_fb_data_type *mfd = container_of(to_delayed_work(work),
 				struct msm_fb_data_type, backlight_worker);
 	struct msm_fb_panel_data *pdata = mfd->pdev->dev.platform_data;
+	static boolean first_brightness = true;
+
+	if (first_brightness) {
+		/* If userspace did not set backlight value,
+		 * $set a default backlight value before display on
+		 */
+		if (unset_bl_level == 0)
+			unset_bl_level = DEFAULT_BRIGHTNESS;
+		first_brightness = false;
+	}
 
 	down(&mfd->sem);
 	if ((pdata) && (pdata->set_backlight) && (!bl_updated)
@@ -2053,7 +2063,6 @@ static int msm_fb_pan_display_sub(struct fb_var_screeninfo *var,
 	struct mdp_dirty_region dirty;
 	struct mdp_dirty_region *dirtyPtr = NULL;
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
-        static bool ignore_bkl_zero = false;
 
 	/*
 	 * If framebuffer is 2, io pen display is not allowed.
@@ -2148,12 +2157,6 @@ static int msm_fb_pan_display_sub(struct fb_var_screeninfo *var,
 	up(&msm_fb_pan_sem);
 
 	if (handle_deferred_display_on(mfd)) {
-                if (!ignore_bkl_zero) {
-                        /* If userspace did not set backlight value, set a default backlight value before display on */
-                        if (mfd->bl_level == 0)
-                                unset_bl_level = DEFAULT_BRIGHTNESS;
-                        ignore_bkl_zero = true;
-                }
                 bl_updated = 0;
         }
 
