@@ -30,6 +30,12 @@ struct msm_rotator_buf_sync {
 	int rel_fen_fd;
 };
 
+struct rot_buf_type {
+	struct ion_handle *ihdl;
+	uint32_t write_addr;
+	uint32_t read_addr;
+};
+
 struct msm_rotator_img_info {
 	unsigned int session_id;
 	struct msmfb_img  src;
@@ -50,6 +56,7 @@ struct msm_rotator_data_info {
 	unsigned int version_key;
 	struct msmfb_data src_chroma;
 	struct msmfb_data dst_chroma;
+	uint32_t wait_for_finish;
 };
 
 struct msm_rot_clocks {
@@ -68,4 +75,3 @@ struct msm_rotator_platform_data {
 	char rot_iommu_split_domain;
 };
 #endif
-

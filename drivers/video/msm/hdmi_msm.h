@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -106,6 +106,7 @@ struct hdmi_msm_state_type {
 
 	struct external_common_state_type common;
 	boolean is_mhl_enabled;
+	struct completion hpd_event_processed;
 };
 
 extern struct hdmi_msm_state_type *hdmi_msm_state;
@@ -119,7 +120,7 @@ void hdmi_phy_reset(void);
 void hdmi_msm_reset_core(void);
 void hdmi_msm_init_phy(int video_format);
 void hdmi_msm_powerdown_phy(void);
-void hdmi_frame_ctrl_cfg(const struct hdmi_disp_mode_timing_type *timing);
+void hdmi_frame_ctrl_cfg(const struct msm_hdmi_mode_timing_info *timing);
 void hdmi_msm_phy_status_poll(void);
 #endif
 

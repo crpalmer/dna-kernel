@@ -185,6 +185,11 @@ int mdp4_lcdc_pipe_commit(int cndx, int wait)
 	undx =  vctrl->update_ndx;
 	vp = &vctrl->vlist[undx];
 	pipe = vctrl->base_pipe;
+	if (pipe == NULL) {
+		pr_err("%s: NO base pipe\n", __func__);
+		mutex_unlock(&vctrl->update_lock);
+		return 0;
+	}
 	mixer = pipe->mixer_num;
 
 	mdp_update_pm(vctrl->mfd, vctrl->vsync_time);
@@ -588,8 +593,11 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
+	mutex_lock(&mfd->dma->ov_mutex);
+
 	vctrl->mfd = mfd;
 	vctrl->dev = mfd->fbi->dev;
+	vctrl->vsync_irq_enabled = 0;
 
 	/* mdp clock on */
 	mdp_clk_ctrl(1);
@@ -658,6 +666,7 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 
 	mdp4_overlay_reg_flush(pipe, 1);
 	mdp4_mixer_stage_up(pipe, 0);
+	mdp4_mixer_stage_commit(pipe->mixer_num);
 
 
 	/*
@@ -753,6 +762,7 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 
 	mdp_histogram_ctrl_all(TRUE);
 	mdp4_overlay_lcdc_start();
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return ret;
 }
@@ -783,6 +793,8 @@ int mdp4_lcdc_off(struct platform_device *pdev)
 	int mixer = 0;
 
 	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
+
+	mutex_lock(&mfd->dma->ov_mutex);
 	vctrl = &vsync_ctrl_db[cndx];
 	pipe = vctrl->base_pipe;
 
@@ -854,6 +866,8 @@ int mdp4_lcdc_off(struct platform_device *pdev)
 	/* MDP clock disable */
 	mdp_clk_ctrl(0);
 	mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return ret;
 }

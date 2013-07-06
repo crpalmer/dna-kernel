@@ -267,6 +267,8 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mem_hid = MEMTYPE_EBI1,
 #endif
 	.cont_splash_enabled = 0x01,
+	.splash_screen_addr = 0x00,
+	.splash_screen_size = 0x00,
 	.mdp_iommu_split_domain = 1,
 };
 
@@ -279,6 +281,9 @@ void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
 		mdp_pdata.ov0_wb_size;
 	reserve_table[mdp_pdata.mem_hid].size +=
 		mdp_pdata.ov1_wb_size;
+
+	pr_info("mem_map: mdp reserved with size 0x%lx in pool\n",
+			mdp_pdata.ov0_wb_size + mdp_pdata.ov1_wb_size);
 #endif
 }
 static int first_init_lcd = 1;

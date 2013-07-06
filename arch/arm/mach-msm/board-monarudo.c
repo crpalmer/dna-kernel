@@ -76,6 +76,7 @@
 #include <mach/htc_headset_one_wire.h>
 #include <linux/mfd/pm8xxx/pm8xxx-vibrator-pwm.h>
 #include <mach/htc_ramdump.h>
+#include <video/msm_hdmi_modes.h>
 
 #ifdef CONFIG_PERFLOCK
 #include <mach/perflock.h>

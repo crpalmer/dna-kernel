@@ -42,6 +42,7 @@
 static int first_pixel_start_x;
 static int first_pixel_start_y;
 static int dsi_video_enabled;
+static int vsync_irq_cnt;
 
 #define MAX_CONTROLLER	1
 
@@ -181,6 +182,12 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait)
 	undx =  vctrl->update_ndx;
 	vp = &vctrl->vlist[undx];
 	pipe = vctrl->base_pipe;
+	if (pipe == NULL) {
+		pr_err("%s: NO base pipe\n", __func__);
+		mutex_unlock(&vctrl->update_lock);
+		return 0;
+	}
+
 	mixer = pipe->mixer_num;
 
 	mdp_update_pm(vctrl->mfd, vctrl->vsync_time);
@@ -292,7 +299,6 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait)
 static void mdp4_video_vsync_irq_ctrl(int cndx, int enable)
 {
 	struct vsycn_ctrl *vctrl;
-	static int vsync_irq_cnt;
 
 	vctrl = &vsync_ctrl_db[cndx];
 
@@ -626,9 +632,13 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
+	mutex_lock(&mfd->dma->ov_mutex);
+
 	vctrl->mfd = mfd;
 	vctrl->dev = mfd->fbi->dev;
 	vctrl->blt_ctrl = pinfo->lcd.blt_ctrl;
+	vctrl->vsync_irq_enabled = 0;
+	vsync_irq_cnt = 0;
 
 	/* mdp clock on */
 	mdp_clk_ctrl(1);
@@ -647,6 +657,7 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 		pipe = mdp4_overlay_pipe_alloc(ptype, MDP4_MIXER0);
 		if (pipe == NULL) {
 			printk(KERN_INFO "%s: pipe_alloc failed\n", __func__);
+			mutex_unlock(&mfd->dma->ov_mutex);
 			return -EBUSY;
 		}
 		pipe->pipe_used++;
@@ -781,6 +792,7 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 
 	mdp_histogram_ctrl_all(TRUE);
 	mdp4_overlay_dsi_video_start();
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return ret;
 }
@@ -798,6 +810,8 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	int undx, need_wait = 0;
 
 	mfd = (struct msm_fb_data_type *)platform_get_drvdata(pdev);
+
+	mutex_lock(&mfd->dma->ov_mutex);
 	vctrl = &vsync_ctrl_db[cndx];
 	pipe = vctrl->base_pipe;
 
@@ -874,6 +888,8 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	/* mdp clock off */
 	mdp_clk_ctrl(0);
 	mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+
+	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return ret;
 }
