@@ -212,6 +212,7 @@ static void kgsl_sync_pt_value_str(struct sync_pt *sync_pt,
 }
 
 static const struct sync_timeline_ops kgsl_sync_timeline_ops = {
+	.driver_name = "kgsl-timeline",
 	.dup = kgsl_sync_pt_dup,
 	.has_signaled = kgsl_sync_pt_has_signaled,
 	.compare = kgsl_sync_pt_compare,
@@ -252,7 +253,7 @@ void kgsl_sync_timeline_signal(struct sync_timeline *timeline,
 	struct kgsl_sync_timeline *ktimeline =
 		(struct kgsl_sync_timeline *) timeline;
 
-	if (timestamp_cmp(timestamp, ktimeline->last_timestamp > 0))
+	if (timestamp_cmp(timestamp, ktimeline->last_timestamp) > 0)
 		ktimeline->last_timestamp = timestamp;
 	sync_timeline_signal(timeline);
 }

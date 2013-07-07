@@ -1726,6 +1726,7 @@ void vcd_send_frame_done_in_eos_for_dec(
 	u32 rc;
 	struct ddl_frame_data_tag ddl_frm;
 
+	VCD_MSG_LOW("%s: ", __func__);
 	prop_hdr.prop_id = DDL_I_DPB_RETRIEVE;
 	prop_hdr.sz = sizeof(struct ddl_frame_data_tag);
 	memset(&ddl_frm, 0, sizeof(ddl_frm));
@@ -1815,19 +1816,25 @@ u32 vcd_handle_recvd_eos(
 	*pb_eos_handled = false;
 
 	if (input_frame->virtual &&
-			input_frame->data_len)
+			input_frame->data_len) {
+		VCD_MSG_LOW("%s: data available with EOS buffer", __func__);
 		return VCD_S_SUCCESS;
+	}
 
 	input_frame->data_len = 0;
 	rc = vcd_sched_mark_client_eof(cctxt->sched_clnt_hdl);
-	if (VCD_FAILED(rc) && rc != VCD_ERR_QEMPTY)
+	if (VCD_FAILED(rc) && rc != VCD_ERR_QEMPTY) {
+		VCD_MSG_LOW("%s: rc = %u", __func__, rc);
 		return rc;
+	}
 
-	if (rc == VCD_S_SUCCESS)
+	if (rc == VCD_S_SUCCESS) {
 		*pb_eos_handled = true;
-	else if (cctxt->decoding && !input_frame->virtual)
+		VCD_MSG_LOW("%s: EOS handled", __func__);
+	} else if (cctxt->decoding && !input_frame->virtual) {
 		cctxt->sched_clnt_hdl->tkns++;
-	else if (!cctxt->decoding) {
+		VCD_MSG_LOW("%s: decoding & virtual addr is NULL", __func__);
+	} else if (!cctxt->decoding) {
 		vcd_send_frame_done_in_eos(cctxt, input_frame, false);
 		if (cctxt->status.mask & VCD_EOS_WAIT_OP_BUF) {
 			vcd_do_client_state_transition(cctxt,
@@ -1841,6 +1848,8 @@ u32 vcd_handle_recvd_eos(
 	if (*pb_eos_handled &&
 		input_frame->virtual &&
 		!input_frame->data_len) {
+		VCD_MSG_LOW("%s: sending INPUT_DONE as eos was handled",
+			__func__);
 		cctxt->callback(VCD_EVT_RESP_INPUT_DONE,
 				  VCD_S_SUCCESS,
 				  input_frame,
@@ -1985,6 +1994,11 @@ u32 vcd_handle_input_done(
 	orig_frame = vcd_find_buffer_pool_entry(&cctxt->in_buf_pool,
 					 transc->ip_buf_entry->virtual);
 
+	if (!orig_frame) {
+		rc = VCD_ERR_ILLEGAL_PARM;
+		VCD_FAILED_RETURN(rc, "Couldn't find buffer");
+	}
+
 	if ((transc->ip_buf_entry->frame.virtual !=
 		 frame->vcd_frm.virtual)
 		|| !transc->ip_buf_entry->in_use) {
@@ -2026,7 +2040,7 @@ u32 vcd_handle_input_done(
 	}
 
 	if (VCD_FAILED(status)) {
-		VCD_MSG_ERROR("INPUT_DONE returned err = 0x%x", status);
+		VCD_MSG_HIGH("INPUT_DONE returned err = 0x%x", status);
 		vcd_handle_input_done_failed(cctxt, transc);
 	} else
 		cctxt->status.mask |= VCD_FIRST_IP_DONE;
@@ -2308,10 +2322,12 @@ u32 vcd_handle_frame_done(
 	op_frm->vcd_frm.time_stamp = transc->time_stamp;
 	op_frm->vcd_frm.ip_frm_tag = transc->ip_frm_tag;
 
-	if (transc->flags & VCD_FRAME_FLAG_EOSEQ)
-		op_frm->vcd_frm.flags |= VCD_FRAME_FLAG_EOSEQ;
-	else
-		op_frm->vcd_frm.flags &= ~VCD_FRAME_FLAG_EOSEQ;
+	if (!(op_frm->vcd_frm.flags & VCD_FRAME_FLAG_EOSEQ)) {
+		if (transc->flags & VCD_FRAME_FLAG_EOSEQ)
+			op_frm->vcd_frm.flags |= VCD_FRAME_FLAG_EOSEQ;
+		else
+			op_frm->vcd_frm.flags &= ~VCD_FRAME_FLAG_EOSEQ;
+	}
 
 	if (cctxt->decoding)
 		op_frm->vcd_frm.frame = transc->frame;

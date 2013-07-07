@@ -139,6 +139,15 @@ void kgsl_cancel_events_ctxt(struct kgsl_device *device,
 	cur = kgsl_readtimestamp(device, context, KGSL_TIMESTAMP_RETIRED);
 	id = context->id;
 
+	/*
+	 * Increment the refcount to avoid freeing the context while
+	 * cancelling its events
+	 */
+	kgsl_context_get(context);
+
+	/* Remove ourselves from the master pending list */
+	list_del_init(&context->events_list);
+
 	list_for_each_entry_safe(event, event_tmp, &context->events, list) {
 		/*
 		 * "cancel" the events by calling their callback.
@@ -149,6 +158,7 @@ void kgsl_cancel_events_ctxt(struct kgsl_device *device,
 		 * Send the current timestamp so the event knows how far the
 		 * system got before the event was canceled
 		 */
+		list_del(&event->list);
 
 		trace_kgsl_fire_event(id, cur, jiffies - event->created);
 
@@ -156,14 +166,11 @@ void kgsl_cancel_events_ctxt(struct kgsl_device *device,
 			event->func(device, event->priv, id, cur);
 
 		kgsl_context_put(context);
-		list_del(&event->list);
 		kfree(event);
 
 		kgsl_active_count_put(device);
 	}
-
-	/* Remove ourselves from the master pending list */
-	list_del_init(&context->events_list);
+	kgsl_context_put(context);
 }
 
 /**
@@ -192,6 +199,7 @@ void kgsl_cancel_events(struct kgsl_device *device,
 		 * the callback knows how far the GPU made it before things went
 		 * explosion
 		 */
+		list_del(&event->list);
 
 		trace_kgsl_fire_event(KGSL_MEMSTORE_GLOBAL, cur,
 			jiffies - event->created);
@@ -202,8 +210,6 @@ void kgsl_cancel_events(struct kgsl_device *device,
 
 		if (event->context)
 			kgsl_context_put(event->context);
-
-		list_del(&event->list);
 		kfree(event);
 
 		kgsl_active_count_put(device);
@@ -229,6 +235,7 @@ static void _process_event_list(struct kgsl_device *device,
 		 * confused if they don't bother comparing the current timetamp
 		 * to the timestamp they wanted
 		 */
+		list_del(&event->list);
 
 		trace_kgsl_fire_event(id, event->timestamp,
 			jiffies - event->created);
@@ -238,8 +245,6 @@ static void _process_event_list(struct kgsl_device *device,
 
 		if (event->context)
 			kgsl_context_put(event->context);
-
-		list_del(&event->list);
 		kfree(event);
 
 		kgsl_active_count_put(device);
@@ -259,7 +264,8 @@ static inline int _mark_next_event(struct kgsl_device *device,
 		 * timestamp on the event has passed - return that up a layer
 		 */
 
-		return device->ftbl->next_event(device, event);
+		if (device->ftbl->next_event)
+			return device->ftbl->next_event(device, event);
 	}
 
 	return 0;
@@ -311,12 +317,18 @@ void kgsl_process_events(struct work_struct *work)
 		events_list) {
 
 		/*
+		 * Increment the refcount to make sure that the list_del_init
+		 * is called with a valid context's list
+		 */
+		kgsl_context_get(context);
+		/*
 		 * If kgsl_timestamp_expired_context returns 0 then it no longer
 		 * has any pending events and can be removed from the list
 		 */
 
 		if (kgsl_process_context_events(device, context) == 0)
 			list_del_init(&context->events_list);
+		kgsl_context_put(context);
 	}
 
 	mutex_unlock(&device->mutex);

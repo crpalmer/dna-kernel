@@ -519,9 +519,9 @@ struct msm_panel_common_pdata {
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
 	char cont_splash_enabled;
+	u32 splash_screen_addr;
+	u32 splash_screen_size;
 	char mdp_iommu_split_domain;
-	int (*mdp_color_enhance)(void);
-	int (*mdp_gamma)(void);
 };
 
 
@@ -584,6 +584,7 @@ struct mipi_dsi_panel_platform_data {
 // HTC:
 	unsigned char (*shrink_pwm)(int val);
 // :HTC
+	void (*gpio_set_backlight)(int bl_level);
 };
 
 struct lvds_panel_platform_data {
@@ -605,13 +606,6 @@ struct msm_fb_platform_data {
         int (*update_lcdc_lut)(void);
 };
 
-#define HDMI_VFRMT_640x480p60_4_3 0
-#define HDMI_VFRMT_720x480p60_16_9 2
-#define HDMI_VFRMT_1280x720p60_16_9 3
-#define HDMI_VFRMT_720x576p50_16_9 17
-#define HDMI_VFRMT_1920x1080p24_16_9 31
-#define HDMI_VFRMT_1920x1080p30_16_9 33
-
 typedef struct
 {
 	uint8_t format;
@@ -630,6 +624,7 @@ struct msm_hdmi_platform_data {
 	int (*gpio_config)(int on);
 	int (*init_irq)(void);
 	bool (*check_hdcp_hw_support)(void);
+	bool (*source)(void);
 	bool is_mhl_enabled;
 	mhl_driving_params *driving_params;
 	int dirving_params_count;
