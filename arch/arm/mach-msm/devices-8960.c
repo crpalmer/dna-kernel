@@ -2772,53 +2772,9 @@ struct platform_device msm_slim_ctrl = {
 	},
 };
 
-static struct msm_dcvs_freq_entry grp3d_freq[] = {
-	{0, 900, 0, 0, 0},
-	{0, 950, 0, 0, 0},
-	{0, 950, 0, 0, 0},
-	{0, 1200, 1, 100, 100},
-};
-
 static struct msm_dcvs_freq_entry grp2d_freq[] = {
 	{0, 900, 0, 0, 0},
 	{0, 950, 1, 100, 100},
-};
-
-static struct msm_dcvs_core_info grp3d_core_info = {
-	.freq_tbl	= &grp3d_freq[0],
-	.core_param	= {
-		.core_type	= MSM_DCVS_CORE_TYPE_GPU,
-	},
-	.algo_param	= {
-		.disable_pc_threshold		= 0,
-		.em_win_size_min_us		= 100000,
-		.em_win_size_max_us		= 300000,
-		.em_max_util_pct		= 97,
-		.group_id			= 0,
-		.max_freq_chg_time_us		= 100000,
-		.slack_mode_dynamic		= 0,
-		.slack_weight_thresh_pct	= 0,
-		.slack_time_min_us		= 39000,
-		.slack_time_max_us		= 39000,
-		.ss_win_size_min_us		= 1000000,
-		.ss_win_size_max_us		= 1000000,
-		.ss_util_pct			= 95,
-		.ss_no_corr_below_freq		= 0,
-	},
-	.energy_coeffs	= {
-		.active_coeff_a		= 2492,
-		.active_coeff_b		= 0,
-		.active_coeff_c		= 0,
-
-		.leakage_coeff_a	= -17720,
-		.leakage_coeff_b	= 37,
-		.leakage_coeff_c	= 2729,
-		.leakage_coeff_d	= -277,
-	},
-	.power_param	= {
-		.current_temp	= 25,
-		.num_freq	= ARRAY_SIZE(grp3d_freq),
-	}
 };
 
 static struct msm_dcvs_core_info grp2d_core_info = {
@@ -2859,79 +2815,6 @@ static struct msm_dcvs_core_info grp2d_core_info = {
 };
 
 #ifdef CONFIG_MSM_BUS_SCALING
-static struct msm_bus_vectors grp3d_init_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = 0,
-	},
-};
-
-static struct msm_bus_vectors grp3d_low_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(1000),
-	},
-};
-
-static struct msm_bus_vectors grp3d_nominal_low_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(2048),
-	},
-};
-
-static struct msm_bus_vectors grp3d_nominal_high_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(2656),
-	},
-};
-
-static struct msm_bus_vectors grp3d_max_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(3968),
-	},
-};
-
-static struct msm_bus_paths grp3d_bus_scale_usecases[] = {
-	{
-		ARRAY_SIZE(grp3d_init_vectors),
-		grp3d_init_vectors,
-	},
-	{
-		ARRAY_SIZE(grp3d_low_vectors),
-		grp3d_low_vectors,
-	},
-	{
-		ARRAY_SIZE(grp3d_nominal_low_vectors),
-		grp3d_nominal_low_vectors,
-	},
-	{
-		ARRAY_SIZE(grp3d_nominal_high_vectors),
-		grp3d_nominal_high_vectors,
-	},
-	{
-		ARRAY_SIZE(grp3d_max_vectors),
-		grp3d_max_vectors,
-	},
-};
-
-static struct msm_bus_scale_pdata grp3d_bus_scale_pdata = {
-	grp3d_bus_scale_usecases,
-	ARRAY_SIZE(grp3d_bus_scale_usecases),
-	.name = "grp3d",
-};
 
 static struct msm_bus_vectors grp2d0_init_vectors[] = {
 	{
@@ -3029,86 +2912,6 @@ struct msm_bus_scale_pdata grp2d1_bus_scale_pdata = {
 	.name = "grp2d1",
 };
 #endif
-
-static struct resource kgsl_3d0_resources[] = {
-	{
-		.name = KGSL_3D0_REG_MEMORY,
-		.start = 0x04300000, /* GFX3D address */
-		.end = 0x0431ffff,
-		.flags = IORESOURCE_MEM,
-	},
-	{
-		.name = KGSL_3D0_IRQ,
-		.start = GFX3D_IRQ,
-		.end = GFX3D_IRQ,
-		.flags = IORESOURCE_IRQ,
-	},
-};
-
-static const struct kgsl_iommu_ctx kgsl_3d0_iommu_ctxs[] = {
-	{ "gfx3d_user", 0 },
-	{ "gfx3d_priv", 1 },
-};
-
-static struct kgsl_device_iommu_data kgsl_3d0_iommu_data[] = {
-	{
-		.iommu_ctxs = kgsl_3d0_iommu_ctxs,
-		.iommu_ctx_count = ARRAY_SIZE(kgsl_3d0_iommu_ctxs),
-		.physstart = 0x07C00000,
-		.physend = 0x07C00000 + SZ_1M - 1,
-	},
-};
-
-static struct kgsl_device_platform_data kgsl_3d0_pdata = {
-	.pwrlevel = {
-		{
-			.gpu_freq = 400000000,
-			.bus_freq = 4,
-			.io_fraction = 0,
-		},
-		{
-			.gpu_freq = 300000000,
-			.bus_freq = 3,
-			.io_fraction = 33,
-		},
-		{
-			.gpu_freq = 200000000,
-			.bus_freq = 2,
-			.io_fraction = 100,
-		},
-		{
-			.gpu_freq = 128000000,
-			.bus_freq = 1,
-			.io_fraction = 100,
-		},
-		{
-			.gpu_freq = 27000000,
-			.bus_freq = 0,
-		},
-	},
-	.init_level = 2,
-	.num_levels = ARRAY_SIZE(grp3d_freq) + 1,
-	.set_grp_async = NULL,
-	.idle_timeout = HZ/12,
-	.nap_allowed = true,
-	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM_IFACE,
-#ifdef CONFIG_MSM_BUS_SCALING
-	.bus_scale_table = &grp3d_bus_scale_pdata,
-#endif
-	.iommu_data = kgsl_3d0_iommu_data,
-	.iommu_count = ARRAY_SIZE(kgsl_3d0_iommu_data),
-	.core_info = &grp3d_core_info,
-};
-
-struct platform_device msm_kgsl_3d0 = {
-	.name = "kgsl-3d0",
-	.id = 0,
-	.num_resources = ARRAY_SIZE(kgsl_3d0_resources),
-	.resource = kgsl_3d0_resources,
-	.dev = {
-		.platform_data = &kgsl_3d0_pdata,
-	},
-};
 
 static struct resource kgsl_2d0_resources[] = {
 	{
