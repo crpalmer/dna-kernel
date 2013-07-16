@@ -257,7 +257,7 @@ static int mdp_core_clk_rate_table[] = {
 	200000000,
 	200000000,
 };
-struct mdp_reg mdp_gamma[] = {
+struct mdp_reg mdp_gamma_table[] = {
         {0x94800, 0x000000, 0x0},
         {0x94804, 0x010101, 0x0},
         {0x94808, 0x020202, 0x0},
@@ -538,9 +538,16 @@ struct mdp_reg mdp_gamma[] = {
         {0x90070, 0x0F, 0x0},
 };
 
+static bool mdp_gamma = false;
+module_param(mdp_gamma, bool, 0644);
+
 int monarudo_mdp_gamma(void)
 {
-	mdp_color_enhancement(mdp_gamma, ARRAY_SIZE(mdp_gamma));
+	pr_info("%s: enabled = %d\n", __func__, mdp_gamma);
+
+	if (mdp_gamma)
+		mdp_color_enhancement(mdp_gamma_table, ARRAY_SIZE(mdp_gamma_table));
+
 	return 0;
 }
 
