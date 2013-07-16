@@ -566,7 +566,10 @@ static ssize_t mipi_dsi_3d_barrier_read(struct device *dev,
 				struct device_attribute *attr,
 				char *buf)
 {
-	return snprintf((char *)buf, sizeof(buf), "%u\n", barrier_mode);
+	// Code was originally this incorrect version:
+	//return snprintf((char *)buf, sizeof(buf), "%u\n", barrier_mode);
+
+	return snprintf((char *)buf, 8, "%u\n", barrier_mode);
 }
 
 static ssize_t mipi_dsi_3d_barrier_write(struct device *dev,
