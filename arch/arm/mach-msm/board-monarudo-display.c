@@ -635,17 +635,6 @@ static int mipi_dsi_panel_power(int on)
 
 	if (on) {
 		if (!first_init_lcd) {
-			rc = regulator_enable(reg_lvs5);
-			if (rc) {
-				pr_err("enable lvs5 failed, rc=%d\n", rc);
-				return -ENODEV;
-			}
-			msleep(200);
-
-			gpio_set_value_cansleep(gpio37, 1);
-			msleep(10);
-			gpio_set_value_cansleep(gpio36, 1);
-
 			rc = regulator_set_optimum_mode(reg_l2, 100000);
 			if (rc < 0) {
 				pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
@@ -656,13 +645,22 @@ static int mipi_dsi_panel_power(int on)
 				pr_err("enable l2 failed, rc=%d\n", rc);
 				return -ENODEV;
 			}
+			rc = regulator_enable(reg_lvs5);
+			if (rc) {
+				pr_err("enable lvs5 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+			hr_msleep(1); //msleep(200);
+			gpio_set_value_cansleep(gpio37, 1);
+			hr_msleep(2); //msleep(10);
+			gpio_set_value_cansleep(gpio36, 1);
+			hr_msleep(7);
+			gpio_set_value(LCD_RST, 1);
+
 			/* Workaround for 1mA */
 			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_ON);
-
-			gpio_set_value(LCD_RST, 0);
 			msleep(10);
-			gpio_set_value(LCD_RST, 1);
-			/* Workaround for 1mA */
+
 			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
 		} else {
 			/*Regulator needs enable first time*/
@@ -696,19 +694,22 @@ static int mipi_dsi_panel_power(int on)
 		}
 
 		gpio_set_value(LCD_RST, 0);
-		msleep(10);
-		rc = regulator_disable(reg_l2);
-		if (rc) {
-			pr_err("disable reg_l2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
+		hr_msleep(3);  //msleep(10);
+
 		gpio_set_value_cansleep(gpio36, 0);
-		msleep(10);
+		hr_msleep(2);  //msleep(10);
 		gpio_set_value_cansleep(gpio37, 0);
-		msleep(100);
+
+		hr_msleep(8);
+		//msleep(100);
 		rc = regulator_disable(reg_lvs5);
 		if (rc) {
 			pr_err("disable reg_lvs5 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		rc = regulator_disable(reg_l2);
+		if (rc) {
+			pr_err("disable reg_l2 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
 	}
