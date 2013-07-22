@@ -310,7 +310,6 @@ void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
 #endif
 }
 static int first_init_lcd = 1;
-static int first_init_display = 1;
 static bool dsi_power_on;
 static int mipi_dsi_panel_power(int on)
 {
@@ -619,6 +618,8 @@ static int resume_blk = 0;
 static struct i2c_client *blk_pwm_client;
 static struct dcs_cmd_req cmdreq;
 
+static void monarudo_display_on(struct msm_fb_data_type *mfd);
+
 static int monarudo_lcd_on(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
@@ -629,6 +630,8 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 		return -ENODEV;
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
+
+	monarudo_display_on(mfd);
 
 	mipi  = &mfd->panel_info.mipi;
 	if(!first_init_lcd) {
@@ -691,21 +694,18 @@ static int __devinit monarudo_lcd_probe(struct platform_device *pdev)
 }
 static void monarudo_display_on(struct msm_fb_data_type *mfd)
 {
-	if (! first_init_display) {
-		/* It needs 120ms when LP to HS for renesas */
-		msleep(120);
+	/* It needs 120ms when LP to HS for renesas */
+	msleep(120);
 
-		cmdreq.cmds = renesas_display_on_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(renesas_display_on_cmds);
-		cmdreq.flags = CMD_REQ_COMMIT;
-		cmdreq.rlen = 0;
-		cmdreq.cb = NULL;
+	cmdreq.cmds = renesas_display_on_cmds;
+	cmdreq.cmds_cnt = ARRAY_SIZE(renesas_display_on_cmds);
+	cmdreq.flags = CMD_REQ_COMMIT;
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
 
-		mipi_dsi_cmdlist_put(&cmdreq);
+	mipi_dsi_cmdlist_put(&cmdreq);
 
-		PR_DISP_INFO("%s\n", __func__);
-	}
-	first_init_display = 0;
+	PR_DISP_INFO("%s\n", __func__);
 }
 
 #define PWM_MIN                   13
@@ -812,7 +812,6 @@ static struct msm_fb_panel_data monarudo_panel_data = {
 	.on	= monarudo_lcd_on,
 	.off	= monarudo_lcd_off,
 	.set_backlight = monarudo_set_backlight,
-	.display_on = monarudo_display_on,
 };
 
 static int ch_used[3] = {0};
