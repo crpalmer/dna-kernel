@@ -322,19 +322,10 @@ static bool tcxo_is_enabled;
 
 static void tcxo_get_handle(void)
 {
-	int rc;
-
 	if (!tcxo_handle) {
 		tcxo_handle = clk_get_sys("rpm-regulator", "vref_buff");
-		if (IS_ERR(tcxo_handle)) {
+		if (IS_ERR(tcxo_handle))
 			tcxo_handle = NULL;
-		} else {
-			rc = clk_prepare(tcxo_handle);
-			if (rc) {
-				clk_put(tcxo_handle);
-				tcxo_handle = NULL;
-			}
-		}
 	}
 }
 
@@ -343,7 +334,7 @@ static bool tcxo_enable(void)
 	int rc;
 
 	if (tcxo_handle && !tcxo_is_enabled) {
-		rc = clk_enable(tcxo_handle);
+		rc = clk_prepare_enable(tcxo_handle);
 		if (!rc) {
 			tcxo_is_enabled = true;
 			wake_lock(&tcxo_wake_lock);
@@ -363,7 +354,7 @@ static void tcxo_delayed_disable_work(struct work_struct *work)
 	else
 		mutex_lock(&tcxo_mutex);
 
-	clk_disable(tcxo_handle);
+	clk_disable_unprepare(tcxo_handle);
 	tcxo_is_enabled = false;
 	wake_unlock(&tcxo_wake_lock);
 
