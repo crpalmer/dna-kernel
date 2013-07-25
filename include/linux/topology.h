@@ -77,7 +77,6 @@ int arch_update_cpu_topology(void);
 				| 0*SD_BALANCE_WAKE			\
 				| 1*SD_WAKE_AFFINE			\
 				| 1*SD_SHARE_CPUPOWER			\
-				| 0*SD_POWERSAVINGS_BALANCE		\
 				| 1*SD_SHARE_PKG_RESOURCES		\
 				| arch_sd_local_flags(SD_SHARE_CPUPOWER|\
 						SD_SHARE_PKG_RESOURCES) \
@@ -115,8 +114,6 @@ int arch_update_cpu_topology(void);
 				| 1*SD_SHARE_PKG_RESOURCES		\
 				| arch_sd_local_flags(SD_SHARE_PKG_RESOURCES)\
 				| 0*SD_SERIALIZE			\
-				| sd_balance_for_mc_power()		\
-				| sd_power_saving_flags()		\
 				,					\
 	.last_balance		= jiffies,				\
 	.balance_interval	= 1,					\
@@ -148,8 +145,6 @@ int arch_update_cpu_topology(void);
 				| 1*SD_SHARE_PKG_RESOURCES		\
 				| arch_sd_local_flags(0)		\
 				| 0*SD_SERIALIZE			\
-				| sd_balance_for_package_power()	\
-				| sd_power_saving_flags()		\
 				,					\
 	.last_balance		= jiffies,				\
 	.balance_interval	= 1,					\

@@ -317,9 +317,6 @@ void __init cpu_dev_init(void)
 
 	cpu_dev_register_generic();
 
-#if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
-	sched_create_sysfs_power_savings_entries(cpu_subsys.dev_root);
-#endif
 #if defined(CONFIG_HOTPLUG_CPU)
 	register_reboot_notifier(&cpu_restart_notifier);
 #endif
