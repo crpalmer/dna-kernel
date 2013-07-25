@@ -605,9 +605,50 @@ void __init monarudo_mdp_writeback(struct memtype_reserve* reserve_table)
 			mdp_pdata.ov0_wb_size + mdp_pdata.ov1_wb_size);
 #endif
 }
-static int first_init_lcd = 1;
+
 static bool dsi_power_on;
-static int mipi_dsi_panel_power(int on)
+static bool dsi_power_is_initialized = false;
+
+static bool resume_blk = 0;
+DEFINE_MUTEX(display_setup_sem);
+static bool display_is_on = true;
+
+static bool backlight_gpio_is_on = true;
+
+static void 
+backlight_gpio_enable(bool on)
+{
+	PR_DISP_DEBUG("monarudo's %s: request on=%d currently=%d\n", __func__, on, backlight_gpio_is_on);
+
+	if (on == backlight_gpio_is_on)
+		return;
+
+	if (system_rev == XB) {
+		gpio_tlmm_config(GPIO_CFG(MBAT_IN_XA_XB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_set_value(MBAT_IN_XA_XB, on ? 1 : 0);
+	} else if (system_rev >= XC) {
+		PR_DISP_DEBUG("monarudo's %s: turning %s backlight for >= XC\n", __func__, on ? "ON" : "OFF");
+		gpio_tlmm_config(GPIO_CFG(BL_HW_EN_XC_XD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_set_value(BL_HW_EN_XC_XD, on ? 1 : 0);
+		msleep(1);
+	}
+
+	backlight_gpio_is_on = on;
+}
+
+static void
+backlight_gpio_off(void)
+{
+	backlight_gpio_enable(false);
+}
+
+static void
+backlight_gpio_on(void)
+{
+	backlight_gpio_enable(true);
+}
+
+static int __mipi_dsi_panel_power(int on)
 {
 	static struct regulator *reg_lvs5, *reg_l2;
 	static int gpio36, gpio37;
@@ -616,6 +657,7 @@ static int mipi_dsi_panel_power(int on)
 	pr_debug("%s: on=%d\n", __func__, on);
 
 	if (!dsi_power_on) {
+		PR_DISP_DEBUG("monarudo's %s: powering on.\n", __func__);
 		reg_lvs5 = regulator_get(&msm_mipi_dsi1_device.dev,
 				"dsi1_vddio");
 		if (IS_ERR_OR_NULL(reg_lvs5)) {
@@ -656,7 +698,8 @@ static int mipi_dsi_panel_power(int on)
 	}
 
 	if (on) {
-		if (!first_init_lcd) {
+		if (dsi_power_is_initialized) {
+			PR_DISP_DEBUG("monarudo's %s: turning on, previously initialized\n", __func__);
 			rc = regulator_set_optimum_mode(reg_l2, 100000);
 			if (rc < 0) {
 				pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
@@ -685,6 +728,9 @@ static int mipi_dsi_panel_power(int on)
 
 			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
 		} else {
+			dsi_power_is_initialized = true;
+
+			PR_DISP_DEBUG("monarudo's %s: turning on, initializing\n", __func__);
 			/*Regulator needs enable first time*/
 			rc = regulator_enable(reg_lvs5);
 			if (rc) {
@@ -707,13 +753,8 @@ static int mipi_dsi_panel_power(int on)
 			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
 		}
 	} else {
-		if (system_rev == XB) {
-			gpio_tlmm_config(GPIO_CFG(MBAT_IN_XA_XB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-			gpio_set_value(MBAT_IN_XA_XB, 0);
-		} else if (system_rev >= XC) {
-			gpio_tlmm_config(GPIO_CFG(BL_HW_EN_XC_XD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-			gpio_set_value(BL_HW_EN_XC_XD, 0);
-		}
+		PR_DISP_DEBUG("monarudo's %s: turning off\n", __func__);
+		backlight_gpio_off();
 
 		gpio_set_value(LCD_RST, 0);
 		hr_msleep(3);  //msleep(10);
@@ -737,6 +778,17 @@ static int mipi_dsi_panel_power(int on)
 	}
 
 	return 0;
+}
+
+static int mipi_dsi_panel_power(int on)
+{
+	int ret;
+
+	mutex_lock(&display_setup_sem);
+	ret = __mipi_dsi_panel_power(on);
+	mutex_unlock(&display_setup_sem);
+
+	return ret;
 }
 
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
@@ -910,7 +962,6 @@ static uint32 mipi_renesas_manufacture_id(struct msm_fb_data_type *mfd)
 }
 #endif
 
-static int resume_blk = 0;
 static struct i2c_client *blk_pwm_client;
 static struct dcs_cmd_req cmdreq;
 
@@ -919,7 +970,6 @@ static void monarudo_display_on(struct msm_fb_data_type *mfd);
 static int monarudo_lcd_on(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
-	struct mipi_panel_info *mipi;
 
 	mfd = platform_get_drvdata(pdev);
 	if (!mfd)
@@ -927,10 +977,15 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	monarudo_display_on(mfd);
+	mutex_lock(&display_setup_sem);
 
-	mipi  = &mfd->panel_info.mipi;
-	if(!first_init_lcd) {
+	if(! display_is_on) {
+		struct mipi_panel_info *mipi = &mfd->panel_info.mipi;
+
+		monarudo_display_on(mfd);
+
+		PR_DISP_DEBUG("%s: turning on the display.\n", __func__);
+
 		if (mipi->mode == DSI_VIDEO_MODE) {
                         cmdreq.cmds = sharp_video_on_cmds;
                         cmdreq.cmds_cnt = ARRAY_SIZE(sharp_video_on_cmds);
@@ -942,9 +997,11 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 
 		        PR_DISP_DEBUG("%s\n", __func__);
 		}
-	}
-	first_init_lcd = 0;
-	//mipi_renesas_manufacture_id(mfd);
+		display_is_on = true;
+	} else
+		PR_DISP_INFO("%s: display was already turned on.\n", __func__);
+
+	mutex_unlock(&display_setup_sem);
 
 	return 0;
 }
@@ -960,17 +1017,27 @@ static int monarudo_lcd_off(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-        cmdreq.cmds = sharp_display_off_cmds;
-        cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
-        cmdreq.flags = CMD_REQ_COMMIT;
-        cmdreq.rlen = 0;
-        cmdreq.cb = NULL;
+	mutex_lock(&display_setup_sem);
 
-        mipi_dsi_cmdlist_put(&cmdreq);
+	if (display_is_on) {
+		PR_DISP_DEBUG("%s: turning the display off.\n", __func__);
 
-	resume_blk = 1;
+		cmdreq.cmds = sharp_display_off_cmds;
+		cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
+		cmdreq.flags = CMD_REQ_COMMIT;
+		cmdreq.rlen = 0;
+		cmdreq.cb = NULL;
+
+		mipi_dsi_cmdlist_put(&cmdreq);
+
+		display_is_on = false;
+		resume_blk = true;
+	} else
+		PR_DISP_INFO("%s: display was already turned off.\n", __func__);
 
 	PR_DISP_DEBUG("%s\n", __func__);
+
+	mutex_unlock(&display_setup_sem);
 
 	return 0;
 }
@@ -992,6 +1059,8 @@ static void monarudo_display_on(struct msm_fb_data_type *mfd)
 {
 	/* It needs 120ms when LP to HS for renesas */
 	msleep(120);
+
+	PR_DISP_DEBUG("%s: turning on the display.\n", __func__);
 
 	cmdreq.cmds = renesas_display_on_cmds;
 	cmdreq.cmds_cnt = ARRAY_SIZE(renesas_display_on_cmds);
@@ -1046,16 +1115,20 @@ static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
 
 	write_display_brightness[2] = monarudo_shrink_pwm((unsigned char)(mfd->bl_level));
 
-	if (resume_blk) {
-		resume_blk = 0;
+	mutex_lock(&display_setup_sem);
 
-		if (system_rev == XB) {
-			gpio_tlmm_config(GPIO_CFG(MBAT_IN_XA_XB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-			gpio_set_value(MBAT_IN_XA_XB, 1);
-		} else if (system_rev >= XC) {
-			gpio_tlmm_config(GPIO_CFG(BL_HW_EN_XC_XD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-			gpio_set_value(BL_HW_EN_XC_XD, 1);
-		}
+	if (! display_is_on) {
+		PR_DISP_ERR("%s: changing backlight while the display is off!\n", __func__);
+		mutex_unlock(&display_setup_sem);
+		return;
+	}
+
+	if (resume_blk) {
+		resume_blk = false;
+
+		PR_DISP_DEBUG("%s: resuming backlight\n", __func__);
+
+		backlight_gpio_on();
 
 		rc = i2c_smbus_write_byte_data(blk_pwm_client, 0x10, 0xC5);
 		if (rc)
@@ -1083,16 +1156,12 @@ static void monarudo_set_backlight(struct msm_fb_data_type *mfd)
         mipi_dsi_cmdlist_put(&cmdreq);
 
 	if((mfd->bl_level) == 0) {
-		if (system_rev == XB) {
-			gpio_tlmm_config(GPIO_CFG(MBAT_IN_XA_XB, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-			gpio_set_value(MBAT_IN_XA_XB, 0);
-		} else if (system_rev >= XC) {
-			gpio_tlmm_config(GPIO_CFG(BL_HW_EN_XC_XD, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-			gpio_set_value(BL_HW_EN_XC_XD, 0);
-		}
-
-		resume_blk = 1;
+		PR_DISP_DEBUG("%s: disabling backlight\n", __func__);
+		backlight_gpio_off();
+		resume_blk = true;
 	}
+
+	mutex_unlock(&display_setup_sem);
 
 	return;
 }
