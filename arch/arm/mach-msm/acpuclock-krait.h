@@ -85,10 +85,19 @@ struct vreg {
 	int cur_ua;
 };
 
+/**
+ * struct core_speed - Clock tree and configuration parameters.
+ * @khz: Clock rate in KHz.
+ * @src: Clock source ID.
+ * @pri_src_sel: Input to select on the primary MUX.
+ * @sec_src_sel: Input to select on the secondary MUX.
+ * @pll_l_val: HFPLL "L" value to be applied when an HFPLL source is selected.
+ */
 struct core_speed {
 	unsigned long khz;
 	int src;
 	u32 pri_src_sel;
+	u32 sec_src_sel;
 	u32 pll_l_val;
 };
 
@@ -124,12 +133,24 @@ struct hfpll_data {
 	const int vdd[NUM_HFPLL_VDD];
 };
 
+/**
+ * struct scalable - Register locations and state associated with a scalable HW.
+ * @hfpll_phys_base: Physical base address of HFPLL register.
+ * @hfpll_base: Virtual base address of HFPLL registers.
+ * @aux_clk_sel_phys: Physical address of auxiliary MUX.
+ * @aux_clk_sel: Auxiliary mux input to select at boot.
+ * @l2cpmr_iaddr: Indirect address of the CPMR MUX/divider CP15 register.
+ * @cur_speed: Pointer to currently-set speed.
+ * @l2_vote: L2 performance level vote associate with the current CPU speed.
+ * @vreg: Array of voltage regulators needed by the scalable.
+ * @initialized: Flag set to true when per_cpu_init() has been called.
+ * @avs_enabled: True if avs is enabled for the scalabale. False otherwise.
+ */
 struct scalable {
 	const phys_addr_t hfpll_phys_base;
 	void __iomem *hfpll_base;
 	const phys_addr_t aux_clk_sel_phys;
 	const u32 aux_clk_sel;
-	const u32 sec_clk_sel;
 	const u32 l2cpmr_iaddr;
 	const struct core_speed *cur_speed;
 	unsigned int l2_vote;
