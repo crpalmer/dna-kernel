@@ -1502,7 +1502,7 @@ EXPORT_SYMBOL(pm8921_bms_get_vsense_avg);
 
 int pm8921_bms_get_battery_current(int *result_ua)
 {
-	int vsense;
+	int vsense = 0;
 
 	if (!the_chip) {
 		pr_err("called before initialization\n");
@@ -2675,7 +2675,7 @@ static void dump_cc_uah(void)
 int prev_cc_uah = 0;
 static int pm8921_bms_suspend(struct device *dev)
 {
-	u64 val;
+	u64 val = 0;
 	int rc;
 	struct pm8xxx_adc_chan_result result;
 	struct pm8921_bms_chip *chip = dev_get_drvdata(dev);
