@@ -99,13 +99,6 @@ kgsl_mem_entry_create(void)
 	return entry;
 }
 
-unsigned int kgsl_get_alloc_size(int detailed)
-{
-	unsigned int ret = 0;
-
-	return ret;
-}
-
 void
 kgsl_mem_entry_destroy(struct kref *kref)
 {
