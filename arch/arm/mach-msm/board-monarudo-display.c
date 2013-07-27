@@ -578,16 +578,6 @@ static struct msm_wfd_platform_data wfd_pdata = {
 	.wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
 };
 
-static char wfd_check_mdp_iommu_split_domain(void)
-{
-	return mdp_pdata.mdp_iommu_split_domain;
-}
-
-#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
-static struct msm_wfd_platform_data wfd_pdata = {
-	.wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
-};
-
 static struct platform_device wfd_panel_device = {
 	.name = "wfd_panel",
 	.id = 0,
@@ -1031,6 +1021,7 @@ static int monarudo_lcd_off(struct platform_device *pdev)
 
 	if (display_is_on) {
 		PR_DISP_DEBUG("%s: turning the display off.\n", __func__);
+
 		cmdreq.cmds = sharp_display_off_cmds;
 		cmdreq.cmds_cnt = ARRAY_SIZE(sharp_display_off_cmds);
 		cmdreq.flags = CMD_REQ_COMMIT;
@@ -1044,16 +1035,7 @@ static int monarudo_lcd_off(struct platform_device *pdev)
 	} else
 		PR_DISP_INFO("%s: display was already turned off.\n", __func__);
 
-		mipi_dsi_cmdlist_put(&cmdreq);
-
-		display_is_on = false;
-		resume_blk = true;
-	} else
-		PR_DISP_INFO("%s: display was already turned off.\n", __func__);
-
 	PR_DISP_DEBUG("%s\n", __func__);
-
-	mutex_unlock(&display_setup_sem);
 
 	mutex_unlock(&display_setup_sem);
 
@@ -1088,7 +1070,7 @@ static void monarudo_display_on(struct msm_fb_data_type *mfd)
 
 	mipi_dsi_cmdlist_put(&cmdreq);
 
-	PR_DISP_INFO("%s\n", __func__);
+	PR_DISP_DEBUG("%s\n", __func__);
 }
 
 #define PWM_MIN                   21
