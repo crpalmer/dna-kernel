@@ -606,13 +606,6 @@ struct msm_fb_platform_data {
         int (*update_lcdc_lut)(void);
 };
 
-typedef struct
-{
-	uint8_t format;
-	uint8_t reg_a3;
-	uint8_t reg_a6;
-} mhl_driving_params;
-
 struct msm_hdmi_platform_data {
 	int irq;
 	int (*cable_detect)(int insert);
@@ -626,8 +619,6 @@ struct msm_hdmi_platform_data {
 	bool (*check_hdcp_hw_support)(void);
 	bool (*source)(void);
 	bool is_mhl_enabled;
-	mhl_driving_params *driving_params;
-	int dirving_params_count;
 };
 
 struct msm_mhl_platform_data {
