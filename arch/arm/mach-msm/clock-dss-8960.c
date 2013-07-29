@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -98,7 +98,7 @@ int hdmi_pll_enable(void)
 	unsigned int val;
 	u32 ahb_en_reg, ahb_enabled;
 	unsigned int timeout_count;
-	unsigned int retry_count;
+	int pll_lock_retry = 10;
 
 	ahb_en_reg = readl_relaxed(AHB_EN_REG);
 	ahb_enabled = ahb_en_reg & BIT(4);
@@ -113,6 +113,13 @@ int hdmi_pll_enable(void)
 	writel_relaxed(0x10, HDMI_PHY_PLL_LOCKDET_CFG0);
 	writel_relaxed(0x1A, HDMI_PHY_PLL_LOCKDET_CFG1);
 
+	/* Wait for a short time before de-asserting
+	 * to allow the hardware to complete its job.
+	 * This much of delay should be fine for hardware
+	 * to assert and de-assert.
+	 */
+	udelay(10);
+
 	/* De-assert PLL S/W reset */
 	writel_relaxed(0x0D, HDMI_PHY_PLL_LOCKDET_CFG2);
 
@@ -121,6 +128,12 @@ int hdmi_pll_enable(void)
 	/* Assert PHY S/W reset */
 	writel_relaxed(val, HDMI_PHY_REG_12);
 	val &= ~BIT(5);
+
+	/* Wait for a short time before de-asserting
+	   to allow the hardware to complete its job.
+	   This much of delay should be fine for hardware
+	   to assert and de-assert. */
+	udelay(10);
 
 	/* De-assert PHY S/W reset */
 	writel_relaxed(val, HDMI_PHY_REG_12);
@@ -140,24 +153,44 @@ int hdmi_pll_enable(void)
 	writel_relaxed(0x80, HDMI_PHY_REG_2);
 
 	timeout_count = 1000;
-	retry_count = 0;
-	while (!(readl_relaxed(HDMI_PHY_PLL_STATUS0) & BIT(0))){
+	while (!(readl_relaxed(HDMI_PHY_PLL_STATUS0) & BIT(0)) &&
+			timeout_count && pll_lock_retry) {
 		if (--timeout_count == 0) {
-
+			/*
+			 * PLL has still not locked.
+			 * Do a software reset and try again
+			 * Assert PLL S/W reset first
+			 */
 			writel_relaxed(0x8D, HDMI_PHY_PLL_LOCKDET_CFG2);
-			cpu_relax();
+
+			/* Wait for a short time before de-asserting
+			 * to allow the hardware to complete its job.
+			 * This much of delay should be fine for hardware
+			 * to assert and de-assert.
+			 */
+			udelay(10);
 			writel_relaxed(0x0D, HDMI_PHY_PLL_LOCKDET_CFG2);
+
+			/*
+			 * Wait for a short duration for the PLL calibration
+			 * before checking if the PLL gets locked
+			 */
+			udelay(350);
+
 			timeout_count = 1000;
-			retry_count++;
-		}
-		if(retry_count == 5){
-			pr_err("%s: HDMI PLL enable retry 5 times fail, skip\n", __func__);
-			break;
+			pll_lock_retry--;
 		}
 	}
 
 	if (!ahb_enabled)
 		writel_relaxed(ahb_en_reg & ~BIT(4), AHB_EN_REG);
+
+	if (!pll_lock_retry) {
+		pr_err("%s: HDMI PLL not locked\n", __func__);
+		hdmi_pll_disable();
+		return -EAGAIN;
+	}
+
 	hdmi_pll_on = 1;
 	return 0;
 }
