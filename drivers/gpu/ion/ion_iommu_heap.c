@@ -223,7 +223,6 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 						DMA_BIDIRECTIONAL);
 
 		buffer->priv_virt = data;
-
 		return 0;
 
 	} else {
@@ -271,7 +270,6 @@ static void ion_iommu_heap_free(struct ion_buffer *buffer)
 	sg_free_table(table);
 	kfree(table);
 	table = 0;
-
 	if (data->pages_uses_vmalloc)
 		vfree(data->pages);
 	else
