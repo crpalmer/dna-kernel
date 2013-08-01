@@ -49,8 +49,6 @@ struct ion_iommu_priv_data {
 
 #define MAX_VMAP_RETRIES 10
 
-atomic_t v = ATOMIC_INIT(0);
-
 static const unsigned int orders[] = {8, 4, 0};
 static const int num_orders = ARRAY_SIZE(orders);
 
@@ -226,8 +224,6 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 
 		buffer->priv_virt = data;
 
-		atomic_add(data->size, &v);
-
 		return 0;
 
 	} else {
@@ -276,19 +272,11 @@ static void ion_iommu_heap_free(struct ion_buffer *buffer)
 	kfree(table);
 	table = 0;
 
-	atomic_sub(data->size, &v);
-
 	if (data->pages_uses_vmalloc)
 		vfree(data->pages);
 	else
 		kfree(data->pages);
 	kfree(data);
-}
-
-int ion_iommu_heap_dump_size(void)
-{
-	int ret = atomic_read(&v);
-	return ret;
 }
 
 void *ion_iommu_heap_map_kernel(struct ion_heap *heap,
