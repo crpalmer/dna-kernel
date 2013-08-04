@@ -21,11 +21,10 @@
 #include "msm_csiphy.h"
 #include "msm.h"
 
-#define DBG_CSIPHY 0
+#define DBG_CSIPHY 1
 
 #define V4L2_IDENT_CSIPHY                        50003
 
-/*MIPI CSI PHY registers*/
 #define MIPI_CSIPHY_LNn_CFG1_ADDR                0x0
 #define MIPI_CSIPHY_LNn_CFG2_ADDR                0x4
 #define MIPI_CSIPHY_LNn_CFG3_ADDR                0x8
@@ -64,6 +63,7 @@ int msm_csiphy_config(struct csiphy_cfg_params *cfg_params)
 	int i = 0;
 	uint32_t val = 0;
 	uint8_t lane_cnt = 0, lane_mask = 0;
+
 	struct csiphy_device *csiphy_dev;
 	struct msm_camera_csiphy_params *csiphy_params;
 	void __iomem *csiphybase;
@@ -73,8 +73,10 @@ int msm_csiphy_config(struct csiphy_cfg_params *cfg_params)
 		return -ENOMEM;
 	
 	csiphy_params = cfg_params->parms;
+
 	lane_mask = csiphy_params->lane_mask;
 	lane_cnt = csiphy_params->lane_cnt;
+
 	if (csiphy_params->lane_cnt < 1 || csiphy_params->lane_cnt > 4) {
 		CDBG("%s: unsupported lane cnt %d\n",
 			__func__, csiphy_params->lane_cnt);
@@ -102,6 +104,7 @@ int msm_csiphy_config(struct csiphy_cfg_params *cfg_params)
 	msm_io_w(0x24,
 		csiphybase + MIPI_CSIPHY_INTERRUPT_CLEAR0_ADDR);
 
+	
 	return rc;
 }
 
@@ -111,23 +114,23 @@ static irqreturn_t msm_csiphy_irq(int irq_num, void *data)
 	struct csiphy_device *csiphy_dev = data;
 	irq = msm_io_r(csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_STATUS0_ADDR);
 	msm_io_w(irq, csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_CLEAR0_ADDR);
-	CDBG("%s MIPI_CSIPHY%d_INTERRUPT_STATUS0 = 0x%x\n",
+	pr_info("%s MIPI_CSIPHY%d_INTERRUPT_STATUS0 = 0x%x\n",
 		__func__, csiphy_dev->pdev->id, irq);
 	irq = msm_io_r(csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_STATUS1_ADDR);
 	msm_io_w(irq, csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_CLEAR1_ADDR);
-	CDBG("%s MIPI_CSIPHY%d_INTERRUPT_STATUS1 = 0x%x\n",
+	pr_info("%s MIPI_CSIPHY%d_INTERRUPT_STATUS1 = 0x%x\n",
 		__func__, csiphy_dev->pdev->id, irq);
 	irq = msm_io_r(csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_STATUS2_ADDR);
 	msm_io_w(irq, csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_CLEAR2_ADDR);
-	CDBG("%s MIPI_CSIPHY%d_INTERRUPT_STATUS2 = 0x%x\n",
+	pr_info("%s MIPI_CSIPHY%d_INTERRUPT_STATUS2 = 0x%x\n",
 		__func__, csiphy_dev->pdev->id, irq);
 	irq = msm_io_r(csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_STATUS3_ADDR);
 	msm_io_w(irq, csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_CLEAR3_ADDR);
-	CDBG("%s MIPI_CSIPHY%d_INTERRUPT_STATUS3 = 0x%x\n",
+	pr_info("%s MIPI_CSIPHY%d_INTERRUPT_STATUS3 = 0x%x\n",
 		__func__, csiphy_dev->pdev->id, irq);
 	irq = msm_io_r(csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_STATUS4_ADDR);
 	msm_io_w(irq, csiphy_dev->base + MIPI_CSIPHY_INTERRUPT_CLEAR4_ADDR);
-	CDBG("%s MIPI_CSIPHY%d_INTERRUPT_STATUS4 = 0x%x\n",
+	pr_info("%s MIPI_CSIPHY%d_INTERRUPT_STATUS4 = 0x%x\n",
 		__func__, csiphy_dev->pdev->id, irq);
 	msm_io_w(0x1, csiphy_dev->base + 0x164);
 	msm_io_w(0x0, csiphy_dev->base + 0x164);
@@ -161,7 +164,7 @@ static struct msm_cam_clk_info csiphy_clk_info[] = {
 
 static struct camera_vreg_t csiphy_8960_vreg_info[] = {
 	{"mipi_csi_vdd", REG_LDO, 1200000, 1200000, 20000},
- };
+};
 
 static int msm_csiphy_init(struct v4l2_subdev *sd)
 {
@@ -208,6 +211,7 @@ static int msm_csiphy_init(struct v4l2_subdev *sd)
 #if DBG_CSIPHY
 	enable_irq(csiphy_dev->irq->start);
 #endif
+
 	msm_csiphy_reset(csiphy_dev);
 
 	return 0;
@@ -228,6 +232,8 @@ static int msm_csiphy_release(struct v4l2_subdev *sd)
 #if DBG_CSIPHY
 	disable_irq(csiphy_dev->irq->start);
 #endif
+
+	
 
 	pr_info("%s MIPI_CSIPHY_GLBL_PWR_CFG_ADDR=0x%x",
 		__func__, msm_io_r(csiphy_dev->base + MIPI_CSIPHY_GLBL_PWR_CFG_ADDR));

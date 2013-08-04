@@ -37,8 +37,8 @@ int msm_cam_clk_enable(struct device *dev, struct msm_cam_clk_info *clk_info,
 				rc = clk_set_rate(clk_ptr[i],
 							clk_info[i].clk_rate);
 				if (rc < 0) {
-					pr_err("%s set failed\n",
-						   clk_info[i].clk_name);
+					pr_err("%s set failed rate %ld\n",
+						   clk_info[i].clk_name, clk_info[i].clk_rate);
 					goto cam_clk_set_err;
 				}
 			}
@@ -300,5 +300,32 @@ int msm_camera_config_gpio_table(struct msm_camera_sensor_info *sinfo,
 		}
 	}
 	return rc;
+}
+
+void msm_csi_io_dump(void __iomem *addr, int size)
+{
+	char line_str[BUFF_SIZE_128], *p_str;
+	int i;
+	u32 *p = (u32 *) addr;
+	u32 data;
+	pr_err("%s: %p %d\n", __func__, addr, size);
+	line_str[0] = '\0';
+	p_str = line_str;
+	for (i = 0; i < size/4; i++) {
+		if (i % 4 == 0) {
+			snprintf(p_str, 12, "%08x: ", (u32) p);
+			p_str += 10;
+		}
+		data = readl_relaxed(p++);
+		snprintf(p_str, 12, "%08x ", data);
+		p_str += 9;
+		if ((i + 1) % 4 == 0) {
+			pr_err("%s\n", line_str);
+			line_str[0] = '\0';
+			p_str = line_str;
+		}
+	}
+	if (line_str[0] != '\0')
+		pr_err("%s\n", line_str);
 }
 

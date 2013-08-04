@@ -164,6 +164,9 @@ int msm_camera_flash(
 		case MSM_CAMERA_LED_LOW:
 			flash_level = FL_MODE_PRE_FLASH;
 			break;
+                case MSM_CAMERA_LED_VIDEO:
+			flash_level = FL_MODE_VIDEO_TORCH;
+			break;
 		case MSM_CAMERA_LED_OFF:
 		case MSM_CAMERA_LED_INIT:
 		case MSM_CAMERA_LED_RELEASE:
@@ -189,18 +192,6 @@ int msm_camera_flash(
 	return flash_src->camera_flash(flash_level);
 }
 
-/* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- */
 
 int msm_camera_flash_current_driver(
 	struct msm_camera_sensor_flash_current_driver *current_driver,
@@ -215,7 +206,7 @@ int msm_camera_flash_current_driver(
 
 	CDBG("%s: led_state = %d\n", __func__, led_state);
 
-	/* Evenly distribute current across all channels */
+	
 	switch (led_state) {
 	case MSM_CAMERA_LED_OFF:
 		for (idx = 0; idx < num_leds; ++idx) {
@@ -266,7 +257,7 @@ int msm_camera_flash_current_driver(
 		break;
 	}
 	CDBG("msm_camera_flash_led_pmic8058: return %d\n", rc);
-#endif /* CONFIG_LEDS_PMIC8058 */
+#endif 
 	return rc;
 }
 
@@ -580,7 +571,7 @@ static int msm_strobe_flash_xenon_charge(int32_t flash_charge,
 	if (charge_enable) {
 		timer_flash.expires = jiffies +
 			msecs_to_jiffies(flash_recharge_duration);
-		/* add timer for the recharge */
+		
 		if (!timer_pending(&timer_flash))
 			add_timer(&timer_flash);
 	} else
@@ -607,7 +598,7 @@ static irqreturn_t strobe_flash_charge_ready_irq(int irq_num, void *data)
 	struct msm_camera_sensor_strobe_flash_data *sfdata =
 		(struct msm_camera_sensor_strobe_flash_data *)data;
 
-	/* put the charge signal to low */
+	
 	gpio_set_value_cansleep(sfdata->flash_charge, 0);
 
 	return IRQ_HANDLED;
@@ -635,7 +626,7 @@ static int msm_strobe_flash_xenon_init(
 		}
 
 		spin_lock_init(&sfdata->timer_lock);
-		/* setup timer */
+		
 		init_timer(&timer_flash);
 		timer_flash.function = strobe_flash_xenon_recharge_handler;
 		timer_flash.data = (unsigned long)sfdata;
