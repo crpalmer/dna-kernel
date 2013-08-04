@@ -112,7 +112,6 @@ struct msm_fb_data_type {
 	struct hrtimer dma_hrtimer;
 
 	boolean panel_power_on;
-        boolean request_display_on;
 
 	struct work_struct dma_update_worker;
 	struct semaphore sem;
