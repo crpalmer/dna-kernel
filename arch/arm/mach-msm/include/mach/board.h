@@ -194,8 +194,9 @@ struct camera_flash_cfg {
 	int (*camera_flash)(int level);
 	uint16_t low_temp_limit;
 	uint16_t low_cap_limit;
+	uint16_t low_cap_limit_dual;
 	uint8_t postpone_led_mode;
-	struct camera_flash_info *flash_info;	/* Andrew_Cheng linear led 20111205 */
+	struct camera_flash_info *flash_info;
 };
 
 struct msm_camera_sensor_strobe_flash_data {
@@ -343,14 +344,39 @@ struct msm_actuator_info {
 	int bus_id;
 	int vcm_pwd;
 	int vcm_enable;
-	/* HTC_START */
+
 	int use_rawchip_af;
-	/* HTC_END */
+
+
+	int otp_diviation;
+
+
+	void (*vcm_wa_vreg_on) (void);
+	void (*vcm_wa_vreg_off) (void);
+
+
+	void (*oisbinder_i2c_add_driver) (void* i2c_client);
+	void (*oisbinder_open_init) (void);
+	void (*oisbinder_power_down) (void);
+	int32_t (*oisbinder_act_set_ois_mode) (int ois_mode);
+	int32_t (*oisbinder_mappingTbl_i2c_write) (int startup_mode, void * sensor_actuator_info);
+
 };
 
 struct msm_eeprom_info {
 	struct i2c_board_info const *board_info;
 	int bus_id;
+};
+
+enum htc_camera_image_type_board {
+        HTC_CAMERA_IMAGE_NONE_BOARD,
+        HTC_CAMERA_IMAGE_YUSHANII_BOARD,
+        HTC_CAMERA_IMAGE_MAX_BOARD,
+};
+
+enum cam_vcm_onoff_type {
+       STATUS_OFF,
+       STATUS_ON,
 };
 
 struct msm_camera_sensor_info {
@@ -374,29 +400,31 @@ struct msm_camera_sensor_info {
 	enum msm_camera_type camera_type;
 	enum msm_sensor_type sensor_type;
 
-/* HTC_START steven multiple VCM 20120604 */
-    uint16_t num_actuator_info_table;
+        uint16_t num_actuator_info_table;
 	struct msm_actuator_info **actuator_info_table;
-/* HTC_END steven multiple VCM 20120604 */
 
 	struct msm_actuator_info *actuator_info;
 	int pmic_gpio_enable;
 
-	/* HTC_START */
+
 	struct msm_camera_gpio_conf *gpio_conf;
 	int (*camera_power_on)(void);
 	int (*camera_power_off)(void);
+	void (*camera_yushanii_probed)(enum htc_camera_image_type_board);
+	enum htc_camera_image_type_board htc_image;
 	int use_rawchip;
-#if 1 /* HTC to be removed */
-	/* HTC++ */
+	int hdr_mode;
+	int video_hdr_capability;
+#if 1
+
 	void(*camera_clk_switch)(void);
-	int power_down_disable; /* if close power */
-	int full_size_preview; /* if use full-size preview */
-	int cam_select_pin; /* for two sensors */
-	int mirror_mode; /* for sensor upside down */
-	int(*camera_pm8058_power)(int); /* for express */
+	int power_down_disable;
+	int full_size_preview;
+	int cam_select_pin;
+	int mirror_mode;
+	int(*camera_pm8058_power)(int);
 	struct camera_flash_cfg* flash_cfg;
-	int gpio_set_value_force; /*true: force to set gpio  */
+	int gpio_set_value_force;
 	int dev_node;
 	int camera_platform;
 	uint8_t led_high_enabled;
@@ -404,7 +432,8 @@ struct msm_camera_sensor_info {
 	uint32_t kpi_sensor_end;
 	uint8_t (*preview_skip_frame)(void);
 #endif
-	/* HTC_END */
+
+	int sensor_cut;
 
 };
 

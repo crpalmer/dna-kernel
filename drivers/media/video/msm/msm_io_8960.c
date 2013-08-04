@@ -27,11 +27,9 @@
 
 #include <msm_sensor.h>
 
-#include <mach/msm_rtb_enable.h>
-
 #define BUFF_SIZE_128 128
 
-#if 1	/* HTC_START  sync the previous project */
+#if 1	
 #define CAM_VAF_MINUV                 2800000
 #define CAM_VAF_MAXUV                 2800000
 #define CAM_VDIG_MINUV                    1200000
@@ -47,19 +45,18 @@
 #define CAM_CSI_LOAD_UA                    20000
 
 static struct clk *camio_cam_clk;
-#endif	/* HTC_END */
+static struct clk *camio_cam_rawchip_clk;
+
+#endif	
 static struct clk *camio_jpeg_clk;
 static struct clk *camio_jpeg_pclk;
 static struct clk *camio_imem_clk;
 static struct regulator *fs_ijpeg;
-#if 1	/* HTC_START  sync the previous project */
+#if 1	
 static struct msm_camera_io_clk camio_clk;
-static struct msm_sensor_ctrl_t *camio_sctrl;//static struct platform_device *camio_dev;
-//static struct resource *s3drw_io, *s3dctl_io;
-//static struct resource *s3drw_mem, *s3dctl_mem;
-//void __iomem *s3d_rw, *s3d_ctl;
+static struct msm_sensor_ctrl_t *camio_sctrl;
 struct msm_bus_scale_pdata *cam_bus_scale_table;
-#endif	/* HTC_END */
+#endif	
 
 void msm_io_w(u32 data, void __iomem *addr)
 {
@@ -98,16 +95,16 @@ void msm_io_memcpy_toio(void __iomem *dest_addr,
 	int i;
 	u32 *d = (u32 *) dest_addr;
 	u32 *s = (u32 *) src_addr;
-	/* memcpy_toio does not work. Use writel_relaxed for now */
+	
 	for (i = 0; i < len; i++) {
-		/* HTC_START pg 20121004 panic for no stop cmd */
-		if (s && d)
+		
+		if (s)
 			writel_relaxed(*s++, d++);
 		else {
-			pr_err("%s: invalid address %p %p, break", __func__, s,d);
+			pr_err("%s: invalid address %p, break", __func__, s);
 			break;
 		}
-		/* HTC_END pg 20121004 panic for no stop cmd */
+		
 	}
 }
 
@@ -163,6 +160,14 @@ int msm_camio_clk_enable(enum msm_camio_clk_type clktype)
 			msm_camio_clk_rate_set_2(clk, camio_clk.mclk_clk_rate);
 		break;
 #endif	
+	case CAMIO_CAM_RAWCHIP_MCLK_CLK:
+		camio_cam_rawchip_clk =
+		clk = clk_get(NULL, "cam0_clk");
+		pr_info("[CAM] %s: enable CAMIO_CAM_RAWCHIP_MCLK_CLK", __func__);
+		if (!IS_ERR(clk))
+			clk_set_rate(clk, 24000000);
+		break;
+
 	case CAMIO_JPEG_CLK:
 		camio_jpeg_clk =
 		clk = clk_get(NULL, "ijpeg_clk");
@@ -200,11 +205,15 @@ int msm_camio_clk_disable(enum msm_camio_clk_type clktype)
 	struct clk *clk = NULL;
 
 	switch (clktype) {
-#if 1	/* HTC_START  sync the previous project */
+#if 1	
 	case CAMIO_CAM_MCLK_CLK:
 		clk = camio_cam_clk;
 		break;
-#endif	/* HTC_END */
+#endif	
+	case CAMIO_CAM_RAWCHIP_MCLK_CLK:
+		clk = camio_cam_rawchip_clk;
+		break;
+
 	case CAMIO_JPEG_CLK:
 		clk = camio_jpeg_clk;
 		break;
@@ -233,13 +242,13 @@ int msm_camio_clk_disable(enum msm_camio_clk_type clktype)
 	return rc;
 }
 
-#if 1	/* HTC_START  sync the previous project */
+#if 1	
 void msm_camio_clk_rate_set(int rate)
 {
 	struct clk *clk = camio_cam_clk;
 	clk_set_rate(clk, rate);
 }
-#endif	/* HTC_END */
+#endif	
 
 void msm_camio_clk_rate_set_2(struct clk *clk, int rate)
 {
@@ -300,14 +309,14 @@ int msm_camio_jpeg_clk_enable(void)
 	return rc;
 }
 
-#if 1	/* HTC_START  sync the previous project */
+#if 1	
 int msm_camio_config_gpio_table(int gpio_en)
 {
-	struct msm_camera_sensor_info *sinfo = camio_sctrl->sensordata;//camio_dev->dev.platform_data;
+	struct msm_camera_sensor_info *sinfo = camio_sctrl->sensordata;
 	struct msm_camera_gpio_conf *gpio_conf = sinfo->gpio_conf;
 	int rc = 0, i = 0;
 
-#if 1 /* HTC_START Hayden Huang 20111005 */
+#if 1 
 	if (gpio_conf == NULL || gpio_conf->cam_gpio_tbl == NULL) {
 		pr_err("%s: Invalid NULL cam gpio config table\n", __func__);
 		return -EFAULT;
@@ -355,7 +364,7 @@ int msm_camio_config_gpio_table(int gpio_en)
 		for (i = 0; i < gpio_conf->cam_gpio_tbl_size; i++)
 			gpio_free(gpio_conf->cam_gpio_tbl[i]);
 	}
-#endif /* HTC_END Hayden Huang 20111005 */
+#endif 
 	return rc;
 }
 
@@ -364,14 +373,14 @@ void msm_camio_vfe_blk_reset(void)
 	return;
 }
 
-int msm_camio_probe_on(void *s_ctrl)//(struct platform_device *pdev)
+int msm_camio_probe_on(void *s_ctrl)
 {
 	int rc = 0;
 	struct msm_sensor_ctrl_t* sctrl = (struct msm_sensor_ctrl_t *)s_ctrl;
-	struct msm_camera_sensor_info *sinfo = sctrl->sensordata;//pdev->dev.platform_data;
+	struct msm_camera_sensor_info *sinfo = sctrl->sensordata;
 	struct msm_camera_device_platform_data *camdev = sinfo->pdata;
 
-	camio_sctrl = sctrl;//camio_dev = pdev;
+	camio_sctrl = sctrl;
 	camio_clk = camdev->ioclk;
 
 	pr_info("%s: sinfo sensor name - %s\n", __func__, sinfo->sensor_name);
@@ -389,11 +398,11 @@ int msm_camio_probe_on(void *s_ctrl)//(struct platform_device *pdev)
 	return rc;
 }
 
-int msm_camio_probe_off(void *s_ctrl)//(struct platform_device *pdev)
+int msm_camio_probe_off(void *s_ctrl)
 {
 	int rc = 0;
 	struct msm_sensor_ctrl_t* sctrl = (struct msm_sensor_ctrl_t *)s_ctrl;
-	struct msm_camera_sensor_info *sinfo = sctrl->sensordata;//pdev->dev.platform_data;
+	struct msm_camera_sensor_info *sinfo = sctrl->sensordata;
 	struct msm_camera_device_platform_data *camdev = sinfo->pdata;
 
 	if (camdev && camdev->camera_csi_off)
@@ -406,15 +415,14 @@ int msm_camio_probe_off(void *s_ctrl)//(struct platform_device *pdev)
 	return rc;
 }
 
-//HTC_START steven 20120619 fix display dark screen on bootup stage
-int msm_camio_probe_on_bootup(void *s_ctrl)//(struct platform_device *pdev)
+int msm_camio_probe_on_bootup(void *s_ctrl)
 {
 	int rc = 0;
 	struct msm_sensor_ctrl_t* sctrl = (struct msm_sensor_ctrl_t *)s_ctrl;
-	struct msm_camera_sensor_info *sinfo = sctrl->sensordata;//pdev->dev.platform_data;
+	struct msm_camera_sensor_info *sinfo = sctrl->sensordata;
 	struct msm_camera_device_platform_data *camdev = sinfo->pdata;
 
-	camio_sctrl = sctrl;//camio_dev = pdev;
+	camio_sctrl = sctrl;
 	camio_clk = camdev->ioclk;
 
 	pr_info("%s: sinfo sensor name - %s\n", __func__, sinfo->sensor_name);
@@ -427,15 +435,14 @@ int msm_camio_probe_on_bootup(void *s_ctrl)//(struct platform_device *pdev)
 	return rc;
 }
 
-int msm_camio_probe_off_bootup(void *s_ctrl)//(struct platform_device *pdev)
+int msm_camio_probe_off_bootup(void *s_ctrl)
 {
 	int rc = 0;
 	rc = msm_camio_config_gpio_table(0);
 
 	return rc;
 }
-//HTC_END steven 20120619 fix display dark screen on bootup stage
-#endif	/* HTC_END */
+#endif	
 
 void msm_camio_bus_scale_cfg(struct msm_bus_scale_pdata *cam_bus_scale_table,
 		enum msm_bus_perf_setting perf_setting)
