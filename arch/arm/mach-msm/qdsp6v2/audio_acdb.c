@@ -26,7 +26,7 @@
 #define pr_err(fmt, ...) pr_aud_err(fmt, ##__VA_ARGS__)
 //htc audio --
 
-#define MAX_NETWORKS		12
+#define MAX_NETWORKS		15
 
 struct sidetone_atomic_cal {
 	atomic_t	enable;
