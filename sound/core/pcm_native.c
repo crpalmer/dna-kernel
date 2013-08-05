@@ -2479,6 +2479,12 @@ static int snd_pcm_sync_ptr(struct snd_pcm_substream *substream,
 	int err;
 	snd_pcm_uframes_t hw_avail;
 
+	
+	if (PCM_RUNTIME_CHECK(substream))
+		return -ENXIO;
+
+	runtime = substream->runtime;
+
 	memset(&sync_ptr, 0, sizeof(sync_ptr));
 	if (get_user(sync_ptr.flags, (unsigned __user *)&(_sync_ptr->flags)))
 		return -EFAULT;
