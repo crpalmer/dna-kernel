@@ -22,14 +22,21 @@ struct msm_serial_hs_platform_data {
 
 	unsigned char inject_rx_on_wakeup;
 	char rx_to_inject;
+
+#ifdef CONFIG_SERIAL_MSM_HS_BRCM
+	int (*gpio_config)(int);
+#endif
+
+#ifdef CONFIG_SERIAL_MSM_HS
 	unsigned config_gpio;
 	int uart_tx_gpio;
 	int uart_rx_gpio;
 	int uart_cts_gpio;
 	int uart_rfr_gpio;
 	int userid;
+#endif
 
-#ifdef CONFIG_MSM_SERIAL_HS_BRCM
+#ifdef CONFIG_SERIAL_MSM_HS_BRCM
 	unsigned char bt_wakeup_pin;
 	unsigned char host_wakeup_pin;
 #endif
