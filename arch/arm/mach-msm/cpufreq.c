@@ -305,9 +305,6 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	int index;
 	int ret = 0;
 	struct cpufreq_frequency_table *table;
-#ifdef CONFIG_MSM_CPU_FREQ_SET_DEFAULT_MIN_MAX
-	int setting_defaults = 0;
-#endif
 	struct cpufreq_work_struct *cpu_work = NULL;
 #ifdef CONFIG_MSM_CPU_FREQ_SET_DEFAULT_MIN_MAX
 	bool *have_set_default_min_max = &per_cpu(set_default_min_max, policy->cpu);
