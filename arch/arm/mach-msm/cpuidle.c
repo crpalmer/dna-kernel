@@ -1,4 +1,4 @@
-/* Copyright (c) 2010, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -109,10 +109,6 @@ static int msm_cpuidle_enter(
 	atomic_notifier_call_chain(head, MSM_CPUIDLE_STATE_ENTER, NULL);
 #endif
 
-#ifdef CONFIG_CPU_PM
-	cpu_pm_enter();
-#endif
-
 	pm_mode = msm_pm_idle_prepare(dev, drv, index);
 	dev->last_residency = msm_pm_idle_enter(pm_mode);
 	for (i = 0; i < dev->state_count; i++) {
@@ -124,9 +120,6 @@ static int msm_cpuidle_enter(
 		}
 	}
 
-#ifdef CONFIG_CPU_PM
-	cpu_pm_exit();
-#endif
 
 #ifdef CONFIG_MSM_SLEEP_STATS
 	atomic_notifier_call_chain(head, MSM_CPUIDLE_STATE_EXIT, NULL);
