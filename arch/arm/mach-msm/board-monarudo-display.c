@@ -568,6 +568,11 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mdp_gamma = monarudo_mdp_gamma,
 };
 
+static char mipi_dsi_splash_is_enabled(void)
+{
+	return mdp_pdata.cont_splash_enabled;
+}
+
 static char wfd_check_mdp_iommu_split_domain(void)
 {
 	return mdp_pdata.mdp_iommu_split_domain;
@@ -793,6 +798,7 @@ static int mipi_dsi_panel_power(int on)
 
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
 	.dsi_power_save = mipi_dsi_panel_power,
+	.splash_is_enabled = mipi_dsi_splash_is_enabled,
 };
 
 static struct mipi_dsi_panel_platform_data *mipi_monarudo_pdata;
