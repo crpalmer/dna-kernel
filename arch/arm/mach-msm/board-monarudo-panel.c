@@ -47,6 +47,10 @@ static int __init mipi_video_sharp_init(void)
 	pinfo.lcd.v_front_porch = 4;
 	pinfo.lcd.v_pulse_width = 2;
 
+	pinfo.lcd.vsync_enable = TRUE;
+	pinfo.lcd.hw_vsync_mode = TRUE;
+	pinfo.lcd.primary_vsync_init = pinfo.yres;
+
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* black */
 	pinfo.lcdc.hsync_skew = 0;
@@ -113,6 +117,10 @@ static int __init mipi_video_sony_init(void)
 	pinfo.lcd.v_back_porch = 3;
 	pinfo.lcd.v_front_porch = 3;
 	pinfo.lcd.v_pulse_width = 2;
+
+	pinfo.lcd.vsync_enable = TRUE;
+	pinfo.lcd.hw_vsync_mode = TRUE;
+	pinfo.lcd.primary_vsync_init = pinfo.yres;
 
 	pinfo.lcdc.border_clr = 0;	/* blk */
 	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
