@@ -5873,7 +5873,7 @@ static struct clk_lookup msm_clocks_8064_r2[] = {
 #ifdef CONFIG_SERIAL_IRDA
 	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	"msm_serial_irda.2"),
 #elif defined CONFIG_SERIAL_CIR
-	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	"msm_serial_cir.3"),
+	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	"msm_serial_cir.2"),
 #else
 	CLK_LOOKUP("core_clk",		gsbi3_uart_clk.c,	""),
 #endif
@@ -5940,7 +5940,7 @@ static struct clk_lookup msm_clocks_8064_r2[] = {
 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"msm_serial_irda.2"),
 #endif
 #ifdef CONFIG_SERIAL_CIR
-	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"msm_serial_cir.3"),
+	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"msm_serial_cir.2"),
 #endif
 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"qup_i2c.3"),
 #ifdef CONFIG_GSBI4_UARTDM
@@ -6186,16 +6186,6 @@ static struct clk_lookup msm_clocks_8064_r2[] = {
 	CLK_LOOKUP("krait1_mclk",	krait1_m_clk, ""),
 	CLK_LOOKUP("krait2_mclk",	krait2_m_clk, ""),
 	CLK_LOOKUP("krait3_mclk",	krait3_m_clk, ""),
-        CLK_LOOKUP("rot_iommu_clk",     rot_axi_clk.c,  "msm_rotator.0"),
-        CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,      "msm_rotator.0"),
-        CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "msm_rotator.0"),
-        CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "msm_rotator.0"),
-        CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,      "msm_rotator.0"),
-        CLK_LOOKUP("rot_iommu_clk",     rot_axi_clk.c,  "mdp.0"),
-        CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,      "mdp.0"),
-        CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "mdp.0"),
-        CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "mdp.0"),
-        CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,      "mdp.0"),
 };
 
 static struct clk_lookup msm_clocks_8960_only[] __initdata = {
@@ -6211,12 +6201,16 @@ static struct clk_lookup msm_clocks_8960_only[] __initdata = {
 	CLK_LOOKUP("iface_clk",		gfx2d0_p_clk.c,	"footswitch-8x60.0"),
 	CLK_LOOKUP("iface_clk",		gfx2d1_p_clk.c,	"kgsl-2d1.1"),
 	CLK_LOOKUP("iface_clk",		gfx2d1_p_clk.c,	"footswitch-8x60.1"),
+	CLK_LOOKUP("iface_clk",		smmu_p_clk.c,	"msm_iommu.10"),
+	CLK_LOOKUP("iface_clk",		smmu_p_clk.c,	"msm_iommu.11"),
 	CLK_LOOKUP("core_clk",		gfx2d0_clk.c,	"msm_iommu.10"),
 	CLK_LOOKUP("core_clk",		gfx2d1_clk.c,	"msm_iommu.11"),
 };
 
 static struct clk_lookup msm_clocks_8960ab_only[] __initdata = {
 CLK_LOOKUP("bus_clk", gfx3d_axi_clk.c, "footswitch-8x60.2"),
+	CLK_LOOKUP("iface_clk",		smmu_p_clk.c,   "msm_iommu.10"),
+	CLK_LOOKUP("core_clk",		gfx3d_axi_clk.c, "msm_iommu.10"),
 CLK_LOOKUP("div_clk",   tv_src_div_clk.c,   ""),
 };
 
