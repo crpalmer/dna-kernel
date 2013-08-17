@@ -6061,6 +6061,8 @@ static struct clk_lookup msm_clocks_8064_r2[] = {
 	CLK_LOOKUP("tv_clk",		mdp_tv_clk.c,	"footswitch-8x60.4"),
 	CLK_LOOKUP("hdmi_clk",		hdmi_tv_clk.c,		"dtv.0"),
 	CLK_LOOKUP("core_clk",		hdmi_app_clk.c,		"hdmi_msm.1"),
+	CLK_LOOKUP("reset1_clk",	dsi1_reset_clk.c, "footswitch-8x60.4"),
+	CLK_LOOKUP("reset2_clk",	dsi2_reset_clk.c, "footswitch-8x60.4"),
 	CLK_LOOKUP("vpe_clk",		vpe_clk.c,		"msm_vpe.0"),
 	CLK_LOOKUP("core_clk",		vpe_clk.c,	"footswitch-8x60.9"),
 	CLK_LOOKUP("vfe_clk",		vfe_clk.c,		"msm_vfe.0"),
