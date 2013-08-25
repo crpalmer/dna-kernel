@@ -226,7 +226,7 @@ int force_fast_charge_init(void)
 	int is_fast_charge_forced_retval;
 	int current_charge_mode_retval;
 
-	force_fast_charge = FAST_CHARGE_DISABLED; /* Forced fast charge disabled by default */
+	force_fast_charge = FAST_CHARGE_FORCED; /* Forced fast charge forced by default */
 	USB_peripheral_detected = USB_ACC_NOT_DETECTED; /* Consider no USB accessory detected so far */
 	USB_porttype_detected = NO_USB_DETECTED; /* Consider no USB port is yet detected */
 	is_fast_charge_forced = FAST_CHARGE_NOT_FORCED; /* Consider fast charge is not forced at start */
