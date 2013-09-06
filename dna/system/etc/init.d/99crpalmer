@@ -4,13 +4,25 @@
 if grep crpalmer /proc/version > /dev/null
 then
    echo "** crpalmer's boot configuration:"
+   echo "** disabling mpdecision **"
+   if [ -r /system/bin/mpdecision ]; then
+       mount -o remount,rw /system
+       mv /sytem/bin/mpdecision /system/bin/mpdecision.crpalmer
+       mount -o remount,ro /system
+   fi
    stop mpdecision
-   stop thermald
    for script in /system/etc/crpalmer/*
    do
 	$script
    done
 else
    echo "!! crpalmer's boot configuration not running, this isn't my kernel !!"
+   echo "** enabling mpdecision"
+   if [ -r /system/bin/mpdecision.crpalmer ]; then
+       mount -o remount,rw /system
+       mv /sytem/bin/mpdecision.crpalmer /system/bin/mpdecision
+       mount -o remount,ro /system
+   fi
+   start mpdecision
 fi
 )2>&1 | tee /sdcard/crpalmer.log
