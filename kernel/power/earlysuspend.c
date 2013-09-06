@@ -99,15 +99,8 @@ static void __ref boost_cpu_speed(int boost)
 			while (!cpu_active(cpu) && jiffies < max_wait)
 				;
 		}
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND
-		ondemand_boost_cpu(1);
-#endif
 
 	} else {
-
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND
-		ondemand_boost_cpu(0);
-#endif
 		skip_cpu_offline = 0;
 	}
 }
