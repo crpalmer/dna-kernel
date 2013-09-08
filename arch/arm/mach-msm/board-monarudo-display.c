@@ -953,9 +953,9 @@ static void monarudo_display_on(struct msm_fb_data_type *mfd)
 	PR_DISP_INFO("%s\n", __func__);
 }
 
-#define PWM_MIN		   21
-#define PWM_DEFAULT	       82
-#define PWM_MAX		   255
+#define PWM_MIN                   13
+#define PWM_DEFAULT               82
+#define PWM_MAX                   255
 
 #define BRI_SETTING_MIN		 30
 #define BRI_SETTING_DEF		 142
