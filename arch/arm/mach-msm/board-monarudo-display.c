@@ -547,6 +547,7 @@ static struct msm_panel_common_pdata mdp_pdata = {
 #endif
 	.cont_splash_enabled = 0x01,
 	.mdp_iommu_split_domain = 1,
+	.mdp_gamma = monarudo_mdp_gamma,
 };
 
 static char wfd_check_mdp_iommu_split_domain(void)
