@@ -1124,7 +1124,7 @@ static int monarudo_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	if(!first_init) {
+	if(! first_init) {
 		struct mipi_panel_info *mipi = &mfd->panel_info.mipi;
 
 		PR_DISP_DEBUG("%s: turning on the display.\n", __func__);
