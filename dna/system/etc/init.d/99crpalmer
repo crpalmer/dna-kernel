@@ -7,7 +7,7 @@ then
    echo "** disabling mpdecision **"
    if [ -r /system/bin/mpdecision ]; then
        mount -o remount,rw /system
-       mv /sytem/bin/mpdecision /system/bin/mpdecision.crpalmer
+       mv /system/bin/mpdecision /system/bin/mpdecision.crpalmer
        mount -o remount,ro /system
    fi
    stop mpdecision
@@ -20,7 +20,7 @@ else
    echo "** enabling mpdecision"
    if [ -r /system/bin/mpdecision.crpalmer ]; then
        mount -o remount,rw /system
-       mv /sytem/bin/mpdecision.crpalmer /system/bin/mpdecision
+       mv /system/bin/mpdecision.crpalmer /system/bin/mpdecision
        mount -o remount,ro /system
    fi
    start mpdecision
