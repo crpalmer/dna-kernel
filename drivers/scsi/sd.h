@@ -48,10 +48,11 @@ struct scsi_disk {
 	u8		write_prot;
 	u8		protection_type;
 	u8		provisioning_mode;
-	unsigned	ATO : 1;	
-	unsigned	WCE : 1;	
-	unsigned	RCD : 1;	
-	unsigned	DPOFUA : 1;	
+	unsigned	ATO : 1;	/* state of disk ATO bit */
+	unsigned	cache_override : 1; /* temp override of WCE,RCD */
+	unsigned	WCE : 1;	/* state of disk WCE bit */
+	unsigned	RCD : 1;	/* state of disk RCD bit, unused */
+	unsigned	DPOFUA : 1;	/* state of disk DPOFUA bit */
 	unsigned	first_scan : 1;
 	unsigned	lbpme : 1;
 	unsigned	lbprz : 1;

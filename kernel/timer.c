@@ -60,6 +60,7 @@ EXPORT_SYMBOL(jiffies_64);
 #define TVR_SIZE (1 << TVR_BITS)
 #define TVN_MASK (TVN_SIZE - 1)
 #define TVR_MASK (TVR_SIZE - 1)
+#define MAX_TVAL ((unsigned long)((1ULL << (TVR_BITS + 4*TVN_BITS)) - 1))
 
 struct tvec {
 	struct list_head vec[TVN_SIZE];
@@ -125,9 +126,11 @@ static unsigned long round_jiffies_common(unsigned long j, int cpu,
 	
 	j -= cpu * 3;
 
-	if (j <= jiffies) 
-		return original;
-	return j;
+	/*
+	 * Make sure j is still in the future. Otherwise return the
+	 * unmodified value.
+	 */
+	return time_is_after_jiffies(j) ? j : original;
 }
 
 unsigned long __round_jiffies(unsigned long j, int cpu)
@@ -212,8 +215,12 @@ static void internal_add_timer(struct tvec_base *base, struct timer_list *timer)
 		vec = base->tv1.vec + (base->timer_jiffies & TVR_MASK);
 	} else {
 		int i;
-		if (idx > 0xffffffffUL) {
-			idx = 0xffffffffUL;
+		/* If the timeout is larger than MAX_TVAL (on 64-bit
+		 * architectures or with CONFIG_BASE_SMALL=1) then we
+		 * use the maximum timeout.
+		 */
+		if (idx > MAX_TVAL) {
+			idx = MAX_TVAL;
 			expires = idx + base->timer_jiffies;
 		}
 		i = (expires >> (TVR_BITS + 3 * TVN_BITS)) & TVN_MASK;
@@ -1130,7 +1137,6 @@ static int __cpuinit init_timers_cpu(int cpu)
 	int j;
 	struct tvec_base *base;
 	static char __cpuinitdata tvec_base_done[NR_CPUS];
-	unsigned long flags;
 
 	if (!tvec_base_done[cpu]) {
 		static char boot_done;
@@ -1159,8 +1165,6 @@ static int __cpuinit init_timers_cpu(int cpu)
 		base = per_cpu(tvec_bases, cpu);
 	}
 
-	spin_lock_irqsave(&base->lock, flags);
-
 	for (j = 0; j < TVN_SIZE; j++) {
 		INIT_LIST_HEAD(base->tv5.vec + j);
 		INIT_LIST_HEAD(base->tv4.vec + j);
@@ -1172,8 +1176,6 @@ static int __cpuinit init_timers_cpu(int cpu)
 
 	base->timer_jiffies = jiffies;
 	base->next_timer = base->timer_jiffies;
-
-	spin_unlock_irqrestore(&base->lock, flags);
 
 	return 0;
 }

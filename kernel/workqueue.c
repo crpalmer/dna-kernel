@@ -741,6 +741,22 @@ static struct worker *__find_worker_executing_work(struct global_cwq *gcwq,
 	return NULL;
 }
 
+/**
+ * find_worker_executing_work - find worker which is executing a work
+ * @gcwq: gcwq of interest
+ * @work: work to find worker for
+ *
+ * Find a worker which is executing @work on @gcwq.  This function is
+ * identical to __find_worker_executing_work() except that this
+ * function calculates @bwh itself.
+ *
+ * CONTEXT:
+ * spin_lock_irq(gcwq->lock).
+ *
+ * RETURNS:
+ * Pointer to worker which is executing @work if found, NULL
+ * otherwise.
+ */
 static struct worker *find_worker_executing_work(struct global_cwq *gcwq,
 						 struct work_struct *work)
 {
@@ -1384,6 +1400,18 @@ static void cwq_activate_first_delayed(struct cpu_workqueue_struct *cwq)
 	cwq->nr_active++;
 }
 
+/**
+ * cwq_dec_nr_in_flight - decrement cwq's nr_in_flight
+ * @cwq: cwq of interest
+ * @color: color of work which left the queue
+ * @delayed: for a delayed work
+ *
+ * A work either has completed or is removed from pending queue,
+ * decrement nr_in_flight of its cwq and handle workqueue flushing.
+ *
+ * CONTEXT:
+ * spin_lock_irq(gcwq->lock).
+ */
 static void cwq_dec_nr_in_flight(struct cpu_workqueue_struct *cwq, int color,
 				 bool delayed)
 {
@@ -1473,8 +1501,11 @@ __acquires(&gcwq->lock)
 	lock_map_acquire_read(&cwq->wq->lockdep_map);
 	lock_map_acquire(&lockdep_map);
 	trace_workqueue_execute_start(work);
-
 	f(work);
+	/*
+	 * While we must be careful to not use "work" after this, the trace
+	 * point will only record its address.
+	 */
 	trace_workqueue_execute_end(work);
 	lock_map_release(&lockdep_map);
 	lock_map_release(&cwq->wq->lockdep_map);
@@ -2521,6 +2552,11 @@ static int __cpuinit trustee_thread(void *__gcwq)
 	for_each_busy_worker(worker, i, pos, gcwq) {
 		struct work_struct *rebind_work = &worker->rebind_work;
 
+		/*
+		 * Rebind_work may race with future cpu hotplug
+		 * operations.  Use a separate flag to mark that
+		 * rebinding is scheduled.
+		 */
 		worker->flags |= WORKER_REBIND;
 		worker->flags &= ~WORKER_ROGUE;
 

@@ -208,17 +208,28 @@ void deactivate_super(struct super_block *s)
 
 EXPORT_SYMBOL(deactivate_super);
 
+/**
+ *	grab_super - acquire an active reference
+ *	@s: reference we are trying to make active
+ *
+ *	Tries to acquire an active reference.  grab_super() is used when we
+ * 	had just found a superblock in super_blocks or fs_type->fs_supers
+ *	and want to turn it into a full-blown active reference.  grab_super()
+ *	is called with sb_lock held and drops it.  Returns 1 in case of
+ *	success, 0 if we had failed (superblock contents was already dead or
+ *	dying when grab_super() had been called).  Note that this is only
+ *	called for superblocks not in rundown mode (== ones still on ->fs_supers
+ *	of their type), so increment of ->s_count is OK here.
+ */
 static int grab_super(struct super_block *s) __releases(sb_lock)
 {
-	if (atomic_inc_not_zero(&s->s_active)) {
-		spin_unlock(&sb_lock);
-		return 1;
-	}
-	
 	s->s_count++;
 	spin_unlock(&sb_lock);
-	
 	down_write(&s->s_umount);
+	if ((s->s_flags & MS_BORN) && atomic_inc_not_zero(&s->s_active)) {
+		put_super(s);
+		return 1;
+	}
 	up_write(&s->s_umount);
 	put_super(s);
 	return 0;
@@ -311,11 +322,6 @@ retry:
 				up_write(&s->s_umount);
 				destroy_super(s);
 				s = NULL;
-			}
-			down_write(&old->s_umount);
-			if (unlikely(!(old->s_flags & MS_BORN))) {
-				deactivate_locked_super(old);
-				goto retry;
 			}
 			return old;
 		}
@@ -496,10 +502,10 @@ restart:
 		if (hlist_unhashed(&sb->s_instances))
 			continue;
 		if (sb->s_bdev == bdev) {
-			if (grab_super(sb)) 
-				return sb;
-			else
+			if (!grab_super(sb))
 				goto restart;
+			up_write(&sb->s_umount);
+			return sb;
 		}
 	}
 	spin_unlock(&sb_lock);

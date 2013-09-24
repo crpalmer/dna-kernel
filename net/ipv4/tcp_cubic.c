@@ -155,8 +155,8 @@ static u32 cubic_root(u64 a)
 
 static inline void bictcp_update(struct bictcp *ca, u32 cwnd)
 {
-	u64 offs;
-	u32 delta, t, bic_target, max_cnt;
+	u32 delta, bic_target, max_cnt;
+	u64 offs, t;
 
 	ca->ack_cnt++;	
 
@@ -182,11 +182,25 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd)
 		}
 	}
 
-	
+	/* cubic function - calc*/
+	/* calculate c * time^3 / rtt,
+	 *  while considering overflow in calculation of time^3
+	 * (so time^3 is done by using 64 bit)
+	 * and without the support of division of 64bit numbers
+	 * (so all divisions are done by using 32 bit)
+	 *  also NOTE the unit of those veriables
+	 *	  time  = (t - K) / 2^bictcp_HZ
+	 *	  c = bic_scale >> 10
+	 * rtt  = (srtt >> 3) / HZ
+	 * !!! The following code does not have overflow problems,
+	 * if the cwnd < 1 million packets !!!
+	 */
 
-	
-	t = ((tcp_time_stamp + msecs_to_jiffies(ca->delay_min>>3)
-	      - ca->epoch_start) << BICTCP_HZ) / HZ;
+	t = (s32)(tcp_time_stamp - ca->epoch_start);
+	t += msecs_to_jiffies(ca->delay_min >> 3);
+	/* change the unit from HZ to bictcp_HZ */
+	t <<= BICTCP_HZ;
+	do_div(t, HZ);
 
 	if (t < ca->bic_K)		
 		offs = ca->bic_K - t;
@@ -336,8 +350,8 @@ static void bictcp_acked(struct sock *sk, u32 cnt, s32 rtt_us)
 	if (rtt_us < 0)
 		return;
 
-	
-	if ((s32)(tcp_time_stamp - ca->epoch_start) < HZ)
+	/* Discard delay samples right after fast recovery */
+	if (ca->epoch_start && (s32)(tcp_time_stamp - ca->epoch_start) < HZ)
 		return;
 
 	delay = (rtt_us << 3) / USEC_PER_MSEC;

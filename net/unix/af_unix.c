@@ -349,7 +349,7 @@ static void unix_sock_destructor(struct sock *sk)
 #endif
 }
 
-static int unix_release_sock(struct sock *sk, int embrion)
+static void unix_release_sock(struct sock *sk, int embrion)
 {
 	struct unix_sock *u = unix_sk(sk);
 	struct path path;
@@ -407,9 +407,7 @@ static int unix_release_sock(struct sock *sk, int embrion)
 
 
 	if (unix_tot_inflight)
-		unix_gc();		
-
-	return 0;
+		unix_gc();		/* Garbage collect fds */
 }
 
 static void init_peercred(struct sock *sk)
@@ -649,9 +647,10 @@ static int unix_release(struct socket *sock)
 	if (!sk)
 		return 0;
 
+	unix_release_sock(sk, 0);
 	sock->sk = NULL;
 
-	return unix_release_sock(sk, 0);
+	return 0;
 }
 
 static int unix_autobind(struct socket *sock)
@@ -1859,8 +1858,8 @@ again:
 			if ((UNIXCB(skb).pid  != siocb->scm->pid) ||
 			    (UNIXCB(skb).cred != siocb->scm->cred))
 				break;
-		} else {
-			
+		} else if (test_bit(SOCK_PASSCRED, &sock->flags)) {
+			/* Copy credentials */
 			scm_set_cred(siocb->scm, UNIXCB(skb).pid, UNIXCB(skb).cred);
 			check_creds = 1;
 		}
