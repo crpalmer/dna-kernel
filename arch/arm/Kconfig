@@ -1718,7 +1718,7 @@ config HZ
 	default 100
 
 config SCHED_HRTICK
-	def_bool HIGH_RES_TIMERS && (!SMP || USE_GENERIC_SMP_HELPERS)
+	def_bool HIGH_RES_TIMERS
 
 config THUMB2_KERNEL
 	bool "Compile the kernel in Thumb-2 mode (EXPERIMENTAL)"
