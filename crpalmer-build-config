@@ -9,7 +9,7 @@ FLASH_BOOT='write_raw_image("/tmp/boot.img", "boot")'
 # ----
 
 N_CORES=4
-VERSION=crpalmer-4.5.2
+VERSION=crpalmer-4.5.4
 
 # ----
 
