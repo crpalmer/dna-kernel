@@ -2764,5 +2764,9 @@ config MSM_CPU_PWRCTL
 	  stand alone power collapse operation. Selecting this option
 	  ensures that they are always off.
 
+config MSM_MPDECISION
+	bool "Enable built-in msm_mpdecision"
+	default true
+
 endif
 
