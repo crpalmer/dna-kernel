@@ -426,12 +426,14 @@ static void vfs_write_timeout(unsigned long data)
 		__func__, WRITE_TIMEOUT_VALUE, (void *)data);
 	pr_info("### Show Blocked State ###\n");
 	show_state_filter(TASK_UNINTERRUPTIBLE);
+#ifndef CONFIG_SCHED_BFS
 	pr_info("### Show System Server State ###\n");
 	show_thread_group_state_filter("system_server", 0);
 	pr_info("### Show bugreport State ###\n");
 	show_thread_group_state_filter("bugreport", 0);
 	pr_info("### Show adbd State ###\n");
 	show_thread_group_state_filter("adbd", 0);
+#endif
 }
 
 SYSCALL_DEFINE3(write, unsigned int, fd, const char __user *, buf,

@@ -268,8 +268,10 @@ static struct sysrq_key_op sysrq_showstate_op = {
 static void sysrq_handle_showstate_blocked(int key)
 {
 	show_state_filter(TASK_UNINTERRUPTIBLE);
+#ifndef CONFIG_SCHED_BFS
 	pr_info("### Show All Tasks in System Server ###\n");
 	show_thread_group_state_filter("system_server", 0);
+#endif
 }
 static struct sysrq_key_op sysrq_showstate_blocked_op = {
 	.handler	= sysrq_handle_showstate_blocked,
