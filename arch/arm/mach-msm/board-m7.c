@@ -1721,20 +1721,57 @@ void msm_hsusb_setup_gpio(enum usb_otg_state state)
 }
 #endif
 
+#define PMIC_GPIO_DP        27    /* PMIC GPIO for D+ change */
+#define PMIC_GPIO_DP_IRQ    PM8921_GPIO_IRQ(PM8921_IRQ_BASE, PMIC_GPIO_DP)
+#define MSM_MPM_PIN_USB1_OTGSESSVLD 40
+
 static int msm_hsusb_vbus_power(bool on);
+
 static struct msm_otg_platform_data msm_otg_pdata = {
-	.mode			= USB_OTG,
+	.mode				= USB_OTG,
 	.otg_control		= OTG_PMIC_CONTROL,
-	.phy_type		= SNPS_28NM_INTEGRATED_PHY,
-	.vbus_power		= msm_hsusb_vbus_power,
-	.power_budget		= 500,
-	.bus_scale_table        = &usb_bus_scale_pdata,
-	.phy_init_seq           = phy_init_seq,
+	.phy_type			= SNPS_28NM_INTEGRATED_PHY,
+    .pmic_id_irq		= PM8921_USB_ID_IN_IRQ(PM8921_IRQ_BASE),
+	.vbus_power			= msm_hsusb_vbus_power,
+	.power_budget		= 750,
+	.bus_scale_table	= &usb_bus_scale_pdata,
+	.phy_init_seq		= phy_init_seq,
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
-	.setup_gpio		= msm_hsusb_setup_gpio,
+	.setup_gpio			= msm_hsusb_setup_gpio,
 #endif
-	.ldo_power_collapse     = POWER_COLLAPSE_LDO1V8,
+	.mpm_otgsessvld_int	= MSM_MPM_PIN_USB1_OTGSESSVLD,
 };
+
+static struct msm_usb_host_platform_data msm_ehci_host_pdata3 = {
+	.power_budget = 500,
+};
+
+#ifdef CONFIG_USB_EHCI_MSM_HOST4
+static struct msm_usb_host_platform_data msm_ehci_host_pdata4;
+#endif
+
+static void __init apq8064_ehci_host_init(void)
+{
+	if (machine_is_apq8064_liquid() || machine_is_mpq8064_cdp() ||
+		machine_is_mpq8064_hrd() || machine_is_mpq8064_dtv()) {
+		if (machine_is_apq8064_liquid())
+			msm_ehci_host_pdata3.dock_connect_irq =
+					PM8921_MPP_IRQ(PM8921_IRQ_BASE, 9);
+		else
+			msm_ehci_host_pdata3.pmic_gpio_dp_irq =
+							PMIC_GPIO_DP_IRQ;
+
+		apq8064_device_ehci_host3.dev.platform_data =
+				&msm_ehci_host_pdata3;
+		platform_device_register(&apq8064_device_ehci_host3);
+
+#ifdef CONFIG_USB_EHCI_MSM_HOST4
+		apq8064_device_ehci_host4.dev.platform_data =
+				&msm_ehci_host_pdata4;
+		platform_device_register(&apq8064_device_ehci_host4);
+#endif
+	}
+}
 
 static int64_t m7_get_usbid_adc(void)
 {
@@ -3406,7 +3443,7 @@ static struct cm3629_platform_data cm36282_pdata_sk2 = {
 	.model = CAPELLA_CM36282,
 	.ps_select = CM3629_PS1_ONLY,
 	.intr = PM8921_GPIO_PM_TO_SYS(PROXIMITY_INT),
-	.levels = { 0xC, 0xE, 0x10, 0x29, 0x53, 0xDE9, 0x17C2, 0x19E4, 0x1C00, 0xFFFF},
+	.levels = { 0xC, 0xE, 0x4D, 0x1F4, 0x56E, 0x12B9, 0x1FA5, 0x33B8, 0x47CB, 0xFFFF},
 	.golden_adc = 0x1724,
 #ifdef CONFIG_WSENSOR_ENABLE
 	.w_golden_adc = 0x1AE0,
@@ -3443,7 +3480,7 @@ static struct cm3629_platform_data cm36282_pdata_r8 = {
 	.model = CAPELLA_CM36282,
 	.ps_select = CM3629_PS1_ONLY,
 	.intr = PM8921_GPIO_PM_TO_SYS(PROXIMITY_INT),
-	.levels = { 0xC, 0xE, 0x10, 0xB0, 0x169, 0x1049, 0x1AEB, 0x25BE, 0x3091, 0xFFFF},
+	.levels = { 0x8, 0x14, 0x1E, 0xC8, 0x190, 0x9C4, 0xE68, 0x19BD, 0x2513, 0xFFFF},
 	.golden_adc = 0xA7D,
 #ifdef CONFIG_WSENSOR_ENABLE
 	.w_golden_adc = 0x1AE0,
@@ -5327,6 +5364,7 @@ static void __init m7_common_init(void)
 			msm_rpmrs_levels[0].latency_us;
 
 	apq8064_device_otg.dev.platform_data = &msm_otg_pdata;
+	apq8064_ehci_host_init();
 	m7_init_buses();
 #ifdef CONFIG_HTC_BATT_8960
 	htc_battery_cell_init(htc_battery_cells, ARRAY_SIZE(htc_battery_cells));
