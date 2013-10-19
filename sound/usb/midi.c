@@ -2262,11 +2262,8 @@ int snd_usbmidi_create(struct snd_card *card,
 		return err;
 	}
 
-<<<<<<< HEAD
 	usb_autopm_get_interface_no_resume(umidi->iface);
 
-=======
->>>>>>> 4.x
 	list_add_tail(&umidi->list, midi_list);
 	return 0;
 }
