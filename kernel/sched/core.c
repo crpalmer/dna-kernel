@@ -289,6 +289,9 @@ __read_mostly int scheduler_running;
  */
 int sysctl_sched_rt_runtime = 950000;
 
+/*
+ * Debugging: various feature bits
+ */
 
 
 /*
@@ -7007,7 +7010,7 @@ int __init sched_create_sysfs_power_savings_entries(struct device *dev)
 #endif
 	return err;
 }
-#endif 
+#endif /* CONFIG_SMP */
 
 static int num_cpus_frozen;	/* used to mark begin/end of suspend/resume */
 
@@ -7891,6 +7894,21 @@ static void cpu_cgroup_destroy(struct cgroup *cgrp)
 	sched_destroy_group(tg);
 }
 
+/**
+ * try_to_wake_up - wake up a thread
+ * @p: the thread to be awakened
+ * @state: the mask of task states that can be woken
+ * @wake_flags: wake modifier flags (WF_*)
+ *
+ * Put it on the run-queue if it's not already there. The "current"
+ * thread is always on the run-queue (except when the actual
+ * re-schedule is in progress), and as such you're allowed to do
+ * the simpler "current->state = TASK_RUNNING" to mark yourself
+ * runnable without the overhead of this.
+ *
+ * Returns %true if @p was woken up, %false if it was already running
+ * or @state didn't match @p's state.
+ */
 static int
 cpu_cgroup_allow_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
 {
