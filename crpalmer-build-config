@@ -8,18 +8,12 @@ FLASH_BOOT='write_raw_image("/tmp/boot.img", "boot")'
 
 # ----
 
-N_CORES=4
-VERSION=crpalmer-4.9.0
+N_CORES=8
+VERSION=crpalmer-5.0.0
 
 # ----
 
 BANNER=`cat <<EOF
-ui_print("**********************************************");
-ui_print("*                                            *");
-ui_print("*                  crpalmer's                *");
-ui_print("*             HTC Droid DNA Kernel           *");
-ui_print("*                                            *");
-ui_print("* Version: $VERSION                   *");
-ui_print("*                                            *");
-ui_print("**********************************************");
+ui_print("crpalmer's HTC Droid DNA Kernel");
+ui_print("==> CM 11.0 based ROMs");
 EOF`
