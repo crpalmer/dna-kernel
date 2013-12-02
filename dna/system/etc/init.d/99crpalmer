@@ -4,13 +4,13 @@
 if grep crpalmer /proc/version > /dev/null
 then
    echo "** crpalmer's boot configuration:"
-   echo "** disabling mpdecision **"
-   if [ -r /system/bin/mpdecision ]; then
-       mount -o remount,rw /system
-       mv /system/bin/mpdecision /system/bin/mpdecision.crpalmer
-       mount -o remount,ro /system
-   fi
-   stop mpdecision
+#   echo "** disabling mpdecision **"
+#   if [ -r /system/bin/mpdecision ]; then
+#       mount -o remount,rw /system
+#       mv /system/bin/mpdecision /system/bin/mpdecision.crpalmer
+#       mount -o remount,ro /system
+#   fi
+#   stop mpdecision
    for script in /system/etc/crpalmer/*
    do
 	$script
