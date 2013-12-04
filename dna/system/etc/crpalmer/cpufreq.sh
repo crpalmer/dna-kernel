@@ -3,8 +3,6 @@
 F=/sdcard/crpalmer-cpufreq-
 SYS=/sys/devices/system/cpu/cpu
 
-did_anything=
-
 for cpu in 0 1 2 3
 do
     echo "Ensuring cpu$cpu is online"
@@ -16,7 +14,6 @@ do
    Fwhich=$F"$which"
    if [ -r $Fwhich ]
    then
-        did_anything="yes"
 	freq=`cat $Fwhich`
 	for cpu in 0 1 2 3
 	do
@@ -31,7 +28,6 @@ done
 Fgov=$F"governor"
 if [ -r "$Fgov" ]
 then
-    did_anything="yes"
     cpugov=`head -1 $Fgov`
     for cpu in 0 1 2 3
     do
@@ -39,18 +35,12 @@ then
 	echo "$cpugov" > $SYS$cpu/cpufreq/scaling_governor
 	cat $SYS$cpu/cpufreq/scaling_governor
     done
-else
-    echo "Not changing the governor"
-fi
 
-# On stock-based ROMs, HTC overrides the minimum clock
-# speed in a boot complete hook which is obnoxiou and
-# so we will just lock down the cpufreq entirely.
+    # /system/etc/init.post_boot.sh will reset the governor.  If we changed it
+    # then lock down the driver to allow our setting to win
 
-if [ "$did_anything" = "yes" ]
-then
     echo "Locking down cpufreq"
     echo 1 > /sys/devices/system/cpu/cpufreq/locked/locked
 else
-    echo "Didn't change anything, no need to lock it down"
+    echo "Not changing the governor"
 fi
