@@ -618,8 +618,8 @@ static ssize_t store_powersave_bias(struct kobject *a, struct attribute *b,
 
 	dbs_tuners_ins.powersave_bias = input;
 
-	get_online_cpus();
 	mutex_lock(&dbs_mutex);
+	get_online_cpus();
 
 	if (!bypass) {
 		if (reenable_timer) {
@@ -698,8 +698,8 @@ skip_this_cpu_bypass:
 		}
 	}
 
-	mutex_unlock(&dbs_mutex);
 	put_online_cpus();
+	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -777,6 +777,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	this_dbs_info->freq_lo = 0;
 	policy = this_dbs_info->cur_policy;
+	if(policy == NULL)
+		return;
 
 	/*
 	 * Every sampling_rate, we check, if current idle time is less
@@ -853,6 +855,8 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 		j_dbs_info->max_load  = max(cur_load, j_dbs_info->prev_load);
 		j_dbs_info->prev_load = cur_load;
 		freq_avg = __cpufreq_driver_getavg(policy, j);
+		if (policy == NULL)
+			return;
 		if (freq_avg <= 0)
 			freq_avg = policy->cur;
 
@@ -1414,6 +1418,11 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 
 	case CPUFREQ_GOV_LIMITS:
 		mutex_lock(&this_dbs_info->timer_mutex);
+		if (!this_dbs_info->cur_policy) {
+			pr_err("Dbs policy is NULL\n");
+			mutex_unlock(&this_dbs_info->timer_mutex);
+			return -EINVAL;
+		}
 		if (policy->max < this_dbs_info->cur_policy->cur)
 			__cpufreq_driver_target(this_dbs_info->cur_policy,
 				policy->max, CPUFREQ_RELATION_H);
