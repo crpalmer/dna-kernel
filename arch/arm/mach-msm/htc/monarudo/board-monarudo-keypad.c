@@ -31,10 +31,6 @@
 
 static struct gpio_event_direct_entry monarudo_keypad_map_xc[] = {
 	{
-		.gpio = PWR_KEY_MSMz,
-		.code = KEY_POWER,
-	},
-	{
 		.gpio = VOL_DOWNz_XC,
 		.code = KEY_VOLUMEDOWN,
 	},
@@ -46,10 +42,6 @@ static struct gpio_event_direct_entry monarudo_keypad_map_xc[] = {
 
 static struct gpio_event_direct_entry monarudo_keypad_map[] = {
 	{
-		.gpio = PWR_KEY_MSMz,
-		.code = KEY_POWER,
-	},
-	{
 		.gpio = VOL_DOWNz_XA_XB,
 		.code = KEY_VOLUMEDOWN,
 	},
@@ -58,63 +50,6 @@ static struct gpio_event_direct_entry monarudo_keypad_map[] = {
 		.code = KEY_VOLUMEUP,
 	},
 };
-
-static uint32_t matirx_inputs_gpio_table_xc[] = {
-	GPIO_CFG(PWR_KEY_MSMz, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
-		 GPIO_CFG_2MA),
-	GPIO_CFG(VOL_DOWNz_XC, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
-		 GPIO_CFG_2MA),
-	GPIO_CFG(VOL_UPz_XC, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
-		 GPIO_CFG_2MA),
-};
-
-static uint32_t matirx_inputs_gpio_table[] = {
-	GPIO_CFG(PWR_KEY_MSMz, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
-		 GPIO_CFG_2MA),
-	GPIO_CFG(VOL_DOWNz_XA_XB, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
-		 GPIO_CFG_2MA),
-	GPIO_CFG(VOL_UPz_XA_XB, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
-		 GPIO_CFG_2MA),
-};
-
-static void monarudo_direct_inputs_gpio(void)
-{
-
-	if (system_rev >= 2) {
-		gpio_tlmm_config(matirx_inputs_gpio_table_xc[0], GPIO_CFG_ENABLE);
-		gpio_tlmm_config(matirx_inputs_gpio_table_xc[1], GPIO_CFG_ENABLE);
-		gpio_tlmm_config(matirx_inputs_gpio_table_xc[2], GPIO_CFG_ENABLE);
-	} else {
-		gpio_tlmm_config(matirx_inputs_gpio_table[0], GPIO_CFG_ENABLE);
-		gpio_tlmm_config(matirx_inputs_gpio_table[1], GPIO_CFG_ENABLE);
-		gpio_tlmm_config(matirx_inputs_gpio_table[2], GPIO_CFG_ENABLE);
-	}
-
-	return;
-}
-
-uint32_t hw_clr_gpio_table[] = {
-	GPIO_CFG(RESET_EN_CLRz_XC, 0, GPIO_CFG_INPUT,
-		GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
-	GPIO_CFG(RESET_EN_CLRz_XC, 0, GPIO_CFG_OUTPUT,
-		GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
-};
-
-static void monarudo_clear_hw_reset(void)
-{
-	if (system_rev >= PVT ) { /* Function Ready after A01 */
-		printk(KERN_INFO "[KEY] %s ++++++\n", __func__);
-		gpio_tlmm_config(hw_clr_gpio_table[1], GPIO_CFG_ENABLE);
-		gpio_set_value(RESET_EN_CLRz_XC, 0);
-		msleep(100);
-		gpio_tlmm_config(hw_clr_gpio_table[0], GPIO_CFG_ENABLE);
-		printk(KERN_INFO "[KEY] %s ------\n", __func__);
-	}
-	else {
-		printk(KERN_INFO "[KEY] %s: No Clear_HW_Reset pin\n", __func__);
-	}
-
-}
 
 static struct gpio_event_input_info monarudo_keypad_power_info = {
 	.info.func = gpio_event_input_func,
@@ -127,8 +62,6 @@ static struct gpio_event_input_info monarudo_keypad_power_info = {
 # endif
 	.keymap = monarudo_keypad_map_xc,
 	.keymap_size = ARRAY_SIZE(monarudo_keypad_map_xc),
-	.setup_input_gpio = monarudo_direct_inputs_gpio,
-	.clear_hw_reset = monarudo_clear_hw_reset,
 };
 
 static struct gpio_event_info *monarudo_keypad_info[] = {
@@ -164,6 +97,40 @@ static struct platform_device monarudo_reset_keys_device = {
 	.dev.platform_data = &monarudo_reset_keys_pdata,
 };
 
+static uint32_t matrix_inputs_gpio_table_xc[] = {
+	GPIO_CFG(PWR_KEY_MSMz, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+	GPIO_CFG(VOL_DOWNz_XC, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+	GPIO_CFG(VOL_UPz_XC, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+};
+
+static uint32_t matrix_inputs_gpio_table[] = {
+	GPIO_CFG(PWR_KEY_MSMz, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+	GPIO_CFG(VOL_DOWNz_XA_XB, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+	GPIO_CFG(VOL_UPz_XA_XB, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP,
+		 GPIO_CFG_2MA),
+};
+
+static void monarudo_direct_inputs_gpio(void)
+{
+
+	if (system_rev >= 2) {
+		gpio_tlmm_config(matrix_inputs_gpio_table_xc[0], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(matrix_inputs_gpio_table_xc[1], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(matrix_inputs_gpio_table_xc[2], GPIO_CFG_ENABLE);
+	} else {
+		gpio_tlmm_config(matrix_inputs_gpio_table[0], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(matrix_inputs_gpio_table[1], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(matrix_inputs_gpio_table[2], GPIO_CFG_ENABLE);
+	}
+
+	return;
+}
+
 int __init monarudo_init_keypad(void)
 {
 	if (platform_device_register(&monarudo_reset_keys_device))
@@ -176,6 +143,7 @@ int __init monarudo_init_keypad(void)
 			ARRAY_SIZE(monarudo_keypad_map);
         }
 
+	monarudo_direct_inputs_gpio();
 
 	return platform_device_register(&monarudo_keypad_device);
 }
