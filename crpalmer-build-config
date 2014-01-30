@@ -1,0 +1,20 @@
+CROSS_COMPILE=~/dna/cm-11.0/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.7/bin/arm-linux-androideabi-
+HOST_CC=gcc
+LOCAL_BUILD_DIR=dna
+TARGET_DIR=~/dna/updates
+SYSTEM_PARTITION="/dev/block/mmcblk0p32"
+DEFCONFIG=cyanogenmod_dlx_defconfig
+FLASH_BOOT='write_raw_image("/tmp/boot.img", "boot")'
+
+# ----
+
+N_CORES=8
+VERSION=crpalmer-dlx-msm8960
+
+# ----
+
+BANNER=`cat <<EOF
+ui_print("crpalmer's HTC Droid DNA Kernel");
+ui_print("==> CM 11.0 based ROMs");
+ui_print("==> MSM8960 based kernel");
+EOF`
