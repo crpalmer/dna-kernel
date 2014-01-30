@@ -534,10 +534,12 @@ static struct msm_actuator_ctrl_t ti201_act_t = {
 #if defined(CONFIG_ACT_OIS_BINDER)
 		.is_ois_supported = 1,
 #endif
+#if (CONFIG_HTC_CAMERA_HAL_VERSION == 3)
 		.small_step_damping = 47,
 		.medium_step_damping = 75,
 		.big_step_damping = 100,
 		.is_af_infinity_supported = 0,
+#endif
 	},
 
 	.i2c_client = {
