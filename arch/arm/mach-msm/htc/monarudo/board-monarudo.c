@@ -17,7 +17,7 @@
 #include <linux/i2c.h>
 #include <linux/mpu.h>
 #include <linux/r3gd20.h>
-#include <linux/akm8963.h>
+#include <linux/akm8963_nst.h>
 #include <linux/bma250.h>
 #include <linux/slimbus/slimbus.h>
 #include <linux/mfd/wcd9xxx/core.h>
@@ -33,7 +33,7 @@
 #include <linux/memblock.h>
 #include <linux/msm_thermal.h>
 #include <linux/i2c/atmel_mxt_ts.h>
-#include <linux/cyttsp.h>
+#include <linux/cyttsp-qc.h>
 #include <linux/gpio_keys.h>
 #include <linux/proc_fs.h>
 #include <asm/mach-types.h>
@@ -53,7 +53,7 @@
 #include <mach/msm_spi.h>
 #include "timer.h"
 #include "devices.h"
-#include <mach/gpio.h>
+#include <linux/gpio.h>
 #include <mach/gpiomux.h>
 #include <mach/rpm.h>
 #ifdef CONFIG_ANDROID_PMEM
@@ -88,7 +88,7 @@
 #include <mach/htc_bdaddress.h>
 #endif
 
-#include <mach/msm_watchdog.h>
+#include <msm_watchdog.h>
 #include "board-monarudo.h"
 #include "spm.h"
 #include <mach/mpm.h>
@@ -96,14 +96,12 @@
 #include "pm.h"
 #include "pm-boot.h"
 #include <mach/board_htc.h>
-#include <mach/htc_util.h>
 #include <mach/cable_detect.h>
 #include "devices-msm8x60.h"
 #include <linux/cm3629.h>
 #include <linux/pn544.h>
-#include <mach/tfa9887.h>
-#include <mach/tpa6185.h>
-#include <mach/rt5501.h>
+#include <linux/tfa9887.h>
+#include <linux/rt5501.h>
 
 #ifdef CONFIG_HTC_BATT_8960
 #include "mach/htc_battery_8960.h"
@@ -187,23 +185,10 @@ struct pm8xxx_gpio_init {
 	struct pm_gpio			config;
 };
 
-struct tpa6185_platform_data tpa6185_data={
-         .gpio_tpa6185_spk_en = PM8921_GPIO_PM_TO_SYS(10),
-
-};
-
 struct rt5501_platform_data rt5501_data={
          .gpio_rt5501_spk_en = PM8921_GPIO_PM_TO_SYS(10),
 
 };
-
-static struct i2c_board_info msm_i2c_gsbi1_tpa6185_info[] = {
-	{
-		I2C_BOARD_INFO(TPA6185_I2C_NAME, TPA6185_I2C_SLAVE_ADDR),
-		.platform_data = &tpa6185_data,
-	},
-};
-
 
 static struct i2c_board_info msm_i2c_gsbi1_rt5501_info[] = {
 	{
@@ -321,32 +306,6 @@ static struct memtype_reserve apq8064_reserve_table[] __initdata = {
 	},
 };
 
-#if defined(CONFIG_MSM_RTB)
-static struct msm_rtb_platform_data monarudo_rtb_pdata = {
-		.buffer_start_addr = MSM_RTB_PHYS,
-		.size = MSM_RTB_BUFFER_SIZE,
-};
-
-static int __init msm_rtb_set_buffer_size(char *p)
-{
-       int s;
-
-       s = memparse(p, NULL);
-       monarudo_rtb_pdata.size = ALIGN(s, SZ_4K);
-       return 0;
-}
-early_param("msm_rtb_size", msm_rtb_set_buffer_size);
-
-
-static struct platform_device monarudo_rtb_device = {
-       .name           = "msm_rtb",
-       .id             = -1,
-       .dev            = {
-               .platform_data = &monarudo_rtb_pdata,
-       },
-};
-#endif
-
 #ifdef CONFIG_I2C
 /*#define MSM_8960_GSBI2_QUP_I2C_BUS_ID 2*/
 #define MSM8064_GSBI2_QUP_I2C_BUS_ID 2
@@ -357,6 +316,14 @@ static struct platform_device monarudo_rtb_device = {
 
 #endif
 
+static void __init reserve_rtb_memory(void)
+{
+#if defined(CONFIG_MSM_RTB)
+        apq8064_reserve_table[MEMTYPE_EBI1].size += apq8064_rtb_pdata.size;
+        pr_info("mem_map: rtb reserved with size 0x%x in pool\n",
+                        apq8064_rtb_pdata.size);
+#endif
+}
 
 static void __init size_pmem_devices(void)
 {
@@ -388,6 +355,7 @@ static void __init reserve_pmem_memory(void)
 #endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
 	apq8064_reserve_table[MEMTYPE_EBI1].size += msm_contig_mem_size;
 #endif /*CONFIG_ANDROID_PMEM*/
+	reserve_rtb_memory();
 }
 
 static int monarudo_paddr_to_memtype(unsigned int paddr)
@@ -768,65 +736,6 @@ static void __init reserve_ion_memory(void)
 	}
 #endif
 }
-
-static struct resource mdm_resources[] = {
-	{
-		.start	= MDM2AP_ERR_FATAL,
-		.end	= MDM2AP_ERR_FATAL,
-		.name	= "MDM2AP_ERRFATAL",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= AP2MDM_ERR_FATAL,
-		.end	= AP2MDM_ERR_FATAL,
-		.name	= "AP2MDM_ERRFATAL",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= MDM2AP_STATUS,
-		.end	= MDM2AP_STATUS,
-		.name	= "MDM2AP_STATUS",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= AP2MDM_STATUS,
-		.end	= AP2MDM_STATUS,
-		.name	= "AP2MDM_STATUS",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= AP2MDM_PON_RESET_N,
-		.end	= AP2MDM_PON_RESET_N,
-		.name	= "AP2MDM_PMIC_RESET_N",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= MDM2AP_HSIC_READY_XC,
-		.end	= MDM2AP_HSIC_READY_XC,
-		.name	= "MDM2AP_HSIC_READY",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start  = AP2MDM_WAKEUP_XC,
-		.end    = AP2MDM_WAKEUP_XC,
-		.name   = "AP2MDM_WAKEUP",
-		.flags  = IORESOURCE_IO,
-	},
-	{
-		.start  = APQ2MDM_IPC1,
-		.end    = APQ2MDM_IPC1,
-		.name   = "AP2MDM_IPC1",
-		.flags  = IORESOURCE_IO,
-	},
-};
-
-static struct platform_device mdm_8064_device = {
-	.name		= "mdm2_modem",
-	.id		= -1,
-	.num_resources	= ARRAY_SIZE(mdm_resources),
-	.resource	= mdm_resources,
-};
-
 
 #ifdef CONFIG_BT
 static struct msm_serial_hs_platform_data msm_uart_dm6_pdata = {
@@ -3242,9 +3151,6 @@ static struct platform_device msm_tsens_device = {
 static struct msm_thermal_data msm_thermal_pdata = {
 	.sensor_id = 0,
 	.poll_ms = 1000,
-	.limit_temp = 55,
-	.temp_hysteresis = 10,
-	.limit_freq = 918000,
 };
 
 #define MSM_SHARED_RAM_PHYS 0x80000000
@@ -3783,12 +3689,6 @@ static struct i2c_board_info i2c_tps61310_flashlight_XC[] = {
 };
 #endif
 
-static struct msm_pm_sleep_status_data msm_pm_slp_sts_data = {
-	.base_addr = MSM_ACC0_BASE + 0x08,
-	.cpu_offset = MSM_ACC1_BASE - MSM_ACC0_BASE,
-	.mask = 1UL << 13,
-};
-
 static void __init monarudo_init_buses(void)
 {
 	msm_bus_rpm_set_mt_mask();
@@ -4063,16 +3963,6 @@ static int hdmi_core_power(int on, int show)
 }
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
 
-static struct ramdump_platform_data ramdump_data_2G = {
-	.count = 1,
-	.region = {
-		{
-			.start	= 0xA0000000,
-			.size	= 0x60000000,
-		},
-	}
-};
-
 static struct ramdump_platform_data ramdump_data_128M = {
 	.count = 1,
 	.region = {
@@ -4090,7 +3980,7 @@ struct platform_device device_htc_ramdump = {
 };
 
 static struct platform_device *common_devices[] __initdata = {
-	&msm8064_device_acpuclk,
+	&apq8064_device_acpuclk,
 	&ram_console_device,
 	&apq8064_device_dmov,
 	&apq8064_device_qup_i2c_gsbi1,
@@ -4191,7 +4081,7 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm_pil_vidc,
 	&msm_gss,
 #ifdef CONFIG_MSM_RTB
-	&monarudo_rtb_device,
+	&apq8064_rtb_device,
 #endif
 	&msm8960_gemini_device,
 #ifdef CONFIG_BT
@@ -4205,8 +4095,7 @@ static struct platform_device *common_devices[] __initdata = {
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
 #endif
-	&msm8960_cpu_idle_device,
-	&msm8960_msm_gov_device,
+	&apq8064_msm_gov_device,
 	&msm_tsens_device,
 	&msm_device_tz_log,
 	&apq8064_iommu_domain_device,
@@ -4561,12 +4450,6 @@ static struct i2c_registry monarudo_i2c_devices[] __initdata = {
 	{
 		I2C_SURF | I2C_FFA,
 		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
-		msm_i2c_gsbi1_tpa6185_info,
-		ARRAY_SIZE(msm_i2c_gsbi1_tpa6185_info),
-	},
-	{
-		I2C_SURF | I2C_FFA,
-		APQ_8064_GSBI1_QUP_I2C_BUS_ID,
 		msm_i2c_gsbi1_rt5501_info,
 		ARRAY_SIZE(msm_i2c_gsbi1_rt5501_info),
 	},
@@ -4615,6 +4498,8 @@ void reset_dflipflop(void)
 	pr_info("[CABLE] Restore D Flip-Flop\n");
 }
 #endif
+
+extern int gy_type;
 
 static void __init register_i2c_devices(void)
 {
@@ -4716,21 +4601,11 @@ static void __init monarudo_common_init(void)
 
 	BUG_ON(msm_rpm_init(&apq8064_rpm_data));
 	BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
-	msm_rpmrs_lpm_init(1, 1, 1, 1);
 	regulator_suppress_info_printing();
 	platform_device_register(&monarudo_device_rpm_regulator);
 	if (msm_xo_init())
 		pr_err("Failed to initialize XO votes\n");
-	/* HTC_WIFI_START */
-	if (system_rev <= XC)
-		clk_ignor_list_add("msm_sdcc.3", "core_clk", &apq8064_clock_init_data);
-	else if (system_rev >= XD)
-		clk_ignor_list_add("msm_sdcc.3", "core_clk", &apq8064_clock_init_data_r2);
-	/* HTC_WIFI_END */
-	if ( system_rev <= XC )
 	msm_clock_init(&apq8064_clock_init_data);
-	else if ( system_rev >= XD )
-		msm_clock_init(&apq8064_clock_init_data_r2);
 	monarudo_init_gpiomux();
 #ifdef CONFIG_RESET_BY_CABLE_IN
 	pr_info("[CABLE] Enable Ac Reset Function.(%d) \n", system_rev);
@@ -4791,8 +4666,6 @@ static void __init monarudo_common_init(void)
 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
 
 	if(board_mfg_mode() == 9) {
-		if (board_fullramdump_flag())
-			device_htc_ramdump.dev.platform_data = &ramdump_data_2G;
 		platform_device_register(&device_htc_ramdump);
 	}
 
@@ -4837,7 +4710,6 @@ static void __init monarudo_common_init(void)
 				msm_pm_data);
 #endif
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
-	msm_pm_init_sleep_status_data(&msm_pm_slp_sts_data);
 	properties_kobj = kobject_create_and_add("board_properties", NULL);
 	if (properties_kobj) {
 		if (system_rev < XB)
@@ -4849,11 +4721,6 @@ static void __init monarudo_common_init(void)
 	headset_device_register();
 
 	monarudo_init_keypad();
-
-	if (get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) {
-		htc_monitor_init();
-		htc_pm_monitor_init();
-	}
 
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
 	pm_qos_add_request(&pm_qos_req_dma, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);

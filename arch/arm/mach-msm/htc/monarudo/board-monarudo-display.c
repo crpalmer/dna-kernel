@@ -19,7 +19,7 @@
 #include <asm/mach-types.h>
 #include <mach/msm_memtypes.h>
 #include <mach/board.h>
-#include <mach/gpio.h>
+#include <linux/gpio.h>
 #include <mach/gpiomux.h>
 #include <mach/ion.h>
 #include <mach/msm_bus_board.h>
@@ -832,7 +832,6 @@ static int __init mipi_video_sharp_init(void)
 	pinfo.bpp = 24;
 	pinfo.width = 58;
 	pinfo.height = 103;
-	pinfo.camera_backlight = 183;
 
 	pinfo.lcdc.h_back_porch = 50;
 	pinfo.lcdc.h_front_porch = 100;
@@ -922,7 +921,6 @@ static int __init mipi_video_sony_init(void)
 	pinfo.bpp = 24;
 	pinfo.width = 61;
 	pinfo.height = 110;
-	pinfo.camera_backlight = 176;
 
 	pinfo.lcdc.h_back_porch = 50;
 	pinfo.lcdc.h_front_porch = 100;

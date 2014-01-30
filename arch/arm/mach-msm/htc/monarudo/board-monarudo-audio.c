@@ -22,8 +22,7 @@
 #include "../sound/soc/msm/msm-pcm-routing.h"
 
 #include <linux/gpio.h>
-#include <mach/tpa6185.h>
-#include <mach/rt5501.h>
+#include <linux/rt5501.h>
 static atomic_t q6_effect_mode = ATOMIC_INIT(-1);
 #define HAC_PAMP_GPIO	6
 extern unsigned int system_rev;
@@ -32,8 +31,10 @@ static int monarudo_get_hw_component(void)
 {
     int hw_com = 0;
 
+#ifdef CRP_REMOVED
     if(query_tpa6185())
         hw_com |= HTC_AUDIO_TPA6185;
+#endif
 
     if(query_rt5501())
         hw_com |= HTC_AUDIO_RT5501;
@@ -68,14 +69,6 @@ static struct acoustic_ops acoustic = {
 	.set_q6_effect = apq8064_set_q6_effect_mode,
 };
 
-static struct q6asm_ops qops = {
-	.get_q6_effect = apq8064_get_q6_effect_mode,
-};
-
-static struct msm_pcm_routing_ops rops = {
-	.get_q6_effect = apq8064_get_q6_effect_mode,
-};
-
 static int __init monarudo_audio_init(void)
 {
         int ret = 0;
@@ -93,8 +86,6 @@ static int __init monarudo_audio_init(void)
 	gpio_tlmm_config(audio_i2s_table[1], GPIO_CFG_DISABLE);
 	gpio_tlmm_config(audio_i2s_table[2], GPIO_CFG_DISABLE);
 
-	htc_register_q6asm_ops(&qops);
-	htc_register_pcm_routing_ops(&rops);
 	acoustic_register_ops(&acoustic);
 	return ret;
 

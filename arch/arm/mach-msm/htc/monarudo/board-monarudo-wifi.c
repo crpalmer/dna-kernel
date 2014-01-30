@@ -90,50 +90,12 @@ static struct resource monarudo_wifi_resources[] = {
 	},
 };
 
-/* Bandwidth requests (zero) if no vote placed */
-static struct msm_bus_vectors wlan_init_vectors[] = {
-       {
-               .src = MSM_BUS_MASTER_SPS,
-               .dst = MSM_BUS_SLAVE_EBI_CH0,
-               .ab = 0,
-               .ib = 0,
-       },
-};
-
-/* Bus bandwidth requests in Bytes/sec */
-static struct msm_bus_vectors wlan_max_vectors[] = {
-       {
-               .src = MSM_BUS_MASTER_SPS,
-               .dst = MSM_BUS_SLAVE_EBI_CH0,
-               .ab = 60000000,         /* At least 480Mbps on bus. */
-               .ib = 960000000,        /* MAX bursts rate */
-       },
-};
-
-static struct msm_bus_paths wlan_bus_scale_usecases[] = {
-       {
-               ARRAY_SIZE(wlan_init_vectors),
-               wlan_init_vectors,
-       },
-       {
-               ARRAY_SIZE(wlan_max_vectors),
-               wlan_max_vectors,
-       },
-};
-
-static struct msm_bus_scale_pdata wlan_bus_scale_pdata = {
-       wlan_bus_scale_usecases,
-       ARRAY_SIZE(wlan_bus_scale_usecases),
-       .name = "wlan",
-};
-
 static struct wifi_platform_data monarudo_wifi_control = {
 	.set_power      = monarudo_wifi_power,
 	.set_reset      = monarudo_wifi_reset,
 	.set_carddetect = monarudo_wifi_set_carddetect,
 	.mem_prealloc   = monarudo_wifi_mem_prealloc,
 	.get_mac_addr	= monarudo_wifi_get_mac_addr,
-	.bus_scale_table        = &wlan_bus_scale_pdata,
 };
 
 static struct platform_device monarudo_wifi_device = {

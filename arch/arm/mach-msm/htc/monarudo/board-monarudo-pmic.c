@@ -352,120 +352,12 @@ static struct pm8xxx_adc_properties monarudo_pm8921_adc_data = {
 	.bitresolution		= 15,
 	.bipolar                = 0,
 };
-static const struct pm8xxx_adc_map_pt monarudo_adcmap_btm_table[] = {
-	{-200,	1671},
-	{-190,	1663},
-	{-180,	1654},
-	{-170,	1646},
-	{-160,	1636},
-	{-150,	1627},
-	{-140,	1617},
-	{-130,	1606},
-	{-120,	1595},
-	{-110,	1584},
-	{-100,	1572},
-	{-90,	1560},
-	{-80,	1548},
-	{-70,	1534},
-	{-60,	1521},
-	{-50,	1507},
-	{-40,	1492},
-	{-30,	1477},
-	{-20,	1462},
-	{-10,	1446},
-	{-0,	1430},
-	{10,	1413},
-	{20,	1396},
-	{30,	1379},
-	{40,	1361},
-	{50,	1343},
-	{60,	1325},
-	{70,	1306},
-	{80,	1287},
-	{90,	1267},
-	{100,	1248},
-	{110,	1228},
-	{120,	1208},
-	{130,	1188},
-	{140,	1168},
-	{150,	1147},
-	{160,	1127},
-	{170,	1106},
-	{180,	1086},
-	{190,	1065},
-	{200,	1044},
-	{210,	1024},
-	{220,	1004},
-	{230,	983},
-	{240,	963},
-	{250,	943},
-	{260,	923},
-	{270,	903},
-	{280,	884},
-	{290,	864},
-	{300,	845},
-	{310,	827},
-	{320,	808},
-	{330,	790},
-	{340,	772},
-	{350,	755},
-	{360,	738},
-	{370,	721},
-	{380,	704},
-	{390,	688},
-	{400,	672},
-	{410,	657},
-	{420,	642},
-	{430,	627},
-	{440,	613},
-	{450,	599},
-	{460,	585},
-	{470,	572},
-	{480,	559},
-	{490,	547},
-	{500,	535},
-	{510,	523},
-	{520,	511},
-	{530,	500},
-	{540,	489},
-	{550,	479},
-	{560,	469},
-	{570,	459},
-	{580,	449},
-	{590,	440},
-	{600,	431},
-	{610,	423},
-	{620,	414},
-	{630,	406},
-	{640,	398},
-	{650,	390},
-	{660,	383},
-	{670,	376},
-	{680,	369},
-	{690,	363},
-	{700,	356},
-	{710,	350},
-	{720,	344},
-	{730,	338},
-	{740,	333},
-	{750,	327},
-	{760,	322},
-	{770,	317},
-	{780,	312},
-	{790,	308}
-};
-
-static struct pm8xxx_adc_map_table pm8xxx_adcmap_btm_table = {
-	.table = monarudo_adcmap_btm_table,
-	.size = ARRAY_SIZE(monarudo_adcmap_btm_table),
-};
 
 static struct pm8xxx_adc_platform_data monarudo_pm8921_adc_pdata = {
 	.adc_channel		= monarudo_pm8921_adc_channels_data,
 	.adc_num_board_channel	= ARRAY_SIZE(monarudo_pm8921_adc_channels_data),
 	.adc_prop		= &monarudo_pm8921_adc_data,
 	.adc_mpp_base		= PM8921_MPP_PM_TO_SYS(1),
-	.adc_map_btm_table	= &pm8xxx_adcmap_btm_table,
 	.pm8xxx_adc_device_register	= monarudo_pm8xxx_adc_device_register,
 };
 
@@ -530,7 +422,7 @@ pm8921_chg_pdata __devinitdata = {
 
 static struct pm8xxx_ccadc_platform_data
 monarudo_pm8xxx_ccadc_pdata = {
-	.r_sense		= 10,
+	.r_sense_uohm		= 10000,
 	.calib_delay_ms		= 600000,
 };
 
@@ -623,7 +515,7 @@ void __init monarudo_init_pmic(void)
 		 * Magnify ibat_max & ibat_safe (bootloader) to
 		 * cover wrong higher current than real one */
 		pm8921_bms_pdata.r_sense = 10/0.754;
-		monarudo_pm8xxx_ccadc_pdata.r_sense = 10/0.754;
+		monarudo_pm8xxx_ccadc_pdata.r_sense_uohm = 10000/0.754;
 		pm8921_chg_pdata.max_bat_chg_current = 1400;
 		pm8921_chg_pdata.cool_bat_chg_current = 1400;
 		pm8921_chg_pdata.warm_bat_chg_current = 1400;
