@@ -401,7 +401,7 @@ static inline void inc_rfc1001_len(void *pSMB, int count)
 int
 CIFSSMBNegotiate(unsigned int xid, struct cifs_ses *ses)
 {
-	NEGOTIATE_REQ *pSMB;
+	NEGOTIATE_REQ *pSMB = NULL;
 	NEGOTIATE_RSP *pSMBr;
 	int rc = 0;
 	int bytes_returned;
@@ -786,7 +786,7 @@ CIFSSMBEcho(struct TCP_Server_Info *server)
 int
 CIFSSMBLogoff(const int xid, struct cifs_ses *ses)
 {
-	LOGOFF_ANDX_REQ *pSMB;
+	LOGOFF_ANDX_REQ *pSMB = NULL;
 	int rc = 0;
 
 	cFYI(1, "In SMBLogoff for session disconnect");
@@ -3249,7 +3249,7 @@ CIFSSMBQueryReparseLinkInfo(const int xid, struct cifs_tcon *tcon,
 {
 	int rc = 0;
 	int bytes_returned;
-	struct smb_com_transaction_ioctl_req *pSMB;
+	struct smb_com_transaction_ioctl_req *pSMB = NULL;
 	struct smb_com_transaction_ioctl_rsp *pSMBr;
 
 	cFYI(1, "In Windows reparse style QueryLink for path %s", searchName);
@@ -3746,7 +3746,7 @@ smb_init_nttransact(const __u16 sub_command, const int setup_count,
 {
 	int rc;
 	__u32 temp_offset;
-	struct smb_com_ntransact_req *pSMB;
+	struct smb_com_ntransact_req *pSMB = NULL;
 
 	rc = small_smb_init(SMB_COM_NT_TRANSACT, 19 + setup_count, tcon,
 				(void **)&pSMB);
@@ -3828,7 +3828,7 @@ CIFSSMBGetCIFSACL(const int xid, struct cifs_tcon *tcon, __u16 fid,
 {
 	int rc = 0;
 	int buf_type = 0;
-	QUERY_SEC_DESC_REQ *pSMB;
+	QUERY_SEC_DESC_REQ *pSMB = NULL;
 	struct kvec iov[1];
 
 	cFYI(1, "GetCifsACL");
@@ -3984,7 +3984,7 @@ int SMBQueryInformation(const int xid, struct cifs_tcon *tcon,
 			FILE_ALL_INFO *pFinfo,
 			const struct nls_table *nls_codepage, int remap)
 {
-	QUERY_INFORMATION_REQ *pSMB;
+	QUERY_INFORMATION_REQ *pSMB = NULL;
 	QUERY_INFORMATION_RSP *pSMBr;
 	int rc = 0;
 	int bytes_returned;
