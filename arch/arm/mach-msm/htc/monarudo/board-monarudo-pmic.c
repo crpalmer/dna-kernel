@@ -121,7 +121,6 @@ static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
 };
 
 static struct pm8xxx_gpio_init pm8921_cdp_kp_gpios[] __initdata = {
-	//PM8921_GPIO_INPUT(37, PM_GPIO_PULL_UP_1P5),
 };
 
 static struct pm8xxx_gpio_init pm8921_amp_gpios[] __initdata = {
@@ -347,6 +346,11 @@ static struct pm8xxx_adc_amux monarudo_pm8921_adc_channels_data[] = {
 		ADC_DECIMATION_TYPE2, ADC_SCALE_DEFAULT},
 };
 
+static struct pm8xxx_led_platform_data monarudo_pm8921_leds_pdata = {
+        .num_leds = ARRAY_SIZE(pm8921_led_info),
+        .leds = pm8921_led_info,
+};
+
 static struct pm8xxx_adc_properties monarudo_pm8921_adc_data = {
 	.adc_vdd_reference	= 1800, /* milli-voltage for this adc */
 	.bitresolution		= 15,
@@ -422,7 +426,7 @@ pm8921_chg_pdata __devinitdata = {
 
 static struct pm8xxx_ccadc_platform_data
 monarudo_pm8xxx_ccadc_pdata = {
-	.r_sense_uohm		= 10000,
+	.r_sense_uohm		= 10,
 	.calib_delay_ms		= 600000,
 };
 
@@ -462,9 +466,7 @@ monarudo_pm8921_platform_data __devinitdata = {
 	.pwrkey_pdata	= &monarudo_pm8921_pwrkey_pdata,
 	.leds_pdata		= &apq8064_pm8921_leds_pdata,
 	.misc_pdata		= &monarudo_pm8921_misc_pdata,
-#if 0
 	.leds_pdata		= &monarudo_pm8921_leds_pdata,
-#endif
 	.adc_pdata		= &monarudo_pm8921_adc_pdata,
 	.charger_pdata		= &pm8921_chg_pdata,
 	.bms_pdata		= &pm8921_bms_pdata,
@@ -515,7 +517,7 @@ void __init monarudo_init_pmic(void)
 		 * Magnify ibat_max & ibat_safe (bootloader) to
 		 * cover wrong higher current than real one */
 		pm8921_bms_pdata.r_sense = 10/0.754;
-		monarudo_pm8xxx_ccadc_pdata.r_sense_uohm = 10000/0.754;
+		monarudo_pm8xxx_ccadc_pdata.r_sense_uohm = 10/0.754;
 		pm8921_chg_pdata.max_bat_chg_current = 1400;
 		pm8921_chg_pdata.cool_bat_chg_current = 1400;
 		pm8921_chg_pdata.warm_bat_chg_current = 1400;
