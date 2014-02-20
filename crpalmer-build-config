@@ -1,7 +1,7 @@
 CROSS_COMPILE=/opt/toolchains/linaro-4.8/bin/arm-eabi-
 HOST_CC=gcc
 LOCAL_BUILD_DIR=dna
-TARGET_DIR=~/dna/updates
+TARGET_DIR=~/dlx/updates
 SYSTEM_PARTITION="/dev/block/mmcblk0p32"
 DEFCONFIG=crpalmer_defconfig
 FLASH_BOOT='write_raw_image("/tmp/boot.img", "boot")'
@@ -9,7 +9,7 @@ FLASH_BOOT='write_raw_image("/tmp/boot.img", "boot")'
 # ----
 
 N_CORES=8
-VERSION=crpalmer-5.6.3
+VERSION=crpalmer-5.6.4
 
 # ----
 
