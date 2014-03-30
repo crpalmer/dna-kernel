@@ -897,6 +897,29 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 	return NULL;
 }
 
+/*
+ * Freeing function for a buddy system allocator.
+ *
+ * The concept of a buddy system is to maintain direct-mapped table
+ * (containing bit values) for memory blocks of various "orders".
+ * The bottom level table contains the map for the smallest allocatable
+ * units of memory (here, pages), and each level above it describes
+ * pairs of units from the levels below, hence, "buddies".
+ * At a high level, all that happens here is marking the table entry
+ * at the bottom level available, and propagating the changes upward
+ * as necessary, plus some accounting needed to play nicely with other
+ * parts of the VM system.
+ * At each level, we keep a list of pages, which are heads of continuous
+ * free pages of length of (1 << order) and marked with _mapcount -2. Page's
+ * order is recorded in page_private(page) field.
+ * So when we are allocating or freeing one, we can derive the state of the
+ * other.  That is, if we allocate a small block, and both were
+ * free, the remainder of the region must be split into blocks.
+ * If a block is freed, and its buddy is also free, then this
+ * triggers coalescing into a block of larger size.
+ *
+ * -- wli
+ */
 
 /*
  * This array describes the order lists are fallen back to when
@@ -2294,6 +2317,10 @@ __alloc_pages_high_priority(gfp_t gfp_mask, unsigned int order,
 	return page;
 }
 
+/*
+ * Go through the free lists for the given migratetype and remove
+ * the smallest available page from the freelists
+ */
 static inline
 void wake_all_kswapd(unsigned int order, struct zonelist *zonelist,
 						enum zone_type high_zoneidx,
@@ -2348,6 +2375,7 @@ gfp_to_alloc_flags(gfp_t gfp_mask)
 	return alloc_flags;
 }
 
+/* Remove an element from the buddy allocator from the fallback list */
 static inline struct page *
 __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	struct zonelist *zonelist, enum zone_type high_zoneidx,
@@ -3185,6 +3213,10 @@ static int find_next_best_node(int node, nodemask_t *used_node_mask)
 	return best_node;
 }
 
+/*
+ * setup_pagelist_highmark() sets the high water mark for hot per_cpu_pagelist
+ * to the value high for the pageset p.
+ */
 
 /*
  * Build zonelists ordered by node and zones within node.
@@ -5603,6 +5635,19 @@ __has_unmovable_pages(struct zone *zone, struct page *page, int count)
 
 		if (!PageLRU(page))
 			found++;
+		/*
+		 * If there are RECLAIMABLE pages, we need to check it.
+		 * But now, memory offline itself doesn't call shrink_slab()
+		 * and it still to be fixed.
+		 */
+		/*
+		 * If the page is not RAM, page_count()should be 0.
+		 * we don't need more check. This is an _used_ not-movable page.
+		 *
+		 * The problematic thing here is PG_reserved pages. PG_reserved
+		 * is set to both of a memory hole page and a _used_ kernel
+		 * page at boot.
+		 */
 		if (found > count)
 			return true;
 	}
@@ -5614,6 +5659,13 @@ bool is_pageblock_removable_nolock(struct page *page)
 	struct zone *zone;
 	unsigned long pfn;
 
+	/*
+	 * We have to be careful here because we are iterating over memory
+	 * sections which are not zone aware so we might end up outside of
+	 * the zone but still within the section.
+	 * We have to take care about the node as well. If the node is offline
+	 * its NODE_DATA will be NULL - see page_zone.
+	 */
 	if (!node_online(page_to_nid(page)))
 		return false;
 
@@ -5766,6 +5818,9 @@ static int __alloc_contig_migrate_range(struct compact_control *cc,
 	return ret > 0 ? 0 : ret;
 }
 
+/*
+ * Update zone's cma pages counter used for watermark level calculation.
+ */
 static inline void __update_cma_watermarks(struct zone *zone, int count)
 {
 	unsigned long flags;
@@ -5775,6 +5830,11 @@ static inline void __update_cma_watermarks(struct zone *zone, int count)
 	setup_per_zone_wmarks();
 }
 
+/*
+ * Trigger memory pressure bump to reclaim some pages in order to be able to
+ * allocate 'count' pages in single page units. Does similar work as
+ *__alloc_pages_slowpath() function.
+ */
 static int __reclaim_pages(struct zone *zone, gfp_t gfp_mask, int count)
 {
 	enum zone_type high_zoneidx = gfp_zone(gfp_mask);
@@ -5782,26 +5842,50 @@ static int __reclaim_pages(struct zone *zone, gfp_t gfp_mask, int count)
 	int did_some_progress = 0;
 	int order = 1;
 
+	/*
+	 * Increase level of watermarks to force kswapd do his job
+	 * to stabilise at new watermark level.
+	 */
 	__update_cma_watermarks(zone, count);
 
-	
+	/* Obey watermarks as if the page was being allocated */
 	while (!zone_watermark_ok(zone, 0, low_wmark_pages(zone), 0, 0)) {
 		wake_all_kswapd(order, zonelist, high_zoneidx, zone_idx(zone));
 
 		did_some_progress = __perform_reclaim(gfp_mask, order, zonelist,
 						      NULL);
 		if (!did_some_progress) {
-			
+			/* Exhausted what can be done so it's blamo time */
 			out_of_memory(zonelist, gfp_mask, order, NULL, false);
 		}
 	}
 
-	
+	/* Restore original watermark levels. */
 	__update_cma_watermarks(zone, -count);
 
 	return count;
 }
 
+/**
+ * alloc_contig_range() -- tries to allocate given range of pages
+ * @start:	start PFN to allocate
+ * @end:	one-past-the-last PFN to allocate
+ * @migratetype:	migratetype of the underlaying pageblocks (either
+ *			#MIGRATE_MOVABLE or #MIGRATE_CMA).  All pageblocks
+ *			in range must have the same migratetype and it must
+ *			be either of the two.
+ *
+ * The PFN range does not have to be pageblock or MAX_ORDER_NR_PAGES
+ * aligned, however it's the caller's responsibility to guarantee that
+ * we are the only thread that changes migrate type of pageblocks the
+ * pages fall in.
+ *
+ * The PFN range must belong to a single zone.
+ *
+ * Returns zero on success or negative error code.  On success all
+ * pages which PFN is in [start, end) are allocated for the caller and
+ * need to be freed with free_contig_range().
+ */
 int alloc_contig_range(unsigned long start, unsigned long end,
 		       unsigned migratetype)
 {
