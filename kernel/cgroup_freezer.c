@@ -121,10 +121,9 @@ static void freezer_fork(struct task_struct *task)
 
 	rcu_read_lock();
 	freezer = task_freezer(task);
-	rcu_read_unlock();
 
 	if (!freezer->css.cgroup->parent)
-		return;
+		goto out;
 
 	spin_lock_irq(&freezer->lock);
 	BUG_ON(freezer->state == CGROUP_FROZEN);
@@ -132,7 +131,10 @@ static void freezer_fork(struct task_struct *task)
 	
 	if (freezer->state == CGROUP_FREEZING)
 		freeze_task(task);
+
 	spin_unlock_irq(&freezer->lock);
+out:
+	rcu_read_unlock();
 }
 
 static void update_if_frozen(struct cgroup *cgroup,
