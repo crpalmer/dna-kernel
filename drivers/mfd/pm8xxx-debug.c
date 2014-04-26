@@ -30,6 +30,150 @@ struct pm8xxx_debug_device {
 	int			addr;
 };
 
+struct s_pm8921_ssbi_reg {
+    u16 addr;
+    int multi_bank;
+};
+
+struct s_pm8921_ssbi_reg pm8921_regs[] = {
+    
+    {0x000, 0},    {0x001, 0},    {0x002, 0},    {0x003, 0},    {0x004, 0},
+    {0x005, 0},    {0x006, 0},    {0x007, 0},    {0x008, 0},    {0x009, 0},
+    {0x00A, 0},    {0x00B, 0},    {0x00C, 0},    {0x00D, 0},    {0x00E, 0},
+    {0x010, 0},    {0x011, 0},    {0x012, 0},    {0x013, 0},    {0x014, 0},
+    {0x015, 0},    {0x016, 0},    {0x018, 0},    {0x019, 0},    {0x01A, 0},
+    {0x01B, 0},    {0x01C, 0},    {0x01D, 0},    {0x01E, 0},    {0x01F, 0},
+    {0x020, 0},    {0x021, 0},    {0x022, 0},    {0x023, 0},    {0x024, 0},
+    {0x025, 0},    {0x026, 0},    {0x027, 0},    {0x028, 0},    {0x029, 0},
+    {0x02A, 8},    {0x02B, 0},    {0x02C, 0},    {0x02D, 0},    {0x02E, 8},
+    {0x02F, 8},    {0x030, 8},    {0x031, 8},    {0x032, 0},    {0x033, 0},
+
+    {0x034, 8},    {0x035, 8},    {0x036, 0},    {0x037, 0},    {0x038, 0},
+    {0x039, 0},    {0x03A, 0},    {0x03B, 8},    {0x03C, 0},    {0x03D, 0},
+    {0x03E, 0},    {0x03F, 8},    {0x040, 8},    {0x041, 8},    {0x042, 8},
+    {0x043, 0},    {0x044, 0},    {0x045, 8},    {0x046, 8},    {0x047, 0},
+    {0x048, 0},    {0x04A, 0},    {0x04F, 0},    {0x050, 0},    {0x051, 0},
+    {0x052, 0},    {0x053, 0},    {0x054, 0},    {0x055, 0},    {0x056, 0},
+    {0x057, 0},    {0x058, 0},    {0x059, 0},    {0x05A, 0},    {0x05B, 0},
+    {0x060, 0},    {0x061, 0},    {0x062, 0},    {0x063, 0},    {0x064, 0},
+    {0x065, 0},    {0x066, 0},    {0x067, 0},    {0x068, 0},    {0x069, 0},
+    {0x06A, 0},    {0x06B, 0},    {0x06C, 0},    {0x06D, 0},    {0x06E, 0},
+
+    {0x06F, 0},    {0x070, 0},    {0x071, 0},    {0x074, 8},    {0x07A, 8},
+    {0x07D, 0},    {0x07E, 0},    {0x07F, 0},    {0x080, 0},    {0x081, 0},
+    {0x082, 0},    {0x083, 0},    {0x084, 0},    {0x085, 0},    {0x086, 0},
+    {0x087, 0},    {0x090, 0},    {0x09B, 0},    {0x09C, 0},    {0x0A0, 0},
+    {0x0A1, 0},    {0x0A2, 0},    {0x0AB, 0},    {0x0AE, 0},    {0x0AF, 8},
+    {0x0B0, 0},    {0x0B1, 8},    {0x0B2, 0},    {0x0B3, 8},    {0x0B4, 0},
+    {0x0B5, 8},
+    
+    {0x0B7, 8},    {0x0B8, 0},    {0x0B9, 8},    {0x0BA, 0},
+    {0x0BB, 8},    {0x0BC, 0},    {0x0BD, 8},    {0x0BE, 0},    {0x0BF, 8},
+    {0x0C0, 0},    {0x0C1, 8},    {0x0C2, 0},    {0x0C3, 8},    {0x0C4, 0},
+    {0x0C5, 8},    {0x0C8, 0},    {0x0C9, 8},    {0x0CA, 0},    {0x0CB, 8},
+
+    {0x0CC, 0},    {0x0CD, 8},    {0x0CE, 0},    {0x0CF, 8},    {0x0D0, 0},
+    {0x0D1, 8},    {0x0D6, 0},    {0x0D7, 8},    {0x0D8, 0},    {0x0D9, 8},
+    {0x0DA, 0},    {0x0DB, 8},    {0x0DC, 0},    {0x0DD, 8},    {0x0DE, 0},
+    {0x0DF, 8},    {0x0E0, 0},    {0x0E1, 8},    {0x0E2, 0},    {0x0E3, 8},
+    {0x0E4, 0},    {0x0E5, 8},    {0x0E6, 0},    {0x0E7, 8},    {0x0E8, 0},
+    {0x0EC, 0},    {0x0ED, 0},    {0x0EE, 0},    {0x0EF, 0},    {0x0F0, 0},
+    {0x0F1, 0},    {0x0F2, 0},    {0x0F4, 0},    {0x0F5, 0},    {0x0FA, 0},
+    {0x0FC, 0},    {0x100, 0},    {0x103, 0},    {0x104, 0},    {0x105, 0},
+    {0x106, 0},    {0x107, 0},    {0x108, 0},    {0x109, 0},    {0x10A, 0},
+    {0x10B, 0},    {0x10C, 0},    {0x10D, 0},    {0x10E, 0},    {0x10F, 0},
+
+    {0x110, 0},    {0x111, 0},    {0x112, 0},    {0x113, 0},    {0x114, 0},
+    {0x115, 0},    {0x116, 0},    {0x117, 0},    {0x118, 0},    {0x119, 0},
+    {0x11A, 0},    {0x11B, 0},    {0x11C, 0},    {0x11D, 0},    {0x11E, 0},
+    {0x11F, 0},    {0x120, 0},    {0x121, 0},    {0x122, 0},    {0x123, 0},
+    {0x124, 0},    {0x125, 0},    {0x126, 0},    {0x127, 0},    {0x128, 0},
+    {0x129, 0},    {0x12A, 0},    {0x12B, 0},    {0x131, 0},    {0x132, 0},
+    {0x133, 0},    {0x134, 0},    {0x135, 0},    {0x136, 0},    {0x137, 0},
+    {0x138, 0},    {0x139, 0},    {0x13A, 0},    {0x13B, 0},    {0x13C, 0},
+    {0x13D, 0},    {0x13E, 0},    {0x13F, 0},    {0x140, 0},    {0x141, 0},
+    {0x142, 0},    {0x143, 0},    {0x144, 0},    {0x145, 0},    {0x146, 0},
+
+    {0x147, 0},    {0x148, 0},    {0x149, 0},    {0x14A, 0},    {0x14B, 0},
+    {0x14C, 0},    {0x14E, 8},    {0x14F, 0},    {0x150, 8},    {0x151, 8},
+    {0x152, 8},    {0x153, 8},    {0x154, 8},    {0x155, 8},    {0x156, 8},
+    {0x157, 8},    {0x158, 8},    {0x159, 8},    {0x15A, 8},    {0x15B, 8},
+    {0x15C, 8},    {0x15D, 8},    {0x15E, 8},    {0x15F, 8},    {0x160, 8},
+    {0x161, 8},    {0x162, 8},    {0x163, 8},    {0x164, 8},    {0x165, 8},
+    {0x166, 8},    {0x167, 8},    {0x168, 8},    {0x169, 8},    {0x16A, 8},
+    {0x16B, 8},    {0x16C, 8},    {0x16D, 8},    {0x16E, 8},    {0x16F, 8},
+    {0x170, 8},    {0x171, 8},    {0x172, 8},    {0x173, 8},    {0x174, 8},
+    {0x175, 8},    {0x176, 8},    {0x177, 8},    {0x178, 8},    {0x179, 8},
+
+    {0x17A, 8},    {0x17B, 8},    {0x17E, 0},    {0x17F, 0},    {0x180, 0},
+    {0x181, 0},    {0x182, 0},    {0x183, 0},    {0x184, 0},    {0x185, 0},
+    {0x186, 0},    {0x187, 0},    {0x188, 0},    {0x189, 0},    {0x18A, 0},
+    {0x18B, 0},    {0x18C, 0},    {0x18D, 0},    {0x18E, 0},    {0x18F, 0},
+    {0x190, 0},    {0x191, 0},    {0x192, 0},    {0x193, 0},    {0x194, 0},
+    {0x195, 0},    {0x196, 0},    {0x197, 0},    {0x198, 0},    {0x199, 0},
+    {0x19A, 0},    {0x19B, 0},    {0x19C, 0},    {0x19D, 0},    {0x19E, 0},
+    {0x19F, 0},    {0x1A0, 0},    {0x1A1, 0},    {0x1A2, 0},    {0x1A3, 0},
+    {0x1A4, 0},    {0x1A5, 0},    {0x1A6, 0},    {0x1A7, 0},    {0x1A8, 0},
+    {0x1A9, 0},    {0x1AA, 0},    {0x1AB, 0},    {0x1AC, 0},    {0x1AD, 0},
+
+    {0x1AE, 0},    {0x1AF, 0},    {0x1B1, 0},    {0x1B2, 0},    {0x1B3, 0},
+    {0x1B4, 0},    {0x1B5, 0},    {0x1B6, 0},    {0x1B7, 0},    {0x1B8, 0},
+    {0x1B9, 0},    {0x1BB, 0},    {0x1BC, 0},    {0x1BD, 0},    {0x1BE, 0},
+    {0x1BF, 0},    {0x1C0, 0},    {0x1C1, 0},    {0x1C2, 0},    {0x1C3, 0},
+    {0x1C5, 0},    {0x1C6, 0},    {0x1C7, 0},    {0x1C8, 0},    {0x1C9, 0},
+    {0x1CA, 0},    {0x1CB, 0},    {0x1CC, 0},    {0x1CD, 0},    {0x1CE, 0},
+    {0x1CF, 0},    {0x1D0, 0},    {0x1D1, 0},    {0x1D2, 0},    {0x1D3, 0},
+    {0x1D4, 8},    {0x1D5, 8},    {0x1D6, 8},    {0x1D8, 0},    {0x1D9, 0},
+    {0x1DA, 0},    {0x1DB, 0},    {0x1DC, 8},    {0x1DD, 8},    {0x1DE, 8},
+    {0x1E0, 0},    {0x1E1, 0},    {0x1E2, 0},    {0x1E3, 0},    {0x1E4, 8},
+
+    {0x1E5, 8},    {0x1E6, 8},    {0x1E8, 0},    {0x1E9, 0},    {0x1EA, 0},
+    {0x1EB, 0},    {0x1EC, 8},    {0x1ED, 8},    {0x1EE, 8},    {0x1F0, 0},
+    {0x1F1, 0},    {0x1F2, 0},    {0x1F3, 0},    {0x1F4, 8},    {0x1F5, 8},
+    {0x1F6, 8},    {0x1F8, 0},    {0x1F9, 0},    {0x1FA, 0},    {0x1FB, 0},
+    {0x1FC, 8},    {0x1FD, 8},    {0x1FE, 8},    {0x200, 0},    {0x204, 0},
+    {0x205, 0},    {0x206, 8},    {0x207, 8},    {0x208, 8},    {0x209, 8},
+    {0x20A, 8},    {0x20B, 0},    {0x20C, 0},    {0x20D, 0},    {0x20E, 0},
+    {0x20F, 0},    {0x210, 0},    {0x211, 0},    {0x212, 0},    {0x213, 0},
+    {0x214, 0},    {0x215, 0},    {0x216, 0},    {0x217, 0},    {0x218, 0},
+    {0x219, 0},    {0x21A, 0},    {0x21B, 0},    {0x21C, 0},    {0x21D, 0},
+
+    {0x21E, 8},    {0x21F, 8},    {0x220, 0},    {0x221, 0},    {0x222, 0},
+    {0x224, 0},    {0x225, 0},    {0x226, 0},    {0x227, 0},    {0x228, 0},
+    {0x229, 0},    {0x22A, 0},    {0x22B, 0},    {0x22C, 0},    {0x22D, 0},
+    {0x22E, 0},    {0x22F, 0},    {0x230, 0},    {0x231, 0},    {0x232, 0},
+    {0x233, 0},    {0x234, 0},    {0x235, 0},    {0x236, 0},    {0x237, 0},
+    {0x238, 0},    {0x239, 0},    {0x23A, 0},    {0x23B, 0},    {0x23C, 0},
+    {0x240, 0},    {0x241, 0},    {0x242, 0},    {0x243, 0},    {0x244, 0},
+    {0x245, 0},    {0x246, 0},    {0x247, 0},    {0x24F, 0},    {0x300, 0},
+    {0x303, 0},    {0x304, 0},    {0x305, 0},    {0x306, 0},    {0x307, 0},
+    {0x308, 0},    {0x30A, 0},    {0x30B, 0},    {0x30C, 0},    {0x30D, 0},
+
+    {0x30E, 0},    {0x30F, 0},    {0x310, 0},    {0x311, 0},    {0x312, 0},
+    {0x313, 0},    {0x314, 0},    {0x315, 0},    {0x317, 0},    {0x318, 0},
+    {0x319, 0},    {0x31A, 0},    {0x31B, 0},    {0x31C, 0},    {0x31D, 0},
+    {0x31E, 0},    {0x31F, 0},    {0x321, 0},    {0x322, 0},    {0x323, 0},
+    {0x324, 0},    {0x325, 0},    {0x327, 0},    {0x32A, 0},    {0x32B, 0},
+    {0x32C, 0},    {0x32D, 0},    {0x32E, 0},    {0x32F, 0},    {0x330, 0},
+    {0x331, 0},    {0x332, 0},    {0x333, 0},    {0x334, 0},    {0x336, 0},
+    {0x337, 0},    {0x338, 0},    {0x339, 0},    {0x33A, 0},    {0x33B, 0},
+    {0x33C, 0},    {0x33D, 0},    {0x33E, 0},    {0x33F, 0},    {0x342, 0},
+    {0x343, 0},    {0x344, 0},    {0x345, 0},    {0x346, 0},    {0x347, 0},
+
+    {0x34A, 0},    {0x34B, 0},    {0x34C, 0},    {0x34D, 0},    {0x34F, 0},
+    {0x350, 0},    {0x351, 0},    {0x352, 0},    {0x353, 0},    {0x355, 0},
+    {0x356, 0},    {0x357, 0},    {0x358, 0},    {0x359, 0},    {0x35A, 0},
+    {0x35B, 0},    {0x35C, 0},    {0x35E, 0},    {0x35F, 0},    {0x360, 0},
+    {0x361, 0},    {0x362, 0},    {0x363, 0},    {0x364, 0},    {0x365, 0},
+    {0x366, 0},    {0x367, 0},    {0x368, 0},    {0x369, 0},    {0x36A, 0},
+    {0x36B, 0},    {0x36C, 0},    {0x36D, 0},    {0x36E, 0},    {0x36F, 0},
+    {0x370, 0},    {0x371, 0},    {0x374, 0},    {0x375, 0},    {0x376, 0},
+    {0x377, 0},    {0x378, 0},    {0x379, 0},    {0x37A, 0},    {0x37C, 0},
+    {0x37D, 0},    {0x37F, 0},
+
+    {0xFFF, -1}    
+}; 
+
 static bool pm8xxx_debug_addr_is_valid(int addr)
 {
 	if (addr < 0 || addr > 0x3FF) {
@@ -113,9 +257,6 @@ static int pm8xxx_debug_addr_get(void *data, u64 *val)
 DEFINE_SIMPLE_ATTRIBUTE(debug_addr_fops, pm8xxx_debug_addr_get,
 			pm8xxx_debug_addr_set, "0x%03llX\n");
 
-/**
- * enum pm8xxx_vreg_id - PMIC 8921 regulator ID numbers
- */
 enum pm8xxx_vreg_id {
 	PM8xxx_VREG_ID_L1 = 0,
 	PM8xxx_VREG_ID_L2,
@@ -163,7 +304,7 @@ enum pm8xxx_vreg_id {
 	PM8xxx_VREG_ID_USB_OTG,
 	PM8xxx_VREG_ID_HDMI_MVS,
 	PM8xxx_VREG_ID_NCP,
-	/* The following are IDs for regulator devices to enable pin control. */
+	
 	PM8xxx_VREG_ID_L1_PC,
 	PM8xxx_VREG_ID_L2_PC,
 	PM8xxx_VREG_ID_L3_PC,
@@ -205,14 +346,12 @@ enum pm8xxx_vreg_id {
 	PM8xxx_VREG_ID_MAX,
 };
 
-/* Pin control input pins. */
 #define PM8xxx_VREG_PIN_CTRL_NONE	0x00
 #define PM8xxx_VREG_PIN_CTRL_D1		0x01
 #define PM8xxx_VREG_PIN_CTRL_A0		0x02
 #define PM8xxx_VREG_PIN_CTRL_A1		0x04
 #define PM8xxx_VREG_PIN_CTRL_A2		0x08
 
-/* Minimum high power mode loads in uA. */
 #define PM8xxx_VREG_LDO_50_HPM_MIN_LOAD		5000
 #define PM8xxx_VREG_LDO_150_HPM_MIN_LOAD	10000
 #define PM8xxx_VREG_LDO_300_HPM_MIN_LOAD	10000
@@ -221,11 +360,6 @@ enum pm8xxx_vreg_id {
 #define PM8xxx_VREG_SMPS_1500_HPM_MIN_LOAD	100000
 #define PM8xxx_VREG_SMPS_2000_HPM_MIN_LOAD	100000
 
-/**
- * enum pm8xxx_vreg_pin_function - action to perform when pin control is active
- * %PM8xxx_VREG_PIN_FN_ENABLE:	pin control enables the regulator
- * %PM8xxx_VREG_PIN_FN_MODE:	pin control changes mode from LPM to HPM
- */
 enum pm8xxx_vreg_pin_function {
 	PM8xxx_VREG_PIN_FN_ENABLE = 0,
 	PM8xxx_VREG_PIN_FN_MODE,
@@ -239,7 +373,6 @@ enum pm8xxx_vreg_pin_function {
 #define REGULATOR_TYPE_VS		5
 #define REGULATOR_TYPE_VS300		6
 #define REGULATOR_TYPE_NCP		7
-/* Common Masks */
 #define REGULATOR_ENABLE_MASK		0x80
 #define REGULATOR_ENABLE		0x80
 #define REGULATOR_DISABLE		0x00
@@ -253,16 +386,9 @@ enum pm8xxx_vreg_pin_function {
 #define SMPS_TEST_BANKS			8
 #define REGULATOR_TEST_BANKS_MAX	SMPS_TEST_BANKS
 
-/*
- * This voltage in uV is returned by get_voltage functions when there is no way
- * to determine the current voltage level.  It is needed because the regulator
- * framework treats a 0 uV voltage as an error.
- */
 #define VOLTAGE_UNKNOWN			1
 
-/* LDO masks and values */
 
-/* CTRL register */
 #define LDO_ENABLE_MASK			0x80
 #define LDO_DISABLE			0x00
 #define LDO_ENABLE			0x80
@@ -275,38 +401,26 @@ enum pm8xxx_vreg_pin_function {
 
 #define LDO_CTRL_VPROG_MASK		0x1F
 
-/* TEST register bank 0 */
 #define LDO_TEST_LPM_MASK		0x04
 #define LDO_TEST_LPM_SEL_CTRL		0x00
 #define LDO_TEST_LPM_SEL_TCXO		0x04
 
-/* TEST register bank 2 */
 #define LDO_TEST_VPROG_UPDATE_MASK	0x08
 #define LDO_TEST_RANGE_SEL_MASK		0x04
 #define LDO_TEST_FINE_STEP_MASK		0x02
 #define LDO_TEST_FINE_STEP_SHIFT	1
 
-/* TEST register bank 4 */
 #define LDO_TEST_RANGE_EXT_MASK		0x01
 
-/* TEST register bank 5 */
 #define LDO_TEST_PIN_CTRL_MASK		0x0F
 #define LDO_TEST_PIN_CTRL_EN3		0x08
 #define LDO_TEST_PIN_CTRL_EN2		0x04
 #define LDO_TEST_PIN_CTRL_EN1		0x02
 #define LDO_TEST_PIN_CTRL_EN0		0x01
 
-/* TEST register bank 6 */
 #define LDO_TEST_PIN_CTRL_LPM_MASK	0x0F
 
 
-/*
- * If a given voltage could be output by two ranges, then the preferred one must
- * be determined by the range limits.  Specified voltage ranges should must
- * not overlap.
- *
- * Allowable voltage ranges:
- */
 #define PLDO_LOW_UV_MIN			750000
 #define PLDO_LOW_UV_MAX			1487500
 #define PLDO_LOW_UV_FINE_STEP		12500
@@ -338,19 +452,15 @@ enum pm8xxx_vreg_pin_function {
 #define NLDO_SET_POINTS			((NLDO_UV_MAX - NLDO_UV_MIN) \
 						/ NLDO_UV_FINE_STEP + 1)
 
-/* NLDO1200 masks and values */
 
-/* CTRL register */
 #define NLDO1200_ENABLE_MASK		0x80
 #define NLDO1200_DISABLE		0x00
 #define NLDO1200_ENABLE			0x80
 
-/* Legacy mode */
 #define NLDO1200_LEGACY_PM_MASK		0x20
 #define NLDO1200_LEGACY_PM_HPM		0x00
 #define NLDO1200_LEGACY_PM_LPM		0x20
 
-/* Advanced mode */
 #define NLDO1200_CTRL_RANGE_MASK	0x40
 #define NLDO1200_CTRL_RANGE_HIGH	0x00
 #define NLDO1200_CTRL_RANGE_LOW		0x40
@@ -373,21 +483,17 @@ enum pm8xxx_vreg_pin_function {
 #define NLDO1200_SET_POINTS		(NLDO1200_LOW_SET_POINTS \
 						+ NLDO1200_HIGH_SET_POINTS)
 
-/* TEST register bank 0 */
 #define NLDO1200_TEST_LPM_MASK		0x04
 #define NLDO1200_TEST_LPM_SEL_CTRL	0x00
 #define NLDO1200_TEST_LPM_SEL_TCXO	0x04
 
-/* TEST register bank 1 */
 #define NLDO1200_PULL_DOWN_ENABLE_MASK	0x02
 #define NLDO1200_PULL_DOWN_ENABLE	0x02
 
-/* TEST register bank 2 */
 #define NLDO1200_ADVANCED_MODE_MASK	0x08
 #define NLDO1200_ADVANCED_MODE		0x00
 #define NLDO1200_LEGACY_MODE		0x08
 
-/* Advanced mode power mode control */
 #define NLDO1200_ADVANCED_PM_MASK	0x02
 #define NLDO1200_ADVANCED_PM_HPM	0x00
 #define NLDO1200_ADVANCED_PM_LPM	0x02
@@ -396,11 +502,8 @@ enum pm8xxx_vreg_pin_function {
 	((vreg->test_reg[2] & NLDO1200_ADVANCED_MODE_MASK) \
 	 == NLDO1200_ADVANCED_MODE)
 
-/* SMPS masks and values */
 
-/* CTRL register */
 
-/* Legacy mode */
 #define SMPS_LEGACY_ENABLE_MASK		0x80
 #define SMPS_LEGACY_DISABLE		0x00
 #define SMPS_LEGACY_ENABLE		0x80
@@ -408,7 +511,6 @@ enum pm8xxx_vreg_pin_function {
 #define SMPS_LEGACY_VREF_SEL_MASK	0x20
 #define SMPS_LEGACY_VPROG_MASK		0x1F
 
-/* Advanced mode */
 #define SMPS_ADVANCED_BAND_MASK		0xC0
 #define SMPS_ADVANCED_BAND_OFF		0x00
 #define SMPS_ADVANCED_BAND_1		0x40
@@ -416,7 +518,6 @@ enum pm8xxx_vreg_pin_function {
 #define SMPS_ADVANCED_BAND_3		0xC0
 #define SMPS_ADVANCED_VPROG_MASK	0x3F
 
-/* Legacy mode voltage ranges */
 #define SMPS_MODE3_UV_MIN		375000
 #define SMPS_MODE3_UV_MAX		725000
 #define SMPS_MODE3_UV_STEP		25000
@@ -442,7 +543,6 @@ enum pm8xxx_vreg_pin_function {
 						+ SMPS_MODE2_SET_POINTS \
 						+ SMPS_MODE1_SET_POINTS)
 
-/* Advanced mode voltage ranges */
 #define SMPS_BAND1_UV_MIN		375000
 #define SMPS_BAND1_UV_MAX		737500
 #define SMPS_BAND1_UV_STEP		12500
@@ -468,13 +568,10 @@ enum pm8xxx_vreg_pin_function {
 						+ SMPS_BAND2_SET_POINTS \
 						+ SMPS_BAND3_SET_POINTS)
 
-/* Test2 register bank 1 */
 #define SMPS_LEGACY_VLOW_SEL_MASK	0x01
 
-/* Test2 register bank 6 */
 #define SMPS_ADVANCED_PULL_DOWN_ENABLE	0x08
 
-/* Test2 register bank 7 */
 #define SMPS_ADVANCED_MODE_MASK		0x02
 #define SMPS_ADVANCED_MODE		0x02
 #define SMPS_LEGACY_MODE		0x00
@@ -482,7 +579,6 @@ enum pm8xxx_vreg_pin_function {
 #define SMPS_IN_ADVANCED_MODE(vreg) \
 	((vreg->test_reg[7] & SMPS_ADVANCED_MODE_MASK) == SMPS_ADVANCED_MODE)
 
-/* BUCK_SLEEP_CNTRL register */
 #define SMPS_PIN_CTRL_MASK		0xF0
 #define SMPS_PIN_CTRL_EN3		0x80
 #define SMPS_PIN_CTRL_EN2		0x40
@@ -495,7 +591,6 @@ enum pm8xxx_vreg_pin_function {
 #define SMPS_PIN_CTRL_LPM_EN1		0x02
 #define SMPS_PIN_CTRL_LPM_EN0		0x01
 
-/* BUCK_CLOCK_CNTRL register */
 #define SMPS_CLK_DIVIDE2		0x40
 
 #define SMPS_CLK_CTRL_MASK		0x30
@@ -503,9 +598,7 @@ enum pm8xxx_vreg_pin_function {
 #define SMPS_CLK_CTRL_PWM		0x10
 #define SMPS_CLK_CTRL_PFM		0x20
 
-/* FTSMPS masks and values */
 
-/* CTRL register */
 #define FTSMPS_VCTRL_BAND_MASK		0xC0
 #define FTSMPS_VCTRL_BAND_OFF		0x00
 #define FTSMPS_VCTRL_BAND_1		0x40
@@ -515,10 +608,7 @@ enum pm8xxx_vreg_pin_function {
 
 #define FTSMPS_BAND1_UV_MIN		350000
 #define FTSMPS_BAND1_UV_MAX		650000
-/* 3 LSB's of program voltage must be 0 in band 1. */
-/* Logical step size */
 #define FTSMPS_BAND1_UV_LOG_STEP	50000
-/* Physical step size */
 #define FTSMPS_BAND1_UV_PHYS_STEP	6250
 
 #define FTSMPS_BAND2_UV_MIN		700000
@@ -543,18 +633,14 @@ enum pm8xxx_vreg_pin_function {
 						+ FTSMPS_BAND2_SET_POINTS \
 						+ FTSMPS_BAND3_SET_POINTS)
 
-/* FTS_CNFG1 register bank 0 */
 #define FTSMPS_CNFG1_PM_MASK		0x0C
 #define FTSMPS_CNFG1_PM_PWM		0x00
 #define FTSMPS_CNFG1_PM_PFM		0x08
 
-/* PWR_CNFG register */
 #define FTSMPS_PULL_DOWN_ENABLE_MASK	0x40
 #define FTSMPS_PULL_DOWN_ENABLE		0x40
 
-/* VS masks and values */
 
-/* CTRL register */
 #define VS_ENABLE_MASK			0x80
 #define VS_DISABLE			0x00
 #define VS_ENABLE			0x80
@@ -568,9 +654,7 @@ enum pm8xxx_vreg_pin_function {
 #define VS_PIN_CTRL_EN2			0x02
 #define VS_PIN_CTRL_EN3			0x01
 
-/* VS300 masks and values */
 
-/* CTRL register */
 #define VS300_CTRL_ENABLE_MASK		0xC0
 #define VS300_CTRL_DISABLE		0x00
 #define VS300_CTRL_ENABLE		0x40
@@ -578,9 +662,7 @@ enum pm8xxx_vreg_pin_function {
 #define VS300_PULL_DOWN_ENABLE_MASK	0x20
 #define VS300_PULL_DOWN_ENABLE		0x20
 
-/* NCP masks and values */
 
-/* CTRL register */
 #define NCP_ENABLE_MASK			0x80
 #define NCP_DISABLE			0x00
 #define NCP_ENABLE			0x80
@@ -609,7 +691,7 @@ enum pm8xxx_vreg_pin_function {
 #define MODE_FTSMPS_3 11
 
 struct pm8xxx_vreg {
-	/* Configuration data */
+	
 	const char				*name;
 	const int				hpm_min_load;
 	const u16				ctrl_addr;
@@ -619,7 +701,7 @@ struct pm8xxx_vreg {
 	const u16				pfm_ctrl_addr;
 	const u16				pwr_cnfg_addr;
 	const u8				type;
-	/* State data */
+	
 	u8				test_reg[REGULATOR_TEST_BANKS_MAX];
 	u8					ctrl_reg;
 	u8					clk_ctrl_reg;
@@ -704,7 +786,7 @@ struct pm8xxx_vreg {
 	}
 
 static struct pm8xxx_vreg pm8921_vreg[] = {
-	/*  id   ctrl   test   hpm_min */
+	
 	NLDO(L1,  0x0AE, 0x0AF, LDO_150, "8921_l1"),
 	NLDO(L2,  0x0B0, 0x0B1, LDO_150, "8921_l2"),
 	PLDO(L3,  0x0B2, 0x0B3, LDO_150, "8921_l3"),
@@ -726,31 +808,31 @@ static struct pm8xxx_vreg pm8921_vreg[] = {
 	PLDO(L22, 0x0D8, 0x0D9, LDO_150, "8921_l22"),
 	PLDO(L23, 0x0DA, 0x0DB, LDO_150, "8921_l23"),
 
-	/*       id   ctrl   test   hpm_min */
+	
 	NLDO1200(L24, 0x0DC, 0x0DD, LDO_1200, "8921_l24"),
 	NLDO1200(L25, 0x0DE, 0x0DF, LDO_1200, "8921_l25"),
 	NLDO1200(L26, 0x0E0, 0x0E1, LDO_1200, "8921_l26"),
 	NLDO1200(L27, 0x0E2, 0x0E3, LDO_1200, "8921_l27"),
 	NLDO1200(L28, 0x0E4, 0x0E5, LDO_1200, "8921_l28"),
 
-	/*  id   ctrl   test   hpm_min */
+	
 	PLDO(L29, 0x0E6, 0x0E7, LDO_150, "8921_l29"),
 
-	/*   id  ctrl   test2  clk    sleep  hpm_min */
+	
 	SMPS(S1, 0x1D0, 0x1D5, 0x009, 0x1D2, SMPS_1500, "8921_s1"),
 	SMPS(S2, 0x1D8, 0x1DD, 0x00A, 0x1DA, SMPS_1500, "8921_s2"),
 	SMPS(S3, 0x1E0, 0x1E5, 0x00B, 0x1E2, SMPS_1500, "8921_s3"),
 	SMPS(S4, 0x1E8, 0x1ED, 0x011, 0x1EA, SMPS_1500, "8921_s4"),
 
-	/*     id  ctrl fts_cnfg1 pfm  pwr_cnfg  hpm_min */
+	
 	FTSMPS(S5, 0x025, 0x02E, 0x026, 0x032, SMPS_2000, "8921_s5"),
 	FTSMPS(S6, 0x036, 0x03F, 0x037, 0x043, SMPS_2000, "8921_s6"),
 
-	/*   id  ctrl   test2  clk    sleep  hpm_min */
+	
 	SMPS(S7, 0x1F0, 0x1F5, 0x012, 0x1F2, SMPS_1500, "8921_s7"),
 	SMPS(S8, 0x1F8, 0x1FD, 0x013, 0x1FA, SMPS_1500, "8921_s8"),
 
-	/* id		ctrl */
+	
 	VS(LVS1,	0x060, "8921_lvs1"),
 	VS300(LVS2,     0x062, "8921_lvs2"),
 	VS(LVS3,	0x064, "8921_lvs3"),
@@ -761,12 +843,12 @@ static struct pm8xxx_vreg pm8921_vreg[] = {
 	VS300(USB_OTG,  0x06E, "8921_usb_otg"),
 	VS300(HDMI_MVS, 0x070, "8921_hdmi_mvs"),
 
-	/*  id   ctrl */
+	
 	NCP(NCP, 0x090, "8921_ncp"),
 };
 
 static struct pm8xxx_vreg pm8038_vreg[] = {
-	/*  id   ctrl   test   hpm_min */
+	
 	NLDO1200(L1, 0x0AE, 0x0AF, LDO_1200, "8038_l1"),
 	NLDO(L2,  0x0B0, 0x0B1, LDO_150, "8038_l2"),
 	PLDO(L3,  0x0B2, 0x0B3, LDO_50, "8038_l3"),
@@ -793,17 +875,17 @@ static struct pm8xxx_vreg pm8038_vreg[] = {
 	NLDO(L26, 0x0E0, 0x0E1, LDO_150, "8038_l26"),
 	NLDO1200(L27, 0x0E2, 0x0E3, LDO_1200, "8038_l27"),
 
-	/*   name	pc_name       ctrl   test2  clk    sleep  hpm_min */
+	
 	SMPS(S1, 0x1E0, 0x1E5, 0x009, 0x1E2, SMPS_1500, "8038_s1"),
 	SMPS(S2, 0x1D8, 0x1DD, 0x00A, 0x1DA, SMPS_1500, "8038_s2"),
 	SMPS(S3, 0x1D0, 0x1D5, 0x00B, 0x1D2, SMPS_1500, "8038_s3"),
 	SMPS(S4, 0x1E8, 0x1ED, 0x00C, 0x1EA, SMPS_1500, "8038_s4"),
 
-	/*     name	  ctrl fts_cnfg1 pfm  pwr_cnfg  hpm_min */
+	
 	FTSMPS(S5, 0x025, 0x02E, 0x026, 0x032, SMPS_2000, "8038_s5"),
 	FTSMPS(S6, 0x036, 0x03F, 0x037, 0x043, SMPS_2000, "8038_s6"),
 
-	/* name		       pc_name	       ctrl   test */
+	
 	VS(LVS1, 0x060, "8038_lvs1"),
 	VS(LVS2, 0x062, "8038_lvs2"),
 };
@@ -826,7 +908,7 @@ static struct pm8xxx_vreg_table pm8xxx_table[] = {
 		.table_size	= ARRAY_SIZE(pm8921_vreg),
 	},
 
-	/* Every new table should be put above*/
+	
 	{
 		.name 		= NULL,
 		.table_size 	= -1,
@@ -855,15 +937,10 @@ static int pm8xxx_table_lookup(const char *name)
 	return 1;
 }
 
-/* Returns the physical enable state of the regulator. */
 static int pm8xxx_vreg_is_enabled(struct pm8xxx_vreg *vreg)
 {
 	int rc = 0;
 
-	/*
-	 * All regulator types except advanced mode SMPS, FTSMPS, and VS300 have
-	 * enable bit in bit 7 of the control register.
-	 */
 	switch (vreg->type) {
 	case REGULATOR_TYPE_FTSMPS:
 		if ((vreg->ctrl_reg & FTSMPS_VCTRL_BAND_MASK)
@@ -882,7 +959,7 @@ static int pm8xxx_vreg_is_enabled(struct pm8xxx_vreg *vreg)
 				rc = 1;
 			break;
 		}
-		/* Fall through for legacy mode SMPS. */
+		
 	default:
 		if ((vreg->ctrl_reg & REGULATOR_ENABLE_MASK)
 		    == REGULATOR_ENABLE)
@@ -892,7 +969,6 @@ static int pm8xxx_vreg_is_enabled(struct pm8xxx_vreg *vreg)
 	return rc;
 }
 
-/* Returns the physical enable state of the regulator. */
 static int pm8xxx_vreg_is_pulldown(struct pm8xxx_vreg *vreg)
 {
 	int rc = 0;
@@ -952,15 +1028,15 @@ static int _pm8xxx_pldo_get_voltage(struct pm8xxx_vreg *vreg)
 	vprog = (vprog << 1) | (fine_step_reg >> LDO_TEST_FINE_STEP_SHIFT);
 
 	if (range_sel) {
-		/* low range mode */
+		
 		fine_step = PLDO_LOW_UV_FINE_STEP;
 		vmin = PLDO_LOW_UV_MIN;
 	} else if (!range_ext) {
-		/* normal mode */
+		
 		fine_step = PLDO_NORM_UV_FINE_STEP;
 		vmin = PLDO_NORM_UV_MIN;
 	} else {
-		/* high range mode */
+		
 		fine_step = PLDO_HIGH_UV_FINE_STEP;
 		vmin = PLDO_HIGH_UV_MIN;
 	}
@@ -1020,13 +1096,13 @@ static int pm8xxx_smps_get_voltage_legacy(struct pm8xxx_vreg *vreg)
 	vprog = vreg->ctrl_reg & SMPS_LEGACY_VPROG_MASK;
 
 	if (vlow && vref) {
-		/* mode 3 */
+		
 		uV = vprog * SMPS_MODE3_UV_STEP + SMPS_MODE3_UV_MIN;
 	} else if (vref) {
-		/* mode 2 */
+		
 		uV = vprog * SMPS_MODE2_UV_STEP + SMPS_MODE2_UV_MIN;
 	} else {
-		/* mode 1 */
+		
 		uV = vprog * SMPS_MODE1_UV_STEP + SMPS_MODE1_UV_MIN;
 	}
 
@@ -1050,7 +1126,7 @@ static int _pm8xxx_ftsmps_get_voltage(struct pm8xxx_vreg *vreg)
 		vprog = vreg->pfm_ctrl_reg & FTSMPS_VCTRL_VPROG_MASK;
 		band = vreg->pfm_ctrl_reg & FTSMPS_VCTRL_BAND_MASK;
 		if (band == FTSMPS_VCTRL_BAND_OFF && vprog == 0) {
-			/* PWM_VCTRL overrides PFM_VCTRL */
+			
 			vprog = vreg->ctrl_reg & FTSMPS_VCTRL_VPROG_MASK;
 			band = vreg->ctrl_reg & FTSMPS_VCTRL_BAND_MASK;
 		}
@@ -1112,14 +1188,14 @@ static int pm8xxx_vreg_get_mode(struct pm8xxx_vreg *vreg)
 
 	case REGULATOR_TYPE_NLDO1200:
 		if (NLDO1200_IN_ADVANCED_MODE(vreg)) {
-			/* Advanced mode */
+			
 			if ((vreg->test_reg[2] & NLDO1200_ADVANCED_PM_MASK)
 			    == NLDO1200_ADVANCED_PM_LPM)
 				mode = MODE_NLDO1200_LPM;
 			else
 				mode = MODE_NLDO1200_HPM;
 		} else {
-			/* Legacy mode */
+			
 			if ((vreg->ctrl_reg & NLDO1200_LEGACY_PM_MASK)
 			    == NLDO1200_LEGACY_PM_LPM)
 				mode = MODE_NLDO1200_LPM;
@@ -1174,12 +1250,12 @@ static int pm8xxx_init_ldo(struct pm8xxx_vreg *vreg, bool is_real)
 	int i;
 	u8 bank;
 
-	/* Save the current control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->ctrl_addr, &vreg->ctrl_reg);
 	if (rc)
 		goto bail;
 
-	/* Save the current test register state. */
+	
 	for (i = 0; i < LDO_TEST_BANKS; i++) {
 		bank = REGULATOR_BANK_SEL(i);
 		rc = pm8xxx_writeb(gdebugdev->parent, vreg->test_addr, bank);
@@ -1206,12 +1282,12 @@ static int pm8xxx_init_nldo1200(struct pm8xxx_vreg *vreg)
 	int i;
 	u8 bank;
 
-	/* Save the current control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->ctrl_addr, &vreg->ctrl_reg);
 	if (rc)
 		goto bail;
 
-	/* Save the current test register state. */
+	
 	for (i = 0; i < LDO_TEST_BANKS; i++) {
 		bank = REGULATOR_BANK_SEL(i);
 		rc = pm8xxx_writeb(gdebugdev->parent, vreg->test_addr, bank);
@@ -1237,12 +1313,12 @@ static int pm8xxx_init_smps(struct pm8xxx_vreg *vreg, bool is_real)
 	int i;
 	u8 bank;
 
-	/* Save the current control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->ctrl_addr, &vreg->ctrl_reg);
 	if (rc)
 		goto bail;
 
-	/* Save the current test2 register state. */
+	
 	for (i = 0; i < SMPS_TEST_BANKS; i++) {
 		bank = REGULATOR_BANK_SEL(i);
 		rc = pm8xxx_writeb(gdebugdev->parent, vreg->test_addr, bank);
@@ -1256,13 +1332,13 @@ static int pm8xxx_init_smps(struct pm8xxx_vreg *vreg, bool is_real)
 		vreg->test_reg[i] |= REGULATOR_BANK_WRITE;
 	}
 
-	/* Save the current clock control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->clk_ctrl_addr,
 			  &vreg->clk_ctrl_reg);
 	if (rc)
 		goto bail;
 
-	/* Save the current sleep control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->sleep_ctrl_addr,
 			  &vreg->sleep_ctrl_reg);
 	if (rc)
@@ -1280,12 +1356,12 @@ static int pm8xxx_init_ftsmps(struct pm8xxx_vreg *vreg)
 	int rc, i;
 	u8 bank;
 
-	/* Save the current control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->ctrl_addr, &vreg->ctrl_reg);
 	if (rc)
 		goto bail;
 
-	/* Store current regulator register values. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->pfm_ctrl_addr,
 			  &vreg->pfm_ctrl_reg);
 	if (rc)
@@ -1296,7 +1372,7 @@ static int pm8xxx_init_ftsmps(struct pm8xxx_vreg *vreg)
 	if (rc)
 		goto bail;
 
-	/* Save the current fts_cnfg1 register state (uses 'test' member). */
+	
 	for (i = 0; i < SMPS_TEST_BANKS; i++) {
 		bank = REGULATOR_BANK_SEL(i);
 		rc = pm8xxx_writeb(gdebugdev->parent, vreg->test_addr, bank);
@@ -1321,7 +1397,7 @@ static int pm8xxx_init_vs(struct pm8xxx_vreg *vreg, bool is_real)
 {
 	int rc = 0;
 
-	/* Save the current control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->ctrl_addr, &vreg->ctrl_reg);
 	if (rc) {
 		vreg_err(vreg, "pm8xxx_readb failed, rc=%d\n", rc);
@@ -1335,7 +1411,7 @@ static int pm8xxx_init_vs300(struct pm8xxx_vreg *vreg)
 {
 	int rc;
 
-	/* Save the current control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->ctrl_addr, &vreg->ctrl_reg);
 	if (rc) {
 		vreg_err(vreg, "pm8xxx_readb failed, rc=%d\n", rc);
@@ -1349,7 +1425,7 @@ static int pm8xxx_init_ncp(struct pm8xxx_vreg *vreg)
 {
 	int rc;
 
-	/* Save the current control register state. */
+	
 	rc = pm8xxx_readb(gdebugdev->parent, vreg->ctrl_addr, &vreg->ctrl_reg);
 	if (rc) {
 		vreg_err(vreg, "pm8xxx_readb failed, rc=%d\n", rc);
@@ -1389,6 +1465,102 @@ static int pm8xxx_init_vreg(struct pm8xxx_vreg *vreg)
 	}
 	return rc;
 }
+
+#define PMIC_REG_BUF_SIZE   128
+int pmic8921_regs_dump(int id, struct seq_file *m, char *pmic_reg_buffer, int curr_len)
+{
+	u8 rc, val;
+	u8 bank;
+	int i, j;
+	char pmic_reg_buf[PMIC_REG_BUF_SIZE];
+
+	i = id;
+	memset(pmic_reg_buf, 0, PMIC_REG_BUF_SIZE);
+
+	if (pm8921_regs[i].multi_bank > 0)
+	{
+		for (j = 0, bank = 0; j < pm8921_regs[i].multi_bank; j++)
+		{
+			bank = REGULATOR_BANK_SEL(j);
+			rc = pm8xxx_writeb(gdebugdev->parent, pm8921_regs[i].addr, bank);
+			if(rc) {
+				if (m)
+					seq_printf(m, "[%03d] Register write fail on 0x%03X\n", i, pm8921_regs[i].addr);
+				else
+					pr_info("[%03d] Register write fail on 0x%03X\n", i, pm8921_regs[i].addr);
+
+				if (pmic_reg_buffer)
+				{
+					sprintf(pmic_reg_buf, "[%03d] Register write fail on 0x%03X\n", i, pm8921_regs[i].addr);
+					pmic_reg_buf[PMIC_REG_BUF_SIZE - 1] = '\0';
+					curr_len += sprintf(pmic_reg_buffer + curr_len, pmic_reg_buf);
+				}
+			}
+
+			rc = pm8xxx_readb(gdebugdev->parent, pm8921_regs[i].addr, &val);
+			if(rc) {
+				if (m)
+					seq_printf(m, "[%03d] Register read fail on 0x%03X\n", i, pm8921_regs[i].addr);
+				else
+					pr_info("[%03d] Register read fail on 0x%03X\n", i, pm8921_regs[i].addr);
+
+				if (pmic_reg_buffer)
+				{
+					sprintf(pmic_reg_buf, "[%03d] Register read fail on 0x%03X\n", i, pm8921_regs[i].addr);
+					pmic_reg_buf[PMIC_REG_BUF_SIZE - 1] = '\0';
+					curr_len += sprintf(pmic_reg_buffer + curr_len, pmic_reg_buf);
+				}
+			}
+			else
+			{
+				if (m)
+					seq_printf(m, "[%03d] Register 0x%03X (Bank 0x%X) = 0x%02X\n", i, pm8921_regs[i].addr, j, val);
+				else
+					pr_info("[%03d] Register 0x%03X (Bank 0x%X) = 0x%02X\n", i, pm8921_regs[i].addr, j, val);
+
+				if (pmic_reg_buffer)
+				{
+					sprintf(pmic_reg_buf, "[%03d] Register 0x%03X (Bank 0x%X) = 0x%02X\n", i, pm8921_regs[i].addr, j, val);
+					pmic_reg_buf[PMIC_REG_BUF_SIZE - 1] = '\0';
+					curr_len += sprintf(pmic_reg_buffer + curr_len, pmic_reg_buf);
+				}
+			}
+		}
+	}
+	else{
+		rc = pm8xxx_readb(gdebugdev->parent, pm8921_regs[i].addr, &val);
+		if(rc) {
+			if (m)
+				seq_printf(m, "[%03d] Register read fail on 0x%03X\n", i, pm8921_regs[i].addr);
+			else
+				pr_info("[%03d] Register read fail on 0x%03X\n", i, pm8921_regs[i].addr);
+
+			if (pmic_reg_buffer)
+			{
+				sprintf(pmic_reg_buf, "[%03d] Register read fail on 0x%03X\n", i, pm8921_regs[i].addr);
+				pmic_reg_buf[PMIC_REG_BUF_SIZE - 1] = '\0';
+				curr_len += sprintf(pmic_reg_buffer + curr_len, pmic_reg_buf);
+			}
+		}
+		else
+		{
+			if (m)
+				seq_printf(m, "[%03d] Register 0x%03X = 0x%02X\n", i, pm8921_regs[i].addr, val);
+			else
+				pr_info("[%03d] Register 0x%03X = 0x%02X\n", i, pm8921_regs[i].addr, val);
+
+			if (pmic_reg_buffer)
+			{
+				sprintf(pmic_reg_buf, "[%03d] Register 0x%03X = 0x%02X\n", i, pm8921_regs[i].addr, val);
+				pmic_reg_buf[PMIC_REG_BUF_SIZE - 1] = '\0';
+				curr_len += sprintf(pmic_reg_buffer + curr_len, pmic_reg_buf);
+			}
+		}
+	}
+
+	return curr_len;
+} 
+
 
 int pm8xxx_vreg_dump(int id, struct seq_file *m, char *vreg_buffer, int curr_len)
 {
@@ -1518,6 +1690,7 @@ int pmic_vreg_dump(char *vreg_buffer, int curr_len)
 
 	return curr_len;
 }
+
 static int list_vregs_show(struct seq_file *m, void *unused)
 {
 	int i;
@@ -1531,6 +1704,39 @@ static int list_vregs_show(struct seq_file *m, void *unused)
 
 	return 0;
 }
+
+int pmic_suspend_reg_dump(char *pmic_reg_buffer, int curr_len)
+{
+	int i;
+	char *title_msg = "------------ PMIC REGS -------------\n";
+
+	if (pmic_reg_buffer)
+		curr_len += sprintf(pmic_reg_buffer + curr_len,
+			"%s\n", title_msg);
+
+	pr_info("%s", title_msg);
+
+	for (i = 0; pm8921_regs[i].multi_bank >= 0; i++) {
+		curr_len = pmic8921_regs_dump(i, NULL, pmic_reg_buffer, curr_len);
+	}
+
+	return curr_len;
+}
+
+static int list_pmic_regs_show(struct seq_file *m, void *unused)
+{
+	int i;
+	char *title_msg = "------------ PMIC REGS -------------\n";
+
+	if (m)
+		seq_printf(m, title_msg);
+
+	for (i = 0; pm8921_regs[i].multi_bank >= 0; i++) {
+		pmic8921_regs_dump(i, m, NULL, 0);
+	}
+
+	return 0;
+} 
 
 extern int print_vreg_buffer(struct seq_file *m);
 extern int free_vreg_buffer(void);
@@ -1557,6 +1763,31 @@ static int list_sleep_vregs_release(struct inode *inode, struct file *file)
 	return single_release(inode, file);
 }
 
+extern int print_pmic_reg_buffer(struct seq_file *m);
+extern int free_pmic_reg_buffer(void);
+
+static int list_sleep_pmic_regs_show(struct seq_file *m, void *unused)
+{
+	print_pmic_reg_buffer(m);
+	return 0;
+}
+
+static int list_pmic_regs_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, list_pmic_regs_show, inode->i_private);
+}
+
+static int list_sleep_pmic_regs_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, list_sleep_pmic_regs_show, inode->i_private);
+}
+
+static int list_sleep_pmic_regs_release(struct inode *inode, struct file *file)
+{
+	free_pmic_reg_buffer();
+	return single_release(inode, file);
+}
+
 static const struct file_operations list_vregs_fops = {
 	.open		= list_vregs_open,
 	.read		= seq_read,
@@ -1569,6 +1800,20 @@ static const struct file_operations list_sleep_vregs_fops = {
 	.read		= seq_read,
 	.llseek		= seq_lseek,
 	.release	= list_sleep_vregs_release,
+};
+
+static const struct file_operations list_pmic_regs_fops = {
+	.open		= list_pmic_regs_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= seq_release,
+};
+
+static const struct file_operations list_sleep_pmic_regs_fops = {
+	.open		= list_sleep_pmic_regs_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= list_sleep_pmic_regs_release,
 };
 
 int pm8xxx_vreg_status_init(struct pm8xxx_debug_device *dev)
@@ -1586,6 +1831,16 @@ int pm8xxx_vreg_status_init(struct pm8xxx_debug_device *dev)
 	if (!debugfs_create_file("list_sleep_vregs", S_IRUGO, debugfs_base,
 				pm8xxx_current_table->reg_list, &list_sleep_vregs_fops))
 		return -ENOMEM;
+
+	
+	if (!debugfs_create_file("list_pmic_regs", S_IRUGO, debugfs_base,
+				pm8xxx_current_table->reg_list, &list_pmic_regs_fops))
+		return -ENOMEM;
+
+	if (!debugfs_create_file("list_sleep_pmic_regs", S_IRUGO, debugfs_base,
+				pm8xxx_current_table->reg_list, &list_sleep_pmic_regs_fops))
+		return -ENOMEM;
+	
 
 	gdebugdev = dev;
 	return err;

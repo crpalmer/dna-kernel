@@ -16,7 +16,7 @@
 enum {
 	VOICE_SESSION_INDEX,
 	VOLTE_SESSION_INDEX,
-	SGLTE_SESSION_INDEX,
+	VOICE2_SESSION_INDEX,
 	VOICE_SESSION_INDEX_MAX,
 };
 
@@ -35,4 +35,4 @@ struct msm_voice {
 	int capture_start;
 };
 
-#endif /*_MSM_PCM_VOICE_H*/
+#endif 

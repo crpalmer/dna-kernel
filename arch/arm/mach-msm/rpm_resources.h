@@ -43,6 +43,8 @@ enum {
 enum {
 	MSM_RPMRS_MASK_RPM_CTL_CPU_HALT = 1,
 	MSM_RPMRS_MASK_RPM_CTL_MULTI_TIER = 2,
+	MSM_RPMRS_MASK_RPM_CTL_SINGLE_USE_SLEEP_SETS  = 4,
+	MSM_RPMRS_MASK_RPM_CTL_VDDCX_SCALING = 8,
 };
 
 enum {
@@ -210,6 +212,6 @@ static inline int msm_rpmrs_levels_init(struct msm_rpmrs_platform_data *data)
 	return -ENODEV;
 }
 
-#endif /* CONFIG_MSM_RPM */
+#endif 
 
-#endif /* __ARCH_ARM_MACH_MSM_RPM_RESOURCES_H */
+#endif 

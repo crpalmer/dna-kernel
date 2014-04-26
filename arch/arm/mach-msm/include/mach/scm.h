@@ -46,6 +46,10 @@
 #define ITEM_READ_MEM			0x28
 #define ITEM_CPRMKEY_ADDR		0x31
 #define ITEM_CPRMKEY_DATA		0x32
+#define ITEM_SD_KEY_ENCRYPT		0x33
+#define ITEM_SD_KEY_DECRYPT		0x34
+#define ITEM_SEC_ATS			0x39
+#define ITEM_REMOTE_MSG			0x3A
 
 typedef struct {
 	u8 enable;

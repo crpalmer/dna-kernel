@@ -18,7 +18,7 @@
 struct pcm_afe_info {
 	unsigned long dma_addr;
 	struct snd_pcm_substream *substream;
-	unsigned int pcm_irq_pos;       /* IRQ position */
+	unsigned int pcm_irq_pos;       
 	struct mutex lock;
 	spinlock_t dsp_lock;
 	uint32_t samp_rate;
@@ -43,4 +43,4 @@ struct pcm_afe_info {
 	.private_value = addr, \
 	}
 
-#endif /*_MSM_PCM_AFE_H*/
+#endif 

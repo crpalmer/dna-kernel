@@ -52,7 +52,8 @@ static void deferred_restart(struct work_struct *dummy)
 		pr_info("keyreset::%s combination key can't support modem & wcnss restart at the same time because shared SMSM_RESET !!!\n", __func__);
 	} else if (kernel_flag & KERNEL_FLAG_ENABLE_SSR_MODEM) {
 		pr_info("keyreset::%s to trigger modem restart\n", __func__);
-		smsm_change_state_ssr(SMSM_APPS_STATE, 0, SMSM_RESET, KERNEL_FLAG_ENABLE_SSR_MODEM);
+		smsm_change_state_ssr(SMSM_APPS_STATE, SMSM_APPS_SEND_MODEM_FATAL, 0, KERNEL_FLAG_ENABLE_SSR_MODEM);
+		smsm_change_state_ssr(SMSM_APPS_STATE, 0, SMSM_APPS_SEND_MODEM_FATAL, KERNEL_FLAG_ENABLE_SSR_MODEM);
 	} else if (kernel_flag & KERNEL_FLAG_ENABLE_SSR_WCNSS) {
 		pr_info("keyreset::%s to trigger wcnss restart\n", __func__);
 		smsm_change_state_ssr(SMSM_APPS_STATE, 0, SMSM_RESET, KERNEL_FLAG_ENABLE_SSR_WCNSS);
@@ -106,7 +107,7 @@ static void keyreset_event_ssr(struct input_handle *handle, unsigned int type,
 	if (value && !state->restart_disabled &&
 	    state->key_down == state->key_down_target) {
 
-#if 0 /* FIXME */
+#if 0 
 		if (state->reset_fn) {
 			restart_requested = state->reset_fn();
 		} else {
@@ -166,7 +167,7 @@ static void keyreset_event(struct input_handle *handle, unsigned int type,
 		state->restart_disabled = 1;
 		if (restart_requested) {
 			msm_watchdog_suspend(NULL);
-			/* show blocked processes to debug hang problems */
+			
 			printk(KERN_INFO "\n### Show Blocked State ###\n");
 			show_state_filter(TASK_UNINTERRUPTIBLE);
 			msm_watchdog_resume(NULL);
@@ -182,7 +183,7 @@ static void keyreset_event(struct input_handle *handle, unsigned int type,
 			restart_requested = 1;
 			restart_timeout = jiffies + 20 * HZ;
 			msm_watchdog_suspend(NULL);
-			/* show blocked processes to debug hang problems */
+			
 			printk(KERN_INFO "\n### Show Blocked State ###\n");
 			show_state_filter(TASK_UNINTERRUPTIBLE);
 			msm_watchdog_resume(NULL);

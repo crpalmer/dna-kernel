@@ -8,13 +8,6 @@
  * published by the Free Software Foundation.
  */
 
-/*
- * Most of the functions in this file just waste time if DEBUG is not defined.
- * The matching xt_qtaguid_print.h will static inline empty funcs if the needed
- * debug flags ore not defined.
- * Those funcs that fail to allocate memory will panic as there is no need to
- * hobble allong just pretending to do the requested work.
- */
 
 #define DEBUG
 
@@ -285,7 +278,6 @@ char *pp_proc_qtu_data(struct proc_qtu_data *pqd)
 	return res;
 }
 
-/*------------------------------------------*/
 void prdebug_sock_tag_tree(int indent_level,
 			   struct rb_root *sock_tag_tree)
 {
@@ -529,8 +521,7 @@ void prdebug_iface_stat_list(int indent_level,
 	pr_debug("%*d: %s\n", indent_level*2, indent_level, str);
 }
 
-#endif  /* ifdef DDEBUG */
-/*------------------------------------------*/
+#endif  
 static const char * const netdev_event_strings[] = {
 	"netdev_unknown",
 	"NETDEV_UP",

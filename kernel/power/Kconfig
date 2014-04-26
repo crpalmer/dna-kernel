@@ -59,6 +59,12 @@ config EARLYSUSPEND
 	  Call early suspend handlers when the user requested sleep state
 	  changes.
 
+config SUSPEND_DISABLE_SPC
+	bool "Disable SPC when before entering suspend start"
+	default n
+	help
+	  Say Y to disable SPC before entering suspend start.
+
 config EARLYSUSPEND_BOOST_CPU_SPEED
 	bool "Speed up earlysuspend and lateresume procedure"
 	depends on EARLYSUSPEND && SMP

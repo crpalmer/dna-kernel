@@ -121,9 +121,9 @@
 #define MSM_PMEM_ADSP_SIZE         0x7800000
 #define MSM_PMEM_AUDIO_SIZE        0x4CF000
 #ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY
-#define MSM_PMEM_SIZE 0x8200000 /* 130 Mbytes */
+#define MSM_PMEM_SIZE 0x8200000 
 #else
-#define MSM_PMEM_SIZE 0x8200000 /* 130 Mbytes */
+#define MSM_PMEM_SIZE 0x8200000 
 #endif
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -136,9 +136,9 @@
 
 #define MSM_ION_KGSL_SIZE	0x6400000
 #define MSM_ION_SF_SIZE		(MSM_PMEM_SIZE + MSM_ION_KGSL_SIZE)
-#define MSM_ION_MM_FW_SIZE	(0x200000 - HOLE_SIZE) /* (2MB - 128KB) */
+#define MSM_ION_MM_FW_SIZE	(0x200000 - HOLE_SIZE) 
 #define MSM_ION_MM_SIZE		MSM_PMEM_ADSP_SIZE
-#define MSM_ION_QSECOM_SIZE	0x600000 /* (6MB) */
+#define MSM_ION_QSECOM_SIZE	0x600000 
 #define MSM_ION_MFC_SIZE	SZ_8K
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 #define MSM_ION_HEAP_NUM	8
@@ -306,8 +306,13 @@ static struct platform_device android_pmem_audio_device = {
 	.id = 4,
 	.dev = { .platform_data = &android_pmem_audio_pdata },
 };
-#endif /* CONFIG_MSM_MULTIMEDIA_USE_ION */
-#endif /* CONFIG_ANDROID_PMEM */
+#endif 
+#endif 
+
+static struct platform_device monarudo_cpu_usage_stats_device = {
+	.name = "monarudo_cpu_usage_stats",
+	.id = -1,
+};
 
 struct fmem_platform_data apq8064_fmem_pdata = {
 };
@@ -350,12 +355,8 @@ static struct platform_device monarudo_rtb_device = {
 #endif
 
 #ifdef CONFIG_I2C
-/*#define MSM_8960_GSBI2_QUP_I2C_BUS_ID 2*/
 #define MSM8064_GSBI2_QUP_I2C_BUS_ID 2
-/*#define MSM_8960_GSBI4_QUP_I2C_BUS_ID 4*/
 #define MSM8064_GSBI3_QUP_I2C_BUS_ID 3
-/*#define MSM_8960_GSBI12_QUP_I2C_BUS_ID 12*/
-/*#define MSM_8960_GSBI5_QUP_I2C_BUS_ID 5*/
 
 #endif
 
@@ -367,8 +368,8 @@ static void __init size_pmem_devices(void)
 	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_pdata.size = pmem_size;
 	android_pmem_audio_pdata.size = MSM_PMEM_AUDIO_SIZE;
-#endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
-#endif /*CONFIG_ANDROID_PMEM*/
+#endif 
+#endif 
 }
 
 #ifdef CONFIG_ANDROID_PMEM
@@ -377,8 +378,8 @@ static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 {
 	apq8064_reserve_table[p->memory_type].size += p->size;
 }
-#endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
-#endif /*CONFIG_ANDROID_PMEM*/
+#endif 
+#endif 
 
 static void __init reserve_pmem_memory(void)
 {
@@ -387,9 +388,9 @@ static void __init reserve_pmem_memory(void)
 	reserve_memory_for(&android_pmem_adsp_pdata);
 	reserve_memory_for(&android_pmem_pdata);
 	reserve_memory_for(&android_pmem_audio_pdata);
-#endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
+#endif 
 	apq8064_reserve_table[MEMTYPE_EBI1].size += pmem_kernel_ebi1_size;
-#endif /*CONFIG_ANDROID_PMEM*/
+#endif 
 }
 
 static int monarudo_paddr_to_memtype(unsigned int paddr)
@@ -431,17 +432,6 @@ static struct ion_co_heap_pdata fw_co_monarudo_ion_pdata = {
 };
 #endif
 
-/**
- * These heaps are listed in the order they will be allocated. Due to
- * video hardware restrictions and content protection the FW heap has to
- * be allocated adjacent (below) the MM heap and the MFC heap has to be
- * allocated after the MM heap to ensure MFC heap is not more than 256MB
- * away from the base address of the FW heap.
- * However, the order of FW heap and MM heap doesn't matter since these
- * two heaps are taken care of by separate code to ensure they are adjacent
- * to each other.
- * Don't swap the order unless you know what you are doing!
- */
 static struct ion_platform_data ion_pdata = {
 	.nr = MSM_ION_HEAP_NUM,
 	.heaps = {
@@ -545,18 +535,6 @@ static void __init apq8064_reserve_fixed_area(unsigned long fixed_area_size)
 #endif
 }
 
-/**
- * Reserve memory for ION and calculate amount of reusable memory for fmem.
- * We only reserve memory for heaps that are not reusable. However, we only
- * support one reusable heap at the moment so we ignore the reusable flag for
- * other than the first heap with reusable flag set. Also handle special case
- * for video heaps (MM,FW, and MFC). Video requires heaps MM and MFC to be
- * at a higher address than FW in addition to not more than 256MB away from the
- * base address of the firmware. This means that if MM is reusable the other
- * two heaps must be allocated in the same region as FW. This is handled by the
- * mem_is_fmem flag in the platform data. In addition the MM heap must be
- * adjacent to the FW heap for content protection purposes.
- */
 static void __init reserve_ion_memory(void)
 {
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
@@ -574,9 +552,6 @@ static void __init reserve_ion_memory(void)
 	fixed_middle_size = 0;
 	fixed_high_size = 0;
 
-	/* We only support 1 reusable heap. Check if more than one heap
-	 * is specified as reusable and set as non-reusable if found.
-	 */
 	for (i = 0; i < ion_pdata.nr; ++i) {
 		const struct ion_platform_heap *heap =
 			&(ion_pdata.heaps[i]);
@@ -646,9 +621,6 @@ static void __init reserve_ion_memory(void)
 		apq8064_fmem_pdata.reserved_size_high = fixed_high_size;
 	}
 
-	/* Since the fixed area may be carved out of lowmem,
-	 * make sure the length is a multiple of 1M.
-	 */
 	fixed_size = (fixed_size + HOLE_SIZE + SECTION_SIZE - 1)
 		& SECTION_MASK;
 	apq8064_reserve_fixed_area(fixed_size);
@@ -762,7 +734,7 @@ static struct platform_device mdm_8064_device = {
 static struct msm_serial_hs_platform_data msm_uart_dm6_pdata = {
 	.inject_rx_on_wakeup = 0,
 
-	/* for bcm BT */
+	
 	.bt_wakeup_pin = PM8921_GPIO_PM_TO_SYS(BT_WAKE_XC),
 	.host_wakeup_pin = PM8921_GPIO_PM_TO_SYS(BT_HOST_WAKE_XC),
 };
@@ -809,7 +781,7 @@ static void __init locate_unstable_memory(void)
 	low = meminfo.bank[0].start;
 	high = mb->start + mb->size;
 
-	/* Check if 32 bit overflow occured */
+	
 	if (high < mb->start)
 		high = -PAGE_SIZE;
 
@@ -840,9 +812,9 @@ static unsigned int mem_size_mb;
 
 static void __init monarudo_reserve(void)
 {
-//	if (mem_size_mb == 64)
-//		return;
-	//apq8064_set_display_params(prim_panel_name, ext_panel_name);
+	if (mem_size_mb == 64)
+		return;
+	
 	msm_reserve();
 	if (apq8064_fmem_pdata.size) {
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
@@ -890,15 +862,21 @@ static int pm8921_is_wireless_charger(void)
 		return 0;
 }
 
+#ifdef CONFIG_HTC_PNPMGR
+extern int pnpmgr_battery_charging_enabled(int charging_enabled);
+#endif 
+static int critical_alarm_voltage_mv[] = {3000, 3200, 3400};
+
 static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.guage_driver = 0,
 	.chg_limit_active_mask = HTC_BATT_CHG_LIMIT_BIT_TALK |
 								HTC_BATT_CHG_LIMIT_BIT_NAVI,
 	.critical_low_voltage_mv = 3100,
-	.critical_alarm_voltage_mv = 3000,
+	.critical_alarm_vol_ptr = critical_alarm_voltage_mv,
+	.critical_alarm_vol_cols = sizeof(critical_alarm_voltage_mv) / sizeof(int),
 	.overload_vol_thr_mv = 4000,
 	.overload_curr_thr_ma = 0,
-	/* charger */
+	
 	.icharger.name = "pm8921",
 	.icharger.get_charging_source = pm8921_get_charging_source,
 	.icharger.get_charging_enabled = pm8921_get_charging_enabled,
@@ -910,11 +888,15 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.icharger.is_ovp = pm8921_is_charger_ovp,
 	.icharger.is_batt_temp_fault_disable_chg =
 						pm8921_is_batt_temp_fault_disable_chg,
+	.icharger.is_under_rating = pm8921_is_pwrsrc_under_rating,
 	.icharger.charger_change_notifier_register =
 						cable_detect_register_notifier,
 	.icharger.dump_all = pm8921_dump_all,
 	.icharger.get_attr_text = pm8921_charger_get_attr_text,
-	/* gauge */
+	.icharger.max_input_current =pm8921_set_hsml_target_ma,
+	.icharger.is_safty_timer_timeout = pm8921_is_chg_safety_timer_timeout,
+	.icharger.is_battery_full_eoc_stop = pm8921_is_batt_full_eoc_stop,
+	
 	.igauge.name = "pm8921",
 	.igauge.get_battery_voltage = pm8921_get_batt_voltage,
 	.igauge.get_battery_current = pm8921_bms_get_batt_current,
@@ -930,6 +912,10 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.igauge.enable_lower_voltage_alarm = pm8xxx_batt_lower_alarm_enable,
 	.igauge.set_lower_voltage_alarm_threshold =
 						pm8xxx_batt_lower_alarm_threshold_set,
+	
+#ifdef CONFIG_HTC_PNPMGR
+	.notify_pnpmgr_charging_enabled = pnpmgr_battery_charging_enabled,
+#endif 
 };
 static struct platform_device htc_battery_pdev = {
 	.name = "htc_battery",
@@ -940,25 +926,25 @@ static struct platform_device htc_battery_pdev = {
 };
 
 static struct pm8921_charger_batt_param chg_batt_params[] = {
-	/* for normal type battery */
+	
 	[0] = {
 		.max_voltage = 4200,
 		.cool_bat_voltage = 4200,
 		.warm_bat_voltage = 4000,
 	},
-	/* for HV type battery */
+	
 	[1] = {
 		.max_voltage = 4340,
 		.cool_bat_voltage = 4340,
 		.warm_bat_voltage = 4000,
 	},
-	/* for another HV type battery */
+	
 	[2] = {
 		.max_voltage = 4300,
 		.cool_bat_voltage = 4300,
 		.warm_bat_voltage = 4000,
 	},
-	/* for HV type battery for SMB charger IC */
+	
 	[3] = {
 		.max_voltage = 4350,
 		.cool_bat_voltage = 4350,
@@ -981,7 +967,7 @@ static struct single_row_lut fcc_sf_id_1 = {
 static struct sf_lut pc_sf_id_1 = {
 	.rows		= 1,
 	.cols		= 1,
-	/* row_entries are cycle */
+	
 	.row_entries		= {0},
 	.percent	= {100},
 	.sf		= {
@@ -992,7 +978,7 @@ static struct sf_lut pc_sf_id_1 = {
 static struct sf_lut rbatt_sf_id_1 = {
 	.rows		= 19,
         .cols           = 7,
-	/* row_entries are temperature */
+	
         .row_entries            = {-20,-10, 0, 10, 20, 30, 40},
         .percent        = {100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10},
         .sf                     = {
@@ -1083,7 +1069,7 @@ static struct single_row_lut fcc_sf_id_2 = {
 static struct sf_lut pc_sf_id_2 = {
 	.rows		= 1,
 	.cols		= 1,
-        /* row_entries are cycles */
+        
 	.row_entries	= {0},
 	.percent	= {100},
 	.sf			= {
@@ -1094,7 +1080,7 @@ static struct sf_lut pc_sf_id_2 = {
 static struct sf_lut rbatt_sf_id_2 = {
 	.rows		= 19,
         .cols           = 7,
-	/* row_entries are temperature */
+	
         .row_entries            = {-20,-10, 0, 10, 20, 30, 40},
         .percent        = {100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10},
         .sf                     = {
@@ -1165,16 +1151,16 @@ struct pm8921_bms_battery_data  bms_battery_data_id_2 = {
 	.pc_temp_ocv_lut	= &pc_temp_ocv_id_2,
 	.pc_sf_lut		= &pc_sf_id_2,
 	.rbatt_sf_lut		= &rbatt_sf_id_2,
-	.default_rbatt_mohm	= 250,
+	.default_rbatt_mohm	= 180,
 	.delta_rbatt_mohm	= 0,
 };
 
 static struct htc_battery_cell htc_battery_cells[] = {
 	[0] = {
 		.model_name = "BJ83100",
-		.capacity = 2000,
+		.capacity = 2020,
 		.id = 1,
-		.id_raw_min = 50, /* unit:mV (10kohm) */
+		.id_raw_min = 50, 
 		.id_raw_max = 200,
 		.type = HTC_BATTERY_CELL_TYPE_HV,
 		.voltage_max = 4340,
@@ -1184,9 +1170,9 @@ static struct htc_battery_cell htc_battery_cells[] = {
 	},
 	[1] = {
 		.model_name = "BJ83100",
-		.capacity = 2000,
+		.capacity = 2020,
 		.id = 2,
-		.id_raw_min = 201, /* unit:mV (22kohm) */
+		.id_raw_min = 201, 
 		.id_raw_max = 330,
 		.type = HTC_BATTERY_CELL_TYPE_HV,
 		.voltage_max = 4300,
@@ -1196,7 +1182,7 @@ static struct htc_battery_cell htc_battery_cells[] = {
 	},
 	[2] = {
 		.model_name = "UNKNOWN",
-		.capacity = 2000,
+		.capacity = 2020,
 		.id = 255,
 		.id_raw_min = INT_MIN,
 		.id_raw_max = INT_MAX,
@@ -1207,7 +1193,7 @@ static struct htc_battery_cell htc_battery_cells[] = {
 		.gauge_param = NULL,
 	},
 };
-#endif /* CONFIG_HTC_BATT_8960 */
+#endif 
 
 #ifdef CONFIG_FB_MSM_HDMI_MHL
 static struct pm8xxx_gpio_init switch_to_usb_pmic_gpio_table[] = {
@@ -1264,7 +1250,7 @@ static void monarudo_usb_dpdn_switch(int path)
 	case PATH_MHL:
 	{
 		int i;
-		int polarity = 1; /* high = mhl */
+		int polarity = 1; 
 		int mhl = (path == PATH_MHL);
 		if (aud_in == 1) {
 			gpio_tlmm_config(GPIO_CFG(UART_TX, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
@@ -1486,7 +1472,6 @@ static struct i2c_board_info msm_i2c_mhl_sii9234_info[] =
 #endif
 
 #ifdef CONFIG_USB_EHCI_MSM_HSIC
-/* Bandwidth requests (zero) if no vote placed */
 static struct msm_bus_vectors hsic_init_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
@@ -1502,19 +1487,18 @@ static struct msm_bus_vectors hsic_init_vectors[] = {
        },
 };
 
-/* Bus bandwidth requests in Bytes/sec */
 static struct msm_bus_vectors hsic_max_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
                .dst = MSM_BUS_SLAVE_EBI_CH0,
-               .ab = 60000000,         /* At least 480Mbps on bus. */
-               .ib = 960000000,        /* MAX bursts rate */
+               .ab = 60000000,         
+               .ib = 960000000,        
        },
        {
                .src = MSM_BUS_MASTER_SPS,
                .dst = MSM_BUS_SLAVE_SPS,
                .ab = 0,
-               .ib = 512000000, /*vote for 64Mhz dfab clk rate*/
+               .ib = 512000000, 
        },
 };
 
@@ -1578,11 +1562,11 @@ static int usb_diag_update_pid_and_serial_num(uint32_t pid, const char *snum)
 
 	pr_debug("%s: dload:%p pid:%x serial_num:%s\n",
 				__func__, dload, pid, snum);
-	/* update pid */
+	
 	dload->magic_struct.pid = PID_MAGIC_ID;
 	dload->pid = pid;
 
-	/* update serial number */
+	
 	dload->magic_struct.serial_num = 0;
 	if (!snum) {
 		memset(dload->serial_number, 0, SERIAL_NUMBER_LENGTH);
@@ -1594,71 +1578,6 @@ static int usb_diag_update_pid_and_serial_num(uint32_t pid, const char *snum)
 out:
 	iounmap(dload);
 	return 0;
-}
-
-static int monarudo_usb_product_id_match_array[] = {
-        0x0ff8, 0x0e44, /* CDC-ECM */
-        0x0fa4, 0x0e9f, /* mtp+adb+ums+rmnet */
-        0x0fa5, 0x0ea0, /* mtp+ums+rmnet */
-        0x0f91, 0x0ebd, /* mtp+ums */
-        -1,
-};
-
-static int monarudo_usb_product_id_rndis[] = {
-	0x073c, /* Internet Sharing: rndis+mtp+adb+ums */
-	0x0742, /* IPT: rndis+mtp+adb+ums */
-	0x073d, /* Internet Sharing: rndis+mtp+ums */
-	0x0743, /* IPT: rndis+mtp+ums */
-	0x0740, /* Internet Sharing: rndis+mtp+adb+ums+diag+diag_mdm */
-	0x0746, /* IPT: rndis+mtp+adb+ums+diag+diag_mdm */
-	0x0741, /* Internet Sharing: rndis+mtp+ums+diag+diag_mdm */
-	0x0747, /* IPT: rndis+mtp+ums+diag+diag_mdm */
-};
-
-static int monarudo_usb_product_id_match(int product_id, int intrsharing)
-{
-        int *pid_array = monarudo_usb_product_id_match_array;
-        int *rndis_array = monarudo_usb_product_id_rndis;
-	int category = 0;
-
-        if (!pid_array)
-                return product_id;
-
-        /* VZW pid re-match will not apply on MFG mode */
-        if (board_mfg_mode())
-                return product_id;
-
-        while (pid_array[0] >= 0) {
-                if (product_id == pid_array[0])
-                        return pid_array[1];
-                pid_array += 2;
-        }
-
-	switch (product_id) {
-	case 0x0fb4: /* rndis+mtp+adb+ums */
-		category = 0;
-		break;
-	case 0x0fb5: /* rndis+mtp+ums*/
-		category = 1;
-		break;
-	case 0x0f8e: /* rndis+mtp+adb+ums+diag+diag_mdm */
-		category = 2;
-		break;
-	case 0x0f8f: /* rndis+mtp+ums+diag+diag_mdm */
-		category = 3;
-		break;
-	default:
-		category = -1;
-		break;
-	}
-
-	if (category != -1) {
-		if (intrsharing)
-			return rndis_array[category * 2 + 1];
-		else
-			return rndis_array[category * 2];
-	}
-        return product_id;
 }
 
 static struct android_usb_platform_data android_usb_pdata = {
@@ -1673,13 +1592,12 @@ static struct android_usb_platform_data android_usb_pdata = {
 	.functions = usb_functions_all,
 	.update_pid_and_serial_num = usb_diag_update_pid_and_serial_num,
 	.usb_id_pin_gpio = USB1_HS_ID_GPIO_XA_XB,
-	.usb_rmnet_interface = "HSIC,HSIC",
+	.usb_rmnet_interface = "HSIC:HSIC",
 	.usb_diag_interface = "diag,diag_mdm",
 	.fserial_init_string = "HSIC:modem,tty,tty:autobot,tty:serial,tty:autobot",
 	.serial_number = "000000000000",
-        .match = monarudo_usb_product_id_match,
-/*	.sfab_lock = usb_sfab_lock_control,*/
 	.nluns		= 1,
+	.vzw_unmount_cdrom = 1,
 };
 
 static struct platform_device android_usb_device = {
@@ -1690,7 +1608,6 @@ static struct platform_device android_usb_device = {
 	},
 };
 
-/* Bandwidth requests (zero) if no vote placed */
 static struct msm_bus_vectors usb_init_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
@@ -1700,13 +1617,12 @@ static struct msm_bus_vectors usb_init_vectors[] = {
        },
 };
 
-/* Bus bandwidth requests in Bytes/sec */
 static struct msm_bus_vectors usb_max_vectors[] = {
        {
                .src = MSM_BUS_MASTER_SPS,
                .dst = MSM_BUS_SLAVE_EBI_CH0,
-               .ab = 60000000,         /* At least 480Mbps on bus. */
-               .ib = 960000000,        /* MAX bursts rate */
+               .ab = 60000000,         
+               .ib = 960000000,        
        },
 };
 
@@ -1728,8 +1644,8 @@ static struct msm_bus_scale_pdata usb_bus_scale_pdata = {
 };
 
 static int phy_init_seq[] = {
-       0x5a, 0x81, /* update DC voltage level */
-       0x24, 0x82, /* set pre-emphasis and rise/fall time */
+       0x5a, 0x81, 
+       0x24, 0x82, 
        -1
 };
 
@@ -1756,7 +1672,6 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.mode			= USB_OTG,
 	.otg_control		= OTG_PMIC_CONTROL,
 	.phy_type		= SNPS_28NM_INTEGRATED_PHY,
-/*	.pmic_id_irq		= PM8921_USB_ID_IN_IRQ(PM8921_IRQ_BASE),*/
 	.vbus_power		= msm_hsusb_vbus_power,
 	.power_budget		= 500,
 	.bus_scale_table        = &usb_bus_scale_pdata,
@@ -1804,7 +1719,7 @@ static void monarudo_config_usb_id_gpios(bool output)
 {
 	int rc;
 	if (system_rev == XA || system_rev == XB) {
-		/* system_rev: XA/XB */
+		
 		if (output) {
 			gpio_tlmm_config(usb_ID_PIN_ouput_table_xa_xb[0], GPIO_CFG_ENABLE);
 			gpio_set_value(USB1_HS_ID_GPIO_XA_XB, 1);
@@ -1814,7 +1729,7 @@ static void monarudo_config_usb_id_gpios(bool output)
 			pr_info("[CABLE] %s: %d input none pull\n",  __func__, USB1_HS_ID_GPIO_XA_XB);
 		}
 	} else {
-		/* system_rev: XC or other.. */
+		
 		rc = pm8xxx_gpio_config(usb_id_pmic_gpio_xc[0].gpio, &usb_id_pmic_gpio_xc[0].config);
 		if (rc)
 			pr_info("[USB BOARD] %s: Config ERROR: GPIO=%u, rc=%d\n",
@@ -1855,7 +1770,7 @@ static struct platform_device cable_detect_device = {
 void monarudo_cable_detect_register(void)
 {
 	int rc;
-	if (system_rev == XA || system_rev == XB) {/* system_rev: XA/XB */
+	if (system_rev == XA || system_rev == XB) {
 		cable_detect_pdata.usb_id_pin_gpio = USB1_HS_ID_GPIO_XA_XB;
 		cable_detect_pdata.mhl_reset_gpio = MHL_RSTz_XA;
 	} else {
@@ -1867,6 +1782,8 @@ void monarudo_cable_detect_register(void)
 		cable_detect_pdata.usb_id_pin_gpio = PM8921_GPIO_PM_TO_SYS(USB1_HS_ID_GPIO_XC);
 		cable_detect_pdata.mhl_reset_gpio = PM8921_GPIO_PM_TO_SYS(MHL_RSTz_XC_XD);
 	}
+	if (board_mfg_mode() == 4)
+		cable_detect_pdata.usb_id_pin_gpio = 0;
 
 	platform_device_register(&cable_detect_device);
 }
@@ -1875,6 +1792,7 @@ void monarudo_pm8xxx_adc_device_register(void)
 {
 	pr_info("%s: Register PM8XXX ADC device. rev: %d\n",
 		__func__, system_rev);
+	monarudo_cable_detect_register();
 }
 
 void monarudo_add_usb_devices(void)
@@ -1884,18 +1802,18 @@ void monarudo_add_usb_devices(void)
 	android_usb_pdata.products[0].product_id =
 			android_usb_pdata.product_id;
 
-	/* diag bit set */
+	
 	if (get_radio_flag() & RADIO_FLAG_RESERVE_17)
 		android_usb_pdata.diag_init = 1;
 
-	/* add cdrom support in normal mode */
+	
 	if (board_mfg_mode() == 0) {
 		android_usb_pdata.nluns = 2;
 		android_usb_pdata.cdrom_lun = 0x3;
 	}
 	android_usb_pdata.serial_number = board_serialno();
 
-	if (system_rev == XA || system_rev == XB) /* system_rev: XA/XB */
+	if (system_rev == XA || system_rev == XB) 
 		android_usb_pdata.usb_id_pin_gpio = USB1_HS_ID_GPIO_XA_XB;
 	else
 		android_usb_pdata.usb_id_pin_gpio = PM8921_GPIO_PM_TO_SYS(USB1_HS_ID_GPIO_XC);
@@ -1946,7 +1864,7 @@ static void headset_init(void)
 				pr_info("[HS_BOARD] %s: Config ERROR: GPIO=%u, rc=%d\n",
 					__func__, headset_pmic_gpio_xa[0].gpio, rc);
 		}
-	} else { /* XC and after */
+	} else { 
 		gpio_tlmm_config(headset_cpu_gpio_xc[2], GPIO_CFG_ENABLE);
 		for( i = 0; i < ARRAY_SIZE(headset_pmic_gpio_xc); i++) {
 
@@ -1994,7 +1912,6 @@ static void uart_lv_shift_en(int enable)
 	gpio_set_value_cansleep(PM8921_GPIO_PM_TO_SYS(AUD_UART_OEz_XC), enable);
 }
 
-/* HTC_HEADSET_PMIC Driver */
 static struct htc_headset_pmic_platform_data htc_headset_pmic_data = {
 	.driver_flag		= DRIVER_HS_PMIC_ADC,
 	.hpin_gpio		= PM8921_GPIO_PM_TO_SYS(EARPHONE_DETz),
@@ -2034,11 +1951,10 @@ static struct platform_device htc_headset_one_wire = {
 	},
 };
 
-/* HTC_HEADSET_MGR Driver */
 static struct platform_device *headset_devices[] = {
 	&htc_headset_pmic,
 	&htc_headset_one_wire,
-	/* Please put the headset detection driver on the last */
+	
 };
 
 static struct headset_adc_config htc_headset_mgr_config[] = {
@@ -2058,7 +1974,7 @@ static struct headset_adc_config htc_headset_mgr_config[] = {
 		.adc_min = 566,
 	},
 	{
-		.type = HEADSET_MIC, /* No Metrico device */
+		.type = HEADSET_MIC, 
 		.adc_max = 565,
 		.adc_min = 255,
 	},
@@ -2101,15 +2017,6 @@ static void headset_device_register(void)
 
 #define TABLA_INTERRUPT_BASE (NR_MSM_IRQS + NR_GPIO_IRQS + NR_PM8921_IRQS)
 
-/* Micbias setting is based on 8660 CDP/MTP/FLUID requirement
- * 4 micbiases are used to power various analog and digital
- * microphones operating at 1800 mV. Technically, all micbiases
- * can source from single cfilter since all microphones operate
- * at the same voltage level. The arrangement below is to make
- * sure all cfilters are exercised. LDO_H regulator ouput level
- * does not need to be as high as 2.85V. It is choosen for
- * microphone sensitivity purpose.
- */
 static struct wcd9xxx_pdata monarudo_tabla_platform_data = {
 	.slimbus_slave_device = {
 		.name = "tabla-slave",
@@ -2249,7 +2156,72 @@ static struct slim_device monarudo_slim_tabla20 = {
 };
 
 
-static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = { /* Synatpics sensor */
+static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = { 
+	{
+		.version = 0x3332,
+		.packrat_number = 1293981,
+		.abs_x_min = 0,
+		.abs_x_max = 1600,
+		.abs_y_min = 0,
+		.abs_y_max = 2710,
+#ifdef CONFIG_FB_MSM_RESOLUTION_OVERRIDE
+		.display_width = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_WIDTH,
+		.display_height = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_HEIGHT,
+#else
+		.display_width = 1080,
+		.display_height = 1920,
+#endif
+		.gpio_irq = TP_ATTz,
+		.gpio_reset = TP_RSTz_XC,
+		.default_config = 1,
+		.report_type = SYN_AND_REPORT_TYPE_B,
+		.tw_pin_mask = 0x0080,
+		.psensor_detection = 1,
+		.reduce_report_level = {60, 60, 50, 0, 0},
+		.config = {0x33, 0x32, 0x00, 0x07, 0x00, 0x7F, 0x03, 0x1E,
+			0x05, 0x09, 0x00, 0x01, 0x01, 0x00, 0x10, 0x54,
+			0x06, 0x40, 0x0B, 0x02, 0x14, 0x1E, 0x05, 0x50,
+			0x18, 0x28, 0x1E, 0x03, 0x01, 0x3C, 0x1B, 0x01,
+			0x1A, 0x01, 0x14, 0x4E, 0x3D, 0x52, 0xC4, 0xB6,
+			0xC5, 0xC7, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00,
+			0x0A, 0x04, 0xB7, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x19, 0x01, 0x00, 0x0A, 0x17, 0x0D, 0x0A,
+			0x00, 0x14, 0x0A, 0x40, 0x78, 0x07, 0xF6, 0xC8,
+			0xC0, 0x43, 0x2A, 0x05, 0x00, 0x00, 0x00, 0x00,
+			0x54, 0x40, 0xB6, 0x3C, 0x32, 0x00, 0x00, 0x00,
+			0x54, 0x40, 0xB6, 0x1E, 0x05, 0x00, 0x02, 0xFA,
+			0x00, 0x80, 0x03, 0x0E, 0x1F, 0x11, 0x50, 0x00,
+			0x14, 0x04, 0x1B, 0x00, 0x10, 0x0A, 0x60, 0x60,
+			0x60, 0x68, 0x48, 0x48, 0x28, 0x20, 0x2E, 0x2B,
+			0x29, 0x28, 0x26, 0x23, 0x21, 0x1F, 0x00, 0x00,
+			0x00, 0x00, 0x02, 0x08, 0x0E, 0x17, 0x00, 0x7C,
+			0x15, 0x00, 0x64, 0x00, 0xC8, 0x00, 0xCD, 0x0A,
+			0xCD, 0x4C, 0x1D, 0x00, 0xC0, 0x19, 0x02, 0x02,
+			0x04, 0x02, 0x03, 0x03, 0x03, 0x02, 0x10, 0x10,
+			0x30, 0x10, 0x20, 0x20, 0x20, 0x10, 0x39, 0x3D,
+			0x60, 0x43, 0x5E, 0x64, 0x6A, 0x56, 0x00, 0x96,
+			0x00, 0x10, 0x28, 0x00, 0x00, 0x01, 0x08, 0x0E,
+			0x14, 0x19, 0x1C, 0x1F, 0x23, 0x04, 0x31, 0x04,
+			0x40, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x51, 0x51, 0x51,
+			0x51, 0x51, 0x51, 0x51, 0x51, 0xCD, 0x0D, 0x04,
+			0x00, 0x11, 0x14, 0x12, 0x0F, 0x0E, 0x09, 0x0A,
+			0x07, 0x02, 0x01, 0x00, 0x03, 0x08, 0x0C, 0x0D,
+			0x0B, 0x15, 0x17, 0x16, 0x18, 0x19, 0x1A, 0x1B,
+			0xFF, 0xFF, 0xFF, 0xFF, 0x12, 0x0F, 0x10, 0x0E,
+			0x08, 0x07, 0x0C, 0x01, 0x06, 0x02, 0x05, 0x04,
+			0x0A, 0xFF, 0xFF, 0xFF, 0x00, 0x10, 0x00, 0x10,
+			0x00, 0x10, 0x00, 0x10, 0x80, 0x80, 0x80, 0x80,
+			0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+			0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+			0x80, 0x80, 0x5A, 0x80, 0x80, 0x80, 0x80, 0x80,
+			0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+			0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00,
+			0x0F, 0x01, 0x4F, 0x53
+		}
+	},
 	{
 		.version = 0x3332,
 		.packrat_number = 1195020,
@@ -2257,13 +2229,20 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = { /* Synatpics 
 		.abs_x_max = 1600,
 		.abs_y_min = 0,
 		.abs_y_max = 2710,
+#ifdef CONFIG_FB_MSM_RESOLUTION_OVERRIDE
+		.display_width = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_WIDTH,
+		.display_height = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_HEIGHT,
+#else
+		.display_width = 1080,
+		.display_height = 1920,
+#endif
 		.gpio_irq = TP_ATTz,
+		.gpio_reset = TP_RSTz_XC,
 		.default_config = 1,
 		.report_type = SYN_AND_REPORT_TYPE_B,
 		.large_obj_check = 1,
 		.tw_pin_mask = 0x0080,
-		.multitouch_calibration = 1,
-		.psensor_detection = 1,
+		.PixelTouchThreshold_bef_unlock = 208,
 		.reduce_report_level = {60, 60, 50, 0, 0},
 		.config = {0x33, 0x32, 0x00, 0x05, 0x80, 0x7F, 0x03, 0x1E,
 			0x05, 0x09, 0x00, 0x01, 0x01, 0x00, 0x10, 0x54,
@@ -2316,12 +2295,20 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = { /* Synatpics 
 		.abs_x_max = 1600,
 		.abs_y_min = 0,
 		.abs_y_max = 2710,
+#ifdef CONFIG_FB_MSM_RESOLUTION_OVERRIDE
+		.display_width = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_WIDTH,
+		.display_height = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_HEIGHT,
+#else
+		.display_width = 1080,
+		.display_height = 1920,
+#endif
 		.gpio_irq = TP_ATTz,
+		.gpio_reset = TP_RSTz_XC,
 		.default_config = 1,
 		.report_type = SYN_AND_REPORT_TYPE_B,
 		.large_obj_check = 1,
 		.tw_pin_mask = 0x0080,
-		.reduce_report_level = {90, 90, 50, 0, 0},
+		.reduce_report_level = {60, 60, 50, 0, 0},
 		.config = {0x33, 0x32, 0x00, 0x03, 0x04, 0x7F, 0x03, 0x1E,
 			0x05, 0x09, 0x00, 0x01, 0x01, 0x00, 0x10, 0x54,
 			0x06, 0x40, 0x0B, 0x02, 0x14, 0x23, 0x05, 0x50,
@@ -2371,7 +2358,15 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = { /* Synatpics 
 		.abs_x_max = 1620,
 		.abs_y_min = 0,
 		.abs_y_max = 2680,
+#ifdef CONFIG_FB_MSM_RESOLUTION_OVERRIDE
+		.display_width = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_WIDTH,
+		.display_height = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_HEIGHT,
+#else
+		.display_width = 1080,
+		.display_height = 1920,
+#endif
 		.gpio_irq = TP_ATTz,
+		.gpio_reset = TP_RSTz_XC,
 		.default_config = 2,
 		.large_obj_check = 1,
 		.tw_pin_mask = 0x0080,
@@ -2418,7 +2413,15 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = { /* Synatpics 
 		.abs_x_max = 1620,
 		.abs_y_min = 0,
 		.abs_y_max = 2680,
+#ifdef CONFIG_FB_MSM_RESOLUTION_OVERRIDE
+		.display_width = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_WIDTH,
+		.display_height = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_HEIGHT,
+#else
+		.display_width = 1080,
+		.display_height = 1920,
+#endif
 		.gpio_irq = TP_ATTz,
+		.gpio_reset = TP_RSTz_XC,
 		.default_config = 1,
 		.tw_pin_mask = 0x0080,
 		.config = {0x30, 0x32, 0x30, 0x30, 0x84, 0x0F, 0x03, 0x1E,
@@ -2455,7 +2458,7 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_data[] = { /* Synatpics 
 	},
 };
 
-static struct synaptics_i2c_rmi_platform_data syn_ts_3k_2p5D_3030_evita_data[] = { /* Synatpics sensor */
+static struct synaptics_i2c_rmi_platform_data syn_ts_3k_2p5D_3030_evita_data[] = { 
 	{
 		.version = 0x3330,
 		.packrat_number = 1100755,
@@ -2463,7 +2466,10 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_2p5D_3030_evita_data[] =
 		.abs_x_max = 1100,
 		.abs_y_min = 0,
 		.abs_y_max = 1770,
+		.display_width = 1080,
+		.display_height = 1920,
 		.gpio_irq = TP_ATTz,
+		.gpio_reset = TP_RSTz_XA_XB,
 		.default_config = 2,
 		.large_obj_check = 1,
 		.config = {0x30, 0x32, 0x30, 0x33, 0x00, 0x3F, 0x03, 0x1E,
@@ -2509,7 +2515,10 @@ static struct synaptics_i2c_rmi_platform_data syn_ts_3k_2p5D_3030_evita_data[] =
 		.abs_x_max = 1000,
 		.abs_y_min = 0,
 		.abs_y_max = 1770,
+		.display_width = 1080,
+		.display_height = 1920,
 		.gpio_irq = TP_ATTz,
+		.gpio_reset = TP_RSTz_XA_XB,
 		.default_config = 1,
 		.config = {0x30, 0x32, 0x30, 0x30, 0x84, 0x0F, 0x03, 0x1E,
 			0x05, 0x20, 0xB1, 0x08, 0x0B, 0x19, 0x19, 0x00,
@@ -2556,11 +2565,30 @@ static struct i2c_board_info msm_i2c_gsbi3_info[] = {
 static ssize_t virtual_syn_keys_show(struct kobject *kobj,
 			struct kobj_attribute *attr, char *buf)
 {
+	int virtual_key[3][4] = {{180, 2010, 280, 160},
+				{540, 2010, 200, 160},
+				{900, 2010, 240, 160}};
+#ifdef CONFIG_FB_MSM_RESOLUTION_OVERRIDE
+	int i, origin_x, origin_y, scale_x, scale_y;
+	origin_x = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_DST_WIDTH;
+	origin_y = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_DST_HEIGHT;
+	scale_x = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_WIDTH;
+	scale_y = CONFIG_FB_MSM_RESOLUTION_OVERRIDE_SRC_HEIGHT;
+	for (i=0;i<3;i++) {
+		virtual_key[i][0] = (virtual_key[i][0] * scale_x) / origin_x;
+		virtual_key[i][1] = (virtual_key[i][1] * scale_y) / origin_y;
+		virtual_key[i][2] = (virtual_key[i][2] * scale_x) / origin_x;
+		virtual_key[i][3] = (virtual_key[i][3] * scale_y) / origin_y;
+	}
+#endif
+
 	return sprintf(buf,
-		__stringify(EV_KEY) ":" __stringify(KEY_BACK)       ":180:2010:280:160"
-		":" __stringify(EV_KEY) ":" __stringify(KEY_HOME)   ":540:2010:200:160"
-		":" __stringify(EV_KEY) ":" __stringify(KEY_APP_SWITCH)   ":900:2010:240:160"
-		"\n");
+		__stringify(EV_KEY) ":" __stringify(KEY_BACK)       ":%d:%d:%d:%d"
+		":" __stringify(EV_KEY) ":" __stringify(KEY_HOME)   ":%d:%d:%d:%d"
+		":" __stringify(EV_KEY) ":" __stringify(KEY_APP_SWITCH)   ":%d:%d:%d:%d"
+		"\n", virtual_key[0][0], virtual_key[0][1], virtual_key[0][2], virtual_key[0][3],
+		virtual_key[1][0], virtual_key[1][1], virtual_key[1][2], virtual_key[1][3],
+		virtual_key[2][0], virtual_key[2][1], virtual_key[2][2], virtual_key[2][3]);
 
 }
 
@@ -2810,10 +2838,10 @@ static struct r3gd20_gyr_platform_data gyro_platform_data = {
 	.negate_z = 1,
 
 	.poll_interval = 50,
-	.min_interval = R3GD20_MIN_POLL_PERIOD_MS, /*2 */
+	.min_interval = R3GD20_MIN_POLL_PERIOD_MS, 
 
-	/*.gpio_int1 = DEFAULT_INT1_GPIO,*/
-	/*.gpio_int2 = DEFAULT_INT2_GPIO,*/             /* int for fifo */
+	
+	             
 
 	.watermark = 0,
 	.fifomode = 0,
@@ -2834,16 +2862,15 @@ static struct i2c_board_info motion_sensor_gsbi_2_info[] = {
         {
                 I2C_BOARD_INFO(R3GD20_GYR_DEV_NAME, 0xD0 >> 1),
                 .platform_data = &gyro_platform_data,
-                /*.irq = PM8921_GPIO_IRQ(PM8921_IRQ_BASE, GYRO_INT),*/
+                
         },
 };
-
 
 static struct cm3629_platform_data cm36282_pdata = {
 	.model = CAPELLA_CM36282,
 	.ps_select = CM3629_PS1_ONLY,
 	.intr = PM8921_GPIO_PM_TO_SYS(PROXIMITY_INT),
-	.levels = { 0, 0, 40, 94, 900, 3493, 5994, 7768, 9541, 65535},
+	.levels = { 1, 3, 33, 929, 1440, 5614, 8553, 12415, 16278, 65535},
 	.golden_adc = 0x1900,
 	.power = NULL,
 	.cm3629_slave_address = 0xC0>>1,
@@ -2867,9 +2894,7 @@ static struct i2c_board_info i2c_CM36282_devices[] = {
 	},
 };
 
-#if 0 /* No need to use gpio table to configure I2C GPIO,
-       * we configure them by gpiomux
-       */
+#if 0 
 static uint32_t gsbi2_gpio_table[] = {
        GPIO_CFG(I2C2_DATA_SENS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
        GPIO_CFG(I2C2_CLK_SENS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
@@ -2940,7 +2965,6 @@ static struct platform_device msm_device_wcnss_wlan = {
 };
 
 #ifdef CONFIG_QSEECOM
-/* qseecom bus scaling */
 static struct msm_bus_vectors qseecom_clks_init_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_SPS,
@@ -3148,6 +3172,8 @@ static struct mdm_platform_data mdm_platform_data = {
 static struct tsens_platform_data apq_tsens_pdata  = {
 		.tsens_factor		= 1000,
 		.hw_type		= APQ_8064,
+		.patherm0               = -1,
+		.patherm1               = -1,
 		.tsens_num_sensor	= 11,
 		.slope = {1176, 1176, 1154, 1176, 1111,
 			1132, 1132, 1199, 1132, 1199, 1132},
@@ -3161,10 +3187,31 @@ static struct platform_device msm_tsens_device = {
 static struct msm_thermal_data msm_thermal_pdata = {
 	.sensor_id = 0,
 	.poll_ms = 1000,
-	.limit_temp = 55,
+	.limit_temp = 51,
 	.temp_hysteresis = 10,
 	.limit_freq = 918000,
 };
+
+static int __init check_dq_setup(char *str)
+{
+	int i = 0;
+	int size = 0;
+
+	size = sizeof(chg_batt_params)/sizeof(chg_batt_params[0]);
+
+	if (!strcmp(str, "PASS")) {
+		
+	} else {
+		for(i=0; i < size; i++)
+		{
+			chg_batt_params[i].max_voltage = 4200;
+			chg_batt_params[i].cool_bat_voltage = 4200;
+		}
+	}
+	return 1;
+}
+__setup("androidboot.dq=", check_dq_setup);
+
 
 #define MSM_SHARED_RAM_PHYS 0x80000000
 static void __init monarudo_map_io(void)
@@ -3279,13 +3326,11 @@ static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 	},
 };
 
-/* HTC_WIFI_START */
 uint32_t msm_rpm_get_swfi_latency(void)
 {
 	return msm_rpmrs_levels[0].latency_us;
 }
 EXPORT_SYMBOL(msm_rpm_get_swfi_latency);
-/* HTC_WIFI_END */
 
 static struct msm_pm_boot_platform_data msm_pm_boot_pdata __initdata = {
 	.mode = MSM_PM_BOOT_CONFIG_TZ,
@@ -3318,7 +3363,7 @@ static struct msm_rpmrs_platform_data msm_rpmrs_data __initdata = {
 	},
 };
 
-#if 0 //fixme for 3.4 porting
+#if 0 
 static struct msm_cpuidle_state msm_cstates[] __initdata = {
 	{0, 0, "C0", "WFI",
 		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
@@ -3511,40 +3556,6 @@ static struct msm_spm_seq_entry msm_spm_seq_list[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_PERFLOCK
-static unsigned dlx_perf_acpu_table[] = {
-	594000000, /* LOWEST */
-	810000000, /* LOW */
-	1026000000, /* MEDIUM */
-	1134000000,/* HIGH */
-	1512000000, /* HIGHEST */
-};
-
-static struct perflock_data dlx_floor_data = {
-	.perf_acpu_table = dlx_perf_acpu_table,
-	.table_size = ARRAY_SIZE(dlx_perf_acpu_table),
-};
-
-static struct perflock_data dlx_cpufreq_ceiling_data = {
-	.perf_acpu_table = dlx_perf_acpu_table,
-	.table_size = ARRAY_SIZE(dlx_perf_acpu_table),
-};
-
-static struct perflock_pdata perflock_pdata = {
-	.perf_floor = &dlx_floor_data,
-	.perf_ceiling = &dlx_cpufreq_ceiling_data,
-};
-
-struct platform_device msm8064_device_perf_lock = {
-	.name = "perf_lock",
-	.id = -1,
-	.dev = {
-		.platform_data = &perflock_pdata,
-	},
-};
-
-#endif
-
 static uint8_t l2_spm_wfi_cmd_sequence[] __initdata = {
 	0x00, 0x20, 0x03, 0x20,
 	0x00, 0x0f,
@@ -3657,7 +3668,7 @@ static struct msm_spm_platform_data msm_spm_data[] __initdata = {
 	},
 };
 #ifdef CONFIG_FLASHLIGHT_TPS61310
-#if 0	// move to board_camera
+#if 0	
 #ifdef CONFIG_MSM_CAMERA_FLASH
 int flashlight_control(int mode)
 {
@@ -3683,6 +3694,7 @@ static struct TPS61310_flashlight_platform_data flashlight_data = {
 	.tps61310_strb1 = PM8921_GPIO_PM_TO_SYS(TORCH_FLASHz),
 	.flash_duration_ms = 600,
 	.led_count = 1,
+	.disable_tx_mask = 1,
 };
 
 static struct i2c_board_info i2c_tps61310_flashlight[] = {
@@ -3796,7 +3808,7 @@ static struct pm8xxx_vibrator_pwm_platform_data pm8xxx_vib_pwm_pdata = {
 	.max_timeout_ms = 15000,
 	.duty_us = 37,
 	.PERIOD_US = 38,
-        .bank = PM8XXX_ID_GPIO26,
+	.bank = PM8XXX_ID_GPIO26,
 	.ena_gpio = PM8921_GPIO_PM_TO_SYS(HAPTIC_EN),
 	.vdd_gpio = PM8921_GPIO_PM_TO_SYS(HAPTIC_3V3_EN_XA_XB),
 };
@@ -3805,18 +3817,18 @@ static struct pm8xxx_vibrator_pwm_platform_data pm8xxx_vib_pwm_pdata_XC = {
 	.max_timeout_ms = 15000,
 	.duty_us = 37,
 	.PERIOD_US = 38,
-        .bank = PM8XXX_ID_GPIO26,
+	.bank = PM8XXX_ID_GPIO26,
 	.ena_gpio = PM8921_GPIO_PM_TO_SYS(HAPTIC_EN),
 	.vdd_gpio = HAPTIC_3V3_EN_XC_XD,
 };
 static struct pm8xxx_vibrator_pwm_platform_data pm8xxx_vib_pwm_pdata_XD = {
-        .initial_vibrate_ms = 0,
-        .max_timeout_ms = 15000,
-        .duty_us = 35,
-        .PERIOD_US = 38,
-        .bank = PM8XXX_ID_GPIO26,
-        .ena_gpio = PM8921_GPIO_PM_TO_SYS(HAPTIC_EN),
-        .vdd_gpio = HAPTIC_3V3_EN_XC_XD,
+	.initial_vibrate_ms = 0,
+    .max_timeout_ms = 15000,
+	.duty_us = 35,
+	.PERIOD_US = 38,
+	.bank = PM8XXX_ID_GPIO26,
+	.ena_gpio = PM8921_GPIO_PM_TO_SYS(HAPTIC_EN),
+	.vdd_gpio = HAPTIC_3V3_EN_XC_XD,
 };
 
 static struct platform_device vibrator_pwm_device = {
@@ -3864,7 +3876,6 @@ static struct resource hdmi_msm_resources[] = {
 
 static int hdmi_enable_5v(int on);
 static int hdmi_core_power(int on, int show);
-/*static int hdmi_cec_power(int on);*/
 
 static mhl_driving_params monarudo_driving_params[] = {
 	{.format = HDMI_VFRMT_640x480p60_4_3,	.reg_a3=0xFE, .reg_a6=0x0C},
@@ -3879,7 +3890,7 @@ static struct msm_hdmi_platform_data hdmi_msm_data = {
 	.irq = HDMI_IRQ,
 	.enable_5v = hdmi_enable_5v,
 	.core_power = hdmi_core_power,
-	/*.cec_power = hdmi_cec_power,*/
+	
 	.driving_params = monarudo_driving_params,
 	.dirving_params_count = ARRAY_SIZE(monarudo_driving_params),
 };
@@ -3893,7 +3904,7 @@ static struct platform_device hdmi_msm_device = {
 };
 
 #define BOOST_5V	"ext_5v"
-static struct regulator *reg_boost_5v = NULL;/* HDMI_5V */
+static struct regulator *reg_boost_5v = NULL;
 
 static int hdmi_enable_5v(int on)
 {
@@ -3997,24 +4008,24 @@ static int hdmi_core_power(int on, int show)
 	prev_on = on;
 	return rc;
 }
-#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
+#endif 
 
 static struct ramdump_platform_data ramdump_data_2G = {
 	.count = 1,
 	.region = {
 		{
-			.start	= 0xA0000000,
-			.size	= 0x60000000,
+			.start	= 0x90000000,
+			.size	= 0x70000000,
 		},
 	}
 };
 
-static struct ramdump_platform_data ramdump_data_128M = {
+static struct ramdump_platform_data ramdump_data_1G = {
 	.count = 1,
 	.region = {
 		{
-			.start	= 0xA0000000,
-			.size	= 0x8000000,
+			.start	= 0x90000000,
+			.size	= 0x30000000,
 		},
 	}
 };
@@ -4022,11 +4033,11 @@ static struct ramdump_platform_data ramdump_data_128M = {
 struct platform_device device_htc_ramdump = {
 	.name		= "htc_ramdump",
 	.id		= 0,
-	.dev = {.platform_data = &ramdump_data_128M},
+	.dev = {.platform_data = &ramdump_data_1G},
 };
 
 static struct platform_device *common_devices[] __initdata = {
-	&msm8960_device_acpuclk,
+	&msm8064_device_acpuclk,
 	&ram_console_device,
 	&apq8064_device_dmov,
 	&apq8064_device_qup_i2c_gsbi1,
@@ -4042,9 +4053,7 @@ static struct platform_device *common_devices[] __initdata = {
 	&apq8064_device_ssbi_pmic2,
 	&msm_device_smd_apq8064,
 	&apq8064_device_otg,
-/*	&apq8064_device_gadget_peripheral,*/
 	&apq8064_device_hsusb_host,
-/*	&android_usb_device,*/
 	&msm_device_wcnss_wlan,
 	&apq8064_fmem_device,
 #ifdef CONFIG_ANDROID_PMEM
@@ -4052,8 +4061,8 @@ static struct platform_device *common_devices[] __initdata = {
 	&monarudo_android_pmem_device,
 	&monarudo_android_pmem_adsp_device,
 	&monarudo_android_pmem_audio_device,
-#endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
-#endif /*CONFIG_ANDROID_PMEM*/
+#endif 
+#endif 
 #ifdef CONFIG_ION_MSM
 	&monarudo_ion_dev,
 #endif
@@ -4145,16 +4154,15 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm_tsens_device,
 	&msm_device_tz_log,
 	&apq8064_iommu_domain_device,
+	&monarudo_cpu_usage_stats_device,   
 #ifdef CONFIG_MSM_CACHE_ERP
 	&apq8064_device_cache_erp,
 #endif
 #ifdef CONFIG_PERFLOCK
 	&msm8064_device_perf_lock,
 #endif
-/* HTC_AUD_START LPA5 */
 	&apq_compr_dsp,
 	&apq_multi_ch_pcm,
-/* HTC_AUD_END LPA5 */
 };
 
 static struct platform_device *cdp_devices[] __initdata = {
@@ -4171,7 +4179,7 @@ static struct msm_spi_platform_data monarudo_qup_spi_gsbi5_pdata = {
 
 #define KS8851_IRQ_GPIO		43
 
-#if 0	/* HTC_START  for gpio request fail case */
+#if 0	
 static struct spi_board_info spi_board_info[] __initdata = {
 	{
 		.modalias               = "ks8851",
@@ -4190,7 +4198,7 @@ static struct spi_board_info rawchip_spi_board_info[] __initdata = {
 	{
 		.modalias               = "spi_rawchip",
 		.max_speed_hz           = 27000000,
-		.bus_num                = 0,//1,
+		.bus_num                = 0,
 		.chip_select            = 0,
 		.mode                   = SPI_MODE_0,
 	},
@@ -4207,7 +4215,7 @@ static struct slim_boardinfo monarudo_slim_devices[] = {
 		.bus_num = 1,
 		.slim_slave = &monarudo_slim_tabla20,
 	},
-	/* add more slimbus slaves as needed */
+	
 };
 
 static struct msm_i2c_platform_data monarudo_i2c_qup_gsbi1_pdata = {
@@ -4218,14 +4226,14 @@ static struct msm_i2c_platform_data monarudo_i2c_qup_gsbi1_pdata = {
 static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi2_pdata = {
 	.clk_freq = 400000,
 	.src_clk_rate = 24000000,
-	/*.msm_i2c_config_gpio = gsbi_qup_i2c_gpio_config,*/
+	
 };
 
 
 static struct msm_i2c_platform_data monarudo_i2c_qup_gsbi3_pdata = {
 	.clk_freq = 400000,
 	.src_clk_rate = 24000000,
-	/*.msm_i2c_config_gpio = gsbi_qup_i2c_gpio_config,*/
+	
 };
 
 static struct msm_i2c_platform_data monarudo_i2c_qup_gsbi4_pdata = {
@@ -4260,11 +4268,11 @@ static void __init monarudo_i2c_init(void)
 static int ethernet_init(void)
 {
 	int ret;
-#if 0	/* HTC_START  for gpio request fail case */
+#if 0	
 	ret = gpio_request(KS8851_IRQ_GPIO, "ks8851_irq");
 #else
 	ret = 0;
-#endif	/* HTC_END */
+#endif	
 	if (ret) {
 		pr_err("ks8851 gpio_request failed: %d\n", ret);
 		goto fail;
@@ -4339,7 +4347,6 @@ static struct platform_device cdp_kp_pdev = {
 	},
 };
 
-/* Sensors DSPS platform data */
 #define DSPS_PIL_GENERIC_NAME          "dsps"
 static void __init monarudo_init_dsps(void)
 {
@@ -4431,7 +4438,7 @@ static struct mpu3050_platform_data mpu3050_data = {
 
 	.accel = {
 		.get_slave_descr = get_accel_slave_descr,
-		.adapt_num = MSM8064_GSBI2_QUP_I2C_BUS_ID, /* The i2c bus to which the mpu device is connected */
+		.adapt_num = MSM8064_GSBI2_QUP_I2C_BUS_ID, 
 		.bus = EXT_SLAVE_BUS_SECONDARY,
 		.address = 0x30 >> 1,
 			.orientation = { -1, 0,  0,
@@ -4441,7 +4448,7 @@ static struct mpu3050_platform_data mpu3050_data = {
 	},
 	.compass = {
 		.get_slave_descr = get_compass_slave_descr,
-		.adapt_num = MSM8064_GSBI2_QUP_I2C_BUS_ID, /* The i2c bus to which the mpu device is connected */
+		.adapt_num = MSM8064_GSBI2_QUP_I2C_BUS_ID, 
 		.bus = EXT_SLAVE_BUS_PRIMARY,
 		.address = 0x1A >> 1,
 			.orientation = { -1, 0,  0,
@@ -4464,7 +4471,6 @@ static struct i2c_board_info pwm_i2c_devices[] = {
 	},
 };
 
-/* pn544 platform data */
 static struct pn544_i2c_platform_data nfc_platform_data = {
 	.irq_gpio = NFC_IRQ,
 	.ven_gpio = NFC_VEN,
@@ -4545,7 +4551,7 @@ static uint32_t ac_reset_xc_gpio_table[] = {
 
 void reset_dflipflop(void)
 {
-	/* XB */
+	
 	if (system_rev == XB) {
 		gpio_tlmm_config(ac_reset_xb_gpio_table[0], GPIO_CFG_ENABLE);
 		gpio_set_value(AC_WDT_RST_XB, 0);
@@ -4554,7 +4560,7 @@ void reset_dflipflop(void)
 		gpio_set_value(AC_WDT_RST_XB, 1);
 		pr_info("[CABLE] Restore D Flip-Flop\n");
 	}
-	/* XC */
+	
 	if (system_rev > XB) {
 		gpio_tlmm_config(ac_reset_xc_gpio_table[0], GPIO_CFG_ENABLE);
 		gpio_set_value(AC_WDT_RST_XC, 0);
@@ -4578,28 +4584,26 @@ static void __init register_i2c_devices(void)
 		monarudo_camera_board_info.board_info,
 		monarudo_camera_board_info.num_i2c_board_info,
 	};
-/* HTC_START_Simon.Ti_Liu_20120711_IMPLEMENT_MCLK_SWITCH */
 	struct i2c_registry monarudo_camera_i2c_devices_xd = {
 		I2C_SURF | I2C_FFA | I2C_LIQUID | I2C_RUMI,
 		APQ_8064_GSBI4_QUP_I2C_BUS_ID,
 		monarudo_camera_board_info_xd.board_info,
 		monarudo_camera_board_info_xd.num_i2c_board_info,
 	};
-/* HTC_END */
 #endif
-	/* Build the matching 'supported_machs' bitmask */
+	
 	mach_mask = I2C_SURF;
 
 #ifdef CONFIG_FB_MSM_HDMI_MHL
 #ifdef CONFIG_FB_MSM_HDMI_MHL_SII9234
-	/* must be before i2c device registration */
+	
 	if (system_rev <= XB)
 		mhl_sii9234_device_data.gpio_reset = MHL_RSTz_XA;
 	else if (system_rev >= XC)
 		mhl_sii9234_device_data.gpio_reset = PM8921_GPIO_PM_TO_SYS(MHL_RSTz_XC_XD);
 #endif
 #endif
-	/* Run the array and install devices as appropriate */
+	
 	for (i = 0; i < ARRAY_SIZE(monarudo_i2c_devices); ++i) {
 		if (monarudo_i2c_devices[i].machs & mach_mask)
 			i2c_register_board_info(monarudo_i2c_devices[i].bus,
@@ -4608,14 +4612,14 @@ static void __init register_i2c_devices(void)
 	}
 
 #ifdef CONFIG_FLASHLIGHT_TPS61310
-	/* XB */
+	
 	if (system_rev <= XB) {
 		if((I2C_SURF | I2C_FFA) & mach_mask) {
 			i2c_register_board_info(MSM8064_GSBI2_QUP_I2C_BUS_ID,
 				i2c_tps61310_flashlight, ARRAY_SIZE(i2c_tps61310_flashlight));
 		}
 	}
-	/* XC or later */
+	
 	if (system_rev > XB) {
 		if((I2C_SURF | I2C_FFA) & mach_mask) {
 			i2c_register_board_info(MSM8064_GSBI2_QUP_I2C_BUS_ID,
@@ -4625,7 +4629,6 @@ static void __init register_i2c_devices(void)
 #endif
 
 #ifdef CONFIG_MSM_CAMERA
-/* HTC_START_Simon.Ti_Liu_20120711_IMPLEMENT_MCLK_SWITCH */
 	if ( system_rev <= XC ) {
 		if (monarudo_camera_i2c_devices.machs & mach_mask)
 			i2c_register_board_info(monarudo_camera_i2c_devices.bus,
@@ -4637,7 +4640,6 @@ static void __init register_i2c_devices(void)
 				monarudo_camera_i2c_devices_xd.info,
 				monarudo_camera_i2c_devices_xd.len);
 	}
-/* HTC_END */
 
 #endif
 	if (gy_type == 2) {
@@ -4674,32 +4676,32 @@ static void __init monarudo_common_init(void)
 	platform_device_register(&monarudo_device_rpm_regulator);
 	if (msm_xo_init())
 		pr_err("Failed to initialize XO votes\n");
-	/* HTC_WIFI_START */
+	
 	if (system_rev <= XC)
 		clk_ignor_list_add("msm_sdcc.3", "core_clk", &apq8064_clock_init_data);
 	else if (system_rev >= XD)
-		clk_ignor_list_add("msm_sdcc.3", "core_clk", &monarudo_clock_init_data_xd);
-	/* HTC_WIFI_END */
+		clk_ignor_list_add("msm_sdcc.3", "core_clk", &apq8064_clock_init_data_r2);
+	
 	if ( system_rev <= XC )
 	msm_clock_init(&apq8064_clock_init_data);
 	else if ( system_rev >= XD )
-		msm_clock_init(&monarudo_clock_init_data_xd);
+		msm_clock_init(&apq8064_clock_init_data_r2);
 	monarudo_init_gpiomux();
 #ifdef CONFIG_RESET_BY_CABLE_IN
 	pr_info("[CABLE] Enable Ac Reset Function.(%d) \n", system_rev);
-	/* XB */
+	
 	if (system_rev == XB) {
 		gpio_tlmm_config(ac_reset_xb_gpio_table[0], GPIO_CFG_ENABLE);
 		gpio_set_value(AC_WDT_RST_XB, 1);
 	}
-	/* XC or later */
+	
 	if (system_rev > XB) {
 		gpio_tlmm_config(ac_reset_xc_gpio_table[0], GPIO_CFG_ENABLE);
 		gpio_set_value(AC_WDT_RST_XC, 1);
 	}
 #endif
 
-	/* XB */
+	
 	if (system_rev == XB)
 		nfc_platform_data.firm_gpio = PM8921_GPIO_PM_TO_SYS(NFC_DL_MODE_XA_XB);
 
@@ -4722,7 +4724,7 @@ static void __init monarudo_common_init(void)
 	}
 
 #ifdef CONFIG_BT
-	/* XC or later */
+	
 	if (system_rev >= XC) {
 		bt_export_bd_address();
 		msm_uart_dm6_pdata.wakeup_irq = PM8921_GPIO_IRQ(PM8921_IRQ_BASE, BT_HOST_WAKE_XC);
@@ -4735,7 +4737,6 @@ static void __init monarudo_common_init(void)
 
 	apq8064_device_qup_spi_gsbi5.dev.platform_data =
 						&monarudo_qup_spi_gsbi5_pdata;
-	monarudo_cable_detect_register();
 	monarudo_init_pmic();
 
 	android_usb_pdata.swfi_latency =
@@ -4745,7 +4746,7 @@ static void __init monarudo_common_init(void)
 	monarudo_init_buses();
 #ifdef CONFIG_HTC_BATT_8960
 	htc_battery_cell_init(htc_battery_cells, ARRAY_SIZE(htc_battery_cells));
-#endif /* CONFIG_HTC_BATT_8960 */
+#endif 
 
 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
 
@@ -4763,14 +4764,15 @@ static void __init monarudo_common_init(void)
         platform_device_register(&vibrator_pwm_device_XD);
 
 	apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
+	msm_hsic_pdata.swfi_latency = msm_rpmrs_levels[0].latency_us;
 	device_initialize(&apq8064_device_hsic_host.dev);
 	monarudo_pm8xxx_gpio_mpp_init();
 	monarudo_init_mmc();
 
 
-	/* HTC_WIFI_START */
+	
 	monarudo_wifi_init();
-	/* HTC_WIFI_END */
+	
 
 
 
@@ -4790,7 +4792,7 @@ static void __init monarudo_common_init(void)
 	monarudo_init_dsps();
 	msm_spm_init(msm_spm_data, ARRAY_SIZE(msm_spm_data));
 	msm_spm_l2_init(msm_spm_l2_data);
-#if 0 //fixme for 3.4 porting
+#if 0 
 	msm_pm_set_platform_data(msm_pm_data, ARRAY_SIZE(msm_pm_data));
 	msm_cpuidle_set_states(msm_cstates, ARRAY_SIZE(msm_cstates),
 				msm_pm_data);
@@ -4799,10 +4801,21 @@ static void __init monarudo_common_init(void)
 	msm_pm_init_sleep_status_data(&msm_pm_slp_sts_data);
 	properties_kobj = kobject_create_and_add("board_properties", NULL);
 	if (properties_kobj) {
-		if (system_rev < XB)
+		if (system_rev < XB) {
 			rc = sysfs_create_group(properties_kobj, &properties_evita_attr_group);
-		else
+			if (!rc)
+				for (rc = 0; rc < ARRAY_SIZE(syn_ts_3k_2p5D_3030_evita_data); rc++) {
+					syn_ts_3k_2p5D_3030_evita_data[rc].vk_obj = properties_kobj;
+					syn_ts_3k_2p5D_3030_evita_data[rc].vk2Use = &syn_virtual_keys_evita_attr;
+				}
+		} else {
 			rc = sysfs_create_group(properties_kobj, &properties_attr_group);
+			if (!rc)
+				for (rc = 0; rc < ARRAY_SIZE(syn_ts_3k_data); rc++) {
+					syn_ts_3k_data[rc].vk_obj = properties_kobj;
+					syn_ts_3k_data[rc].vk2Use = &syn_virtual_keys_attr;
+				}
+		}
 	}
 
 	headset_device_register();
@@ -4837,7 +4850,7 @@ static void __init monarudo_cdp_init(void)
 	msm_rotator_set_split_iommu_domain();
 	platform_add_devices(cdp_devices, ARRAY_SIZE(cdp_devices));
 
-#if 1	/* HTC_START */
+#if 1	
 #ifdef CONFIG_MSM_CAMERA
 #ifdef CONFIG_RAWCHIP
 	spi_register_board_info(rawchip_spi_board_info, ARRAY_SIZE(rawchip_spi_board_info));
@@ -4845,7 +4858,7 @@ static void __init monarudo_cdp_init(void)
 #endif
 #else
 	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
-#endif	/* HTC_END */
+#endif	
 
 
 	msm_rotator_update_bus_vectors(1920, 1080);
@@ -4859,16 +4872,16 @@ static void __init monarudo_cdp_init(void)
 	platform_device_register(&cdp_kp_pdev);
 
 #ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
-        if(!cpu_is_krait_v1())
-                set_two_phase_freq(1134000);
+	if(!cpu_is_krait_v1())
+		set_two_phase_freq(1134000);
 #endif
 
-	/*usb driver won't be loaded in MFG 58 station and gift mode*/
-	/* fix me */
+	
+	
 	if (!(board_mfg_mode() == 6 || board_mfg_mode() == 7))
 		monarudo_add_usb_devices();
 
-#if 1 /* Temp solution to turn on sleep clock, remove this after GPIO conflict is resolved */
+#if 1 
 	if (system_rev >= XC) {
 		pm_config.direction = PM_GPIO_DIR_OUT;
 		pm_config.output_buffer = PM_GPIO_OUT_BUF_CMOS;
@@ -4915,13 +4928,11 @@ static void __init monarudo_fixup(struct tag *tags, char **cmdline, struct memin
 		mi->bank[2].size += DDR_1GB_SIZE;
 
 	if (mem_size_mb == 64) {
-		mi->nr_banks = 3;
+		mi->nr_banks = 2;
 		mi->bank[0].start = PHY_BASE_ADDR1;
 		mi->bank[0].size = SIZE_ADDR1;
 		mi->bank[1].start = PHY_BASE_ADDR2;
 		mi->bank[1].size = SIZE_ADDR2;
-		mi->bank[2].start = PHY_BASE_ADDR3;
-		mi->bank[2].size = (256 * 1024 * 1024);
 	}
 }
 

@@ -28,12 +28,10 @@
 #include <mach/msm_smd.h>
 #include <mach/qdsp6v2/apr_tal.h>
 
-//htc audio ++
 #undef pr_info
 #undef pr_err
 #define pr_info(fmt, ...) pr_aud_info(fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...) pr_aud_err(fmt, ##__VA_ARGS__)
-//htc audio --
 
 static char *svc_names[APR_DEST_MAX][APR_CLIENT_MAX] = {
 	{

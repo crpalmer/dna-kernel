@@ -14,7 +14,6 @@
 #ifndef __RTAC_H__
 #define __RTAC_H__
 
-/* Voice Modes */
 #define RTAC_CVP		0
 #define RTAC_CVS		1
 #define RTAC_VOICE_MODES	2

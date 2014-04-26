@@ -252,7 +252,7 @@ static int pm8xxx_vib_suspend(struct device *dev)
 	VIB_PWM_INFO("%s \n",__func__);
 	hrtimer_cancel(&vib->vib_timer);
 	cancel_work_sync(&vib->work);
-	/* turn-off vibrator */
+	
 	pm8xxx_vib_set_off(vib);
 	if (vib->vdd_gpio)
 		gpio_direction_output(vib->vdd_gpio, DISABLE_VDD);
@@ -306,13 +306,12 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 	vib->timed_dev.name = "vibrator";
 	vib->timed_dev.get_time = pm8xxx_vib_get_time;
 	vib->timed_dev.enable = pm8xxx_vib_enable;
-	if (vib->pdata->bank) {
-		vib->pwm_vib = pwm_request(vib->pdata->bank, vib->timed_dev.name);
-		if (vib->pwm_vib < 0){
-			rc = -ENOMEM;
-			VIB_PWM_ERR("%s, pwm_request fail\n", __func__);
-			goto err_pwm_request;
-		}
+
+	vib->pwm_vib = pwm_request(vib->pdata->bank, vib->timed_dev.name);
+	if (vib->pwm_vib < 0){
+		rc = -ENOMEM;
+		VIB_PWM_ERR("%s, pwm_request fail\n", __func__);
+		goto err_pwm_request;
 	}
 	rc = gpio_request(vib->ena_gpio, "TI_AMP_ena");
 	if (rc) {

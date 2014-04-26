@@ -32,7 +32,7 @@ struct subsys_data {
 	void (*crash_shutdown) (const struct subsys_data *);
 	int (*ramdump) (int, const struct subsys_data *);
 
-	/* Internal use only */
+	
 	struct list_head list;
 	void *notif_handle;
 
@@ -47,6 +47,8 @@ struct subsys_data {
 #if defined(CONFIG_MSM_SUBSYSTEM_RESTART)
 
 int get_restart_level(void);
+int get_enable_ramdumps(void);
+void subsystem_update_restart_level_for_crc(void);
 int subsystem_restart(const char *subsys_name);
 int ssr_register_subsystem(struct subsys_data *subsys);
 #if defined(CONFIG_MSM8960_ONLY) || defined(CONFIG_MSM8930_ONLY)
@@ -72,6 +74,6 @@ static inline int ssr_register_subsystem(struct subsys_data *subsys)
 	return 0;
 }
 
-#endif /* CONFIG_MSM_SUBSYSTEM_RESTART */
+#endif 
 
 #endif

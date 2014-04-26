@@ -53,7 +53,7 @@
 #define MDP_PRIM_VSYNC_OUT_CTRL	0x318
 #define MDP_PRIM_VSYNC_INIT_VAL	0x328
 #endif
-#include <mach/msm_rtb_enable.h>
+
 extern mddi_lcd_type mddi_lcd_idx;
 extern spinlock_t mdp_spin_lock;
 extern struct workqueue_struct *mdp_vsync_wq;
@@ -114,9 +114,20 @@ static void mdp_set_vsync(unsigned long data);
 void mdp_vsync_clk_enable(void)
 {
 	if (vsync_mfd) {
+	#ifdef CONFIG_MACH_VILLEC2 
+		unsigned int timeout = (vsync_clk_status == 0)? 18 : 0; 
+	#endif 
 		mdp_hw_vsync_clk_enable(vsync_mfd);
 		if (!vsync_mfd->vsync_resync_timer.function)
 			mdp_set_vsync((unsigned long) vsync_mfd);
+	#ifdef CONFIG_MACH_VILLEC2
+	if (timeout) {
+		uint32 count;
+		for (count = inpdw(MDP_BASE + 0x140) >> 16; timeout && count == inpdw(MDP_BASE + 0x140) >> 16; --timeout) {
+			hr_msleep(1);
+		}
+	}
+	#endif 
 	}
 }
 
@@ -209,11 +220,6 @@ static void mdp_vsync_handler(void *data)
 
 irqreturn_t mdp_hw_vsync_handler_proxy(int irq, void *data)
 {
-	/*
-	 * ToDo: tried enabling/disabling GPIO MDP HW VSYNC interrupt
-	 * but getting inaccurate timing in mdp_vsync_handler()
-	 * disable_irq(MDP_HW_VSYNC_IRQ);
-	 */
 	mdp_vsync_handler(data);
 
 	return IRQ_HANDLED;
@@ -251,7 +257,7 @@ static void mdp_set_sync_cfg_1(struct msm_fb_data_type *mfd, int vsync_cnt)
 void mdp_vsync_cfg_regs(struct msm_fb_data_type *mfd,
 	boolean first_time)
 {
-	/* MDP cmd block enable */
+	
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON,
 			  FALSE);
 	if (first_time)
@@ -264,13 +270,9 @@ void mdp_vsync_cfg_regs(struct msm_fb_data_type *mfd,
 		mdp_set_sync_cfg_1(mfd, vsync_cnt_cfg);
 #endif
 
-	/*
-	 * load the last line + 1 to be in the
-	 * safety zone
-	 */
 	vsync_load_cnt = mfd->panel_info.yres;
 
-	/* line counter init value at the next pulse */
+	
 	MDP_OUTP(MDP_BASE + MDP_PRIM_VSYNC_INIT_VAL,
 		vsync_load_cnt);
 #ifdef CONFIG_FB_MSM_MDP40
@@ -280,10 +282,6 @@ void mdp_vsync_cfg_regs(struct msm_fb_data_type *mfd,
 	}
 #endif
 
-	/*
-	 * external vsync source pulse width and
-	 * polarity flip
-	 */
 	MDP_OUTP(MDP_BASE + MDP_PRIM_VSYNC_OUT_CTRL, BIT(0));
 #ifdef CONFIG_FB_MSM_MDP40
 	if (mdp_hw_revision < MDP4_REVISION_V2_1) {
@@ -292,14 +290,14 @@ void mdp_vsync_cfg_regs(struct msm_fb_data_type *mfd,
 	}
 #endif
 
-	/* threshold */
+	
 	MDP_OUTP(MDP_BASE + 0x200, (vsync_above_th << 16) |
 		 (vsync_start_th));
 
 	if (first_time)
 		mdp_hw_vsync_clk_disable(mfd);
 
-	/* MDP cmd block disable */
+	
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 }
 #endif
@@ -307,7 +305,7 @@ void mdp_vsync_cfg_regs(struct msm_fb_data_type *mfd,
 void mdp_config_vsync(struct platform_device *pdev,
 	struct msm_fb_data_type *mfd)
 {
-	/* vsync on primary lcd only for now */
+	
 	if ((mfd->dest != DISPLAY_LCD) || (mfd->panel_info.pdest != DISPLAY_1)
 	    || (!vsync_mode)) {
 		goto err_handle;
@@ -345,10 +343,6 @@ void mdp_config_vsync(struct platform_device *pdev,
 			if (mdp_vsync_clk_speed_hz == 0) {
 				mfd->use_mdp_vsync = 0;
 			} else {
-				/*
-				 * Do this calculation in 2 steps for
-				 * rounding uint32 properly.
-				 */
 				vsync_cnt_cfg_dem =
 				    (mfd->panel_info.lcd.refx100 *
 				     mfd->total_lcd_lines) / 100;
@@ -387,12 +381,6 @@ void mdp_config_vsync(struct platform_device *pdev,
 			if (ret)
 				goto err_handle;
 
-			/*
-			 * if use_mdp_vsync, then no interrupt need since
-			 * mdp_vsync is feed directly to mdp to reset the
-			 * write pointer counter. therefore no irq_handler
-			 * need to reset write pointer counter.
-			 */
 			if (!mfd->use_mdp_vsync) {
 				mfd->channel_irq = MSM_GPIO_TO_INT(vsync_gpio);
 				if (request_irq
@@ -456,11 +444,6 @@ void mdp_vsync_resync_workqueue_handler(struct work_struct *work)
 
 boolean mdp_hw_vsync_set_handler(msm_fb_vsync_handler_type handler, void *data)
 {
-	/*
-	 * ToDo: tried enabling/disabling GPIO MDP HW VSYNC interrupt
-	 * but getting inaccurate timing in mdp_vsync_handler()
-	 * enable_irq(MDP_HW_VSYNC_IRQ);
-	 */
 
 	return TRUE;
 }
@@ -486,11 +469,11 @@ uint32 mdp_get_lcd_line_counter(struct msm_fb_data_type *mfd)
 
 	elapsed_usec_time = elapsed_usec_time % mfd->lcd_ref_usec_time;
 
-	/* lcd line calculation referencing to line counter = 0 */
+	
 	lcd_line =
 	    (elapsed_usec_time * mfd->total_lcd_lines) / mfd->lcd_ref_usec_time;
 
-	/* lcd line adjusment referencing to the actual line counter at vsync */
+	
 	lcd_line =
 	    (mfd->total_lcd_lines - mfd->panel_info.lcd.v_back_porch +
 	     lcd_line) % (mfd->total_lcd_lines + 1);

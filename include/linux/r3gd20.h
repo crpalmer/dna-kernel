@@ -42,8 +42,6 @@
 #ifndef __R3GD20_H__
 #define __R3GD20_H__
 
-/*#define DEFAULT_INT2_GPIO	39*/
-/*#define DEFAULT_INT1_GPIO	134*/
 
 #define R3GD20_MIN_POLL_PERIOD_MS	2
 
@@ -75,15 +73,15 @@ struct r3gd20_gyr_platform_data {
 
 	u8 fs_range;
 
-	/* fifo related */
+	
 	u8 watermark;
 	u8 fifomode;
 
-	/* gpio ports for interrupt pads */
+	
 	int gpio_int1;
-	int gpio_int2;		/* int for fifo */
+	int gpio_int2;		
 
-	/* axis mapping */
+	
 	u8 axis_map_x;
 	u8 axis_map_y;
 	u8 axis_map_z;
@@ -94,6 +92,6 @@ struct r3gd20_gyr_platform_data {
 
 	int (*power_LPM)(int on);
 };
-#endif /* __KERNEL__ */
+#endif 
 
-#endif  /* __R3GD20_H__ */
+#endif  

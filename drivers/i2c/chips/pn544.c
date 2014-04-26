@@ -17,8 +17,10 @@
 #include <linux/spinlock.h>
 #include <linux/wakelock.h>
 #include <linux/pn544.h>
+#include <mach/board_htc.h>
 
 int is_debug = 0;
+int is_alive = 1;
 
 #define DBUF(buff,count) \
 	if (is_debug) \
@@ -54,6 +56,10 @@ struct pn544_dev	{
 	unsigned int 		firm_gpio;
 	void (*gpio_init) (void);
 	unsigned int 		ven_enable;
+	int boot_mode;
+	bool                     isReadBlock;
+	void (*gpio_deinit) (void);
+	int (*check_nfc_exist)(void);
 };
 
 struct pn544_dev *pn_info;
@@ -156,7 +162,7 @@ static irqreturn_t pn544_dev_irq_handler(int irq, void *dev_id)
 
 	pn544_disable_irq(pn544_dev);
 
-	/* Wake up waiting readers */
+	
 	wake_up(&pn544_dev->read_wq);
 
 	return IRQ_HANDLED;
@@ -186,16 +192,9 @@ static void pn544_Disable(void)
 static int pn544_isEn(void)
 {
 	struct pn544_dev *pni = pn_info;
-	/* D("%s: isEn=%d\n", __func__, pni->ven_value); */
+	
 	return pni->ven_value;
 }
-/*
-static void pn544_PowerOnSeq(void)
-{
-	D("%s\n", __func__);
-	pn544_Enable();
-}
-*/
 uint8_t read_buffer[MAX_BUFFER_SIZE];
 
 static ssize_t pn544_dev_read(struct file *filp, char __user *buf,
@@ -232,6 +231,7 @@ static ssize_t pn544_dev_read(struct file *filp, char __user *buf,
 		enable_irq(pni->client->irq);
 		D("%s: waiting read-event INT, because "
 			"irq_gpio = 0\n", __func__);
+		pni->isReadBlock = true;
 		ret = wait_event_interruptible(pni->read_wq,
 				gpio_get_value(pni->irq_gpio));
 
@@ -246,8 +246,9 @@ static ssize_t pn544_dev_read(struct file *filp, char __user *buf,
 
 	}
 
+	pni->isReadBlock = false;
     wake_lock_timeout(&pni ->io_wake_lock, IO_WAKE_LOCK_TIMEOUT);
-	/* Read data */
+	
 	memset(read_buffer, 0, MAX_BUFFER_SIZE);
 	ret = pn544_RxData(read_buffer, count);
 	mutex_unlock(&pni->read_mutex);
@@ -303,7 +304,7 @@ static ssize_t pn544_dev_write(struct file *filp, const char __user *buf,
 
 	DBUF(buffer, count);
 
-	/* Write data */
+	
 	ret = pn544_TxData(buffer, count);
 	if (ret < 0) {
 		E("%s : i2c_master_send returned %d\n", __func__, ret);
@@ -338,13 +339,11 @@ static long pn544_dev_ioctl(struct file *filp,
 	switch (cmd) {
 	case PN544_SET_PWR:
 		if (arg == 3) {
-			/* Software reset */
+			
 			I("%s Software reset\n", __func__);
 			if (pn544_TxData(buffer, 6) < 0)
 				E("%s, SW-Reset TxData error!\n", __func__);
 		} else if (arg == 2) {
-			/* power on with firmware download (requires hw reset)
-			 */
 			I("%s power on with firmware\n", __func__);
 			pn544_Enable();
 			gpio_set_value(pni->firm_gpio, 1);
@@ -354,13 +353,13 @@ static long pn544_dev_ioctl(struct file *filp,
 			pn544_Enable();
 			msleep(50);
 		} else if (arg == 1) {
-			/* power on */
+			
 			I("%s power on (delay50)\n", __func__);
 			gpio_set_value(pni->firm_gpio, 0);
 			pn544_Enable();
 			msleep(50);
 		} else  if (arg == 0) {
-			/* power off */
+			
 			I("%s power off (delay50)\n", __func__);
 			gpio_set_value(pni->firm_gpio, 0);
 			pn544_Disable();
@@ -444,7 +443,7 @@ static ssize_t pn_temp1_store(struct device *dev,
 	int ret = -1;
 	struct pn544_dev *pni = pn_info;
 	uint8_t buffer[] = {0x05, 0xF9, 0x04, 0x00, 0xC3, 0xE5};
-	/* case 6 i2cw */
+	
 	uint8_t i2cw[i2cw_size];
 	uint32_t scan_data = 0;
 	int i2cw_len = 0;
@@ -486,7 +485,7 @@ static ssize_t pn_temp1_store(struct device *dev,
 			sscanf(buf, "%d %d", &code, &i2cw_len);
 			I("%s: case 6 i2cw_len=%u\n", __func__, i2cw_len);
 
-			ptr = strpbrk(buf, " ");	/* num */
+			ptr = strpbrk(buf, " ");	
 			if (ptr != NULL) {
 				for (i = 0 ; i <= i2cw_len ; i++) {
 					sscanf(ptr, "%x", &scan_data);
@@ -499,7 +498,7 @@ static ssize_t pn_temp1_store(struct device *dev,
 				}
 
 				ret = pn544_TxData(i2cw, i2cw_len+1);
-				/* i2cw_len+1 include number data */
+				
 
 				if (ret < 0)
 					E("%s, i2c Tx error!\n", __func__);
@@ -548,6 +547,16 @@ static ssize_t debug_enable_store(struct device *dev,
 
 static DEVICE_ATTR(debug_enable, 0664, debug_enable_show, debug_enable_store);
 
+static ssize_t nxp_chip_alive_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret = 0;
+	I("%s is %d\n", __func__, is_alive);
+	ret = sprintf(buf, "%d\n", is_alive);
+	return ret;
+}
+static DEVICE_ATTR(nxp_chip_alive, 0664, nxp_chip_alive_show, NULL);
+
 static int pn544_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
@@ -570,7 +579,7 @@ static int pn544_probe(struct i2c_client *client,
 		return  -ENODEV;
 	}
 
-	/* IRQ_GPIO */
+	
 	ret = gpio_request(platform_data->irq_gpio, "nfc_int");
 	if (ret) {
 		E("%s : request gpio%d fail\n",
@@ -579,7 +588,7 @@ static int pn544_probe(struct i2c_client *client,
 		goto err_exit;
 	}
 
-	/* NFC_EN GPIO */
+	
 	ret = gpio_request(platform_data->ven_gpio, "nfc_en");
 	if (ret) {
 		E("%s : request gpio %d fail\n",
@@ -587,7 +596,7 @@ static int pn544_probe(struct i2c_client *client,
 		ret = -ENODEV;
 		goto err_request_gpio_ven;
 	}
-	/* NFC_FIRM GPIO */
+	
 
 	ret = gpio_request(platform_data->firm_gpio, "nfc_firm");
 	if (ret) {
@@ -610,7 +619,25 @@ static int pn544_probe(struct i2c_client *client,
 
 	if (platform_data->gpio_init != NULL) {
 		I("%s: gpio_init\n", __func__);
-		platform_data->gpio_init();
+		pni->gpio_init = platform_data->gpio_init;
+		pni->gpio_init();
+	}
+
+	if (platform_data->gpio_deinit != NULL) {
+		I("%s: gpio_deinit\n", __func__);
+		pni->gpio_deinit = platform_data->gpio_deinit;
+	}
+
+	if (platform_data->check_nfc_exist != NULL) {
+		I("%s: check_nfc_exist\n", __func__);
+		pni->check_nfc_exist = platform_data->check_nfc_exist;
+		if (!pni->check_nfc_exist()) {
+			is_alive = 0;
+			if (pni->gpio_deinit != NULL) {
+				I("%s: gpio_deinit\n", __func__);
+				pni->gpio_deinit();
+			}
+		}
 	}
 
 	pni->irq_gpio = platform_data->irq_gpio;
@@ -619,10 +646,12 @@ static int pn544_probe(struct i2c_client *client,
 	pni->client   = client;
 	pni->gpio_init = platform_data->gpio_init;
 	pni->ven_enable = !platform_data->ven_isinvert;
+	pni->boot_mode = board_mfg_mode();
+	pni->isReadBlock = false;
 
-	/*pn544_PowerOnSeq();*/
+	
 
-	/* init mutex and queues */
+	
 	init_waitqueue_head(&pni->read_wq);
 	mutex_init(&pni->read_mutex);
 	spin_lock_init(&pni->irq_enabled_lock);
@@ -645,9 +674,6 @@ static int pn544_probe(struct i2c_client *client,
 	}
 
 
-	/* request irq.  the irq is set whenever the chip has data available
-	 * for reading.  it is cleared when all data has been read.
-	 */
 	I("%s : requesting IRQ %d\n", __func__, client->irq);
 	pni->irq_enabled = true;
 	ret = request_irq(client->irq, pn544_dev_irq_handler,
@@ -675,7 +701,7 @@ static int pn544_probe(struct i2c_client *client,
 		goto err_create_pn_device;
 	}
 
-	/* register the attributes */
+	
 	ret = device_create_file(pni->pn_dev, &dev_attr_pn_temp1);
 	if (ret) {
 		E("%s : device_create_file dev_attr_pn_temp1 failed\n", __func__);
@@ -688,10 +714,23 @@ static int pn544_probe(struct i2c_client *client,
 		goto err_create_pn_file;
 	}
 
-	I("%s: disable NFC by default\n", __func__);
-	pn544_Disable();
+	
+	if ( is_alive && (pni->boot_mode != 5) ) {
+		I("%s: disable NFC by default (bootmode = %d)\n", __func__, pni->boot_mode);
+		pn544_Disable();
+	}
 
-	I("%s: Probe success!\n", __func__);
+	if (is_alive == 0) {
+		I("%s: Without NFC, device_create_file dev_attr_nxp_chip_alive \n", __func__);
+		ret = device_create_file(pni->pn_dev, &dev_attr_nxp_chip_alive);
+		if (ret) {
+			E("pn544_probe device_create_file dev_attr_nxp_chip_alive failed\n");
+		}
+
+	}
+
+
+	I("%s: Probe success! is_alive : %d\n", __func__, is_alive);
 	return 0;
 
 err_create_pn_file:
@@ -740,11 +779,15 @@ static int pn544_suspend(struct i2c_client *client, pm_message_t state)
 {
 	struct pn544_dev *pni = pn_info;
 
-	if (pni->ven_value) {
+        I("%s: irq = %d, ven_gpio = %d, isEn = %d, isReadBlock =%d\n", __func__, \
+                gpio_get_value(pni->irq_gpio), gpio_get_value(pni->ven_gpio), pn544_isEn(), pni->isReadBlock);
+
+	if (pni->ven_value && pni->isReadBlock && is_alive) {
 		pni->irq_enabled = true;
 		enable_irq(pni->client->irq);
 		irq_set_irq_wake(pni->client->irq, 1);
 	}
+
 	return 0;
 }
 
@@ -752,10 +795,14 @@ static int pn544_resume(struct i2c_client *client)
 {
 	struct pn544_dev *pni = pn_info;
 
-	if (pni->ven_value) {
+        I("%s: irq = %d, ven_gpio = %d, isEn = %d, isReadBlock =%d\n", __func__, \
+                gpio_get_value(pni->irq_gpio), gpio_get_value(pni->ven_gpio), pn544_isEn(), pni->isReadBlock);
+
+	if (pni->ven_value && pni->isReadBlock && is_alive) {
 		pn544_disable_irq(pni);
 		irq_set_irq_wake(pni->client->irq, 0);
 	}
+
 	return 0;
 }
 #endif
@@ -779,9 +826,6 @@ static struct i2c_driver pn544_driver = {
 #endif
 };
 
-/*
- * module load/unload record keeping
- */
 
 static int __init pn544_dev_init(void)
 {

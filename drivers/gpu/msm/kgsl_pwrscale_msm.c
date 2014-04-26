@@ -17,7 +17,6 @@
 #include "kgsl_pwrscale.h"
 #include "kgsl_device.h"
 #include "a2xx_reg.h"
-#include <mach/msm_rtb_enable.h>
 
 struct msm_priv {
 	struct kgsl_device *device;
@@ -49,9 +48,6 @@ static int msm_idle_enable(struct msm_dcvs_idle *self,
 	return 0;
 }
 
-/* Set the requested frequency if it is within 5MHz (delta) of a
- * supported frequency.
- */
 static int msm_set_freq(struct msm_dcvs_freq *self,
 						unsigned int freq)
 {
@@ -61,7 +57,7 @@ static int msm_set_freq(struct msm_dcvs_freq *self,
 	struct kgsl_device *device = priv->device;
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 
-	/* msm_dcvs manager uses frequencies in kHz */
+	
 	freq *= 1000;
 	for (i = 0; i < pwr->num_pwrlevels; i++)
 		if (abs(pwr->pwrlevels[i].gpu_freq - freq) < delta)
@@ -74,7 +70,7 @@ static int msm_set_freq(struct msm_dcvs_freq *self,
 	priv->cur_freq = pwr->pwrlevels[pwr->active_pwrlevel].gpu_freq;
 	mutex_unlock(&device->mutex);
 
-	/* return current frequency in kHz */
+	
 	return priv->cur_freq / 1000;
 }
 
@@ -82,7 +78,7 @@ static unsigned int msm_get_freq(struct msm_dcvs_freq *self)
 {
 	struct msm_priv *priv = container_of(self, struct msm_priv,
 								freq_sink);
-	/* return current frequency in kHz */
+	
 	return priv->cur_freq / 1000;
 }
 
@@ -112,7 +108,7 @@ static void msm_idle(struct kgsl_device *device,
 static void msm_sleep(struct kgsl_device *device,
 			struct kgsl_pwrscale *pwrscale)
 {
-	/* do we need to reset any parameters here? */
+	
 }
 
 static int msm_init(struct kgsl_device *device,
@@ -133,7 +129,7 @@ static int msm_init(struct kgsl_device *device,
 
 	priv->core_info = pdata->core_info;
 	tbl = priv->core_info->freq_tbl;
-	/* Fill in frequency table from low to high, reversing order. */
+	
 	low_level = pwr->num_pwrlevels - KGSL_PWRLEVEL_LAST_OFFSET;
 	for (i = 0; i <= low_level; i++)
 		tbl[i].freq =

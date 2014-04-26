@@ -37,12 +37,10 @@
 #include <mach/htc_acoustic_pmic.h>
 #include <linux/jiffies.h>
 
-//htc audio ++
 #undef pr_info
 #undef pr_err
 #define pr_info(fmt, ...) pr_aud_info(fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...) pr_aud_err(fmt, ##__VA_ARGS__)
-//htc audio --
 
 #ifdef CONFIG_AMP_RT5501_ON_GPIO
 #define DEBUG (1)
@@ -53,19 +51,19 @@
 #define RETRY_CNT 5
 
 #define DRIVER_NAME "RT5501"
-#define HS_IMP_WAKE_LOCK_TIMEOUT (1*HZ)
 
 struct headset_query {
-    struct mutex mlock;
-    struct mutex gpiolock;
-    struct delayed_work hs_imp_detec_work;
-    struct wake_lock hs_wake_lock;
-    enum HEADSET_QUERY_STATUS hs_qstatus;
-    enum RT5501_STATUS rt5501_status;
-    enum HEADSET_OM headsetom;
-    enum RT5501_Mode curmode;
-    enum AMP_GPIO_STATUS gpiostatus;
-    enum AMP_S4_STATUS s4status;
+	struct mutex mlock;
+	struct mutex gpiolock;
+	struct delayed_work hs_imp_detec_work;
+	struct wake_lock hs_wake_lock;
+	struct wake_lock gpio_wake_lock;
+	enum HEADSET_QUERY_STATUS hs_qstatus;
+	enum RT5501_STATUS rt5501_status;
+	enum HEADSET_OM headsetom;
+	enum RT5501_Mode curmode;
+	enum AMP_GPIO_STATUS gpiostatus;
+	enum AMP_S4_STATUS s4status;
 	int action_on;
 	int gpio_off_cancel;
 	struct mutex actionlock;
@@ -76,12 +74,13 @@ struct headset_query {
 static struct i2c_client *this_client;
 static struct rt5501_platform_data *pdata;
 static int rt5501Connect = 0;
+static int MFG_MODE = 0;
 
 struct rt5501_config_data rt5501_config_data;
 static struct mutex hp_amp_lock;
 static int rt5501_opened;
 static int last_spkamp_state;
-struct rt5501_config RT5501_AMP_ON = {6,{{0x1,0x22},{0x2,0x00},{0x7,0x7f},{0x9,0x1},{0xa,0x0},{0xb,0xc7},}};
+struct rt5501_config RT5501_AMP_ON = {6,{{0x1,0x1c},{0x2,0x00},{0x7,0x7f},{0x9,0x1},{0xa,0x0},{0xb,0xc7},}};
 struct rt5501_config RT5501_AMP_INIT = {11,{{0,0xc0},{0x81,0x30},{0x87,0xf6},{0x93,0x8d},{0x95,0x7d},{0xa4,0x52},\
                                         {0x96,0xae},{0x97,0x13},{0x99,0x35},{0x9b,0x68},{0x9d,0x68},}};
 
@@ -113,89 +112,115 @@ static int query_playback(void *pdata)
 static int rt5501_headset_detect(int on)
 {
 
-    if(on) {
+	if(on) {
 
-        pr_info("%s: headset in ++\n",__func__);
-        mutex_lock(&rt5501_query.mlock);
-        rt5501_query.hs_qstatus = RT5501_QUERY_HEADSET;
-        rt5501_query.headsetom = HEADSET_OM_UNDER_DETECT;
-        mutex_unlock(&rt5501_query.mlock);
+		pr_info("%s: headset in ++\n",__func__);
+		mutex_lock(&rt5501_query.mlock);
+		rt5501_query.hs_qstatus = RT5501_QUERY_HEADSET;
+		rt5501_query.headsetom = HEADSET_OM_UNDER_DETECT;
+		mutex_unlock(&rt5501_query.mlock);
 
-        cancel_delayed_work_sync(&rt5501_query.hs_imp_detec_work);
+		cancel_delayed_work_sync(&rt5501_query.hs_imp_detec_work);
 
-        mutex_lock(&rt5501_query.gpiolock);
-        mutex_lock(&rt5501_query.mlock);
+		mutex_lock(&rt5501_query.gpiolock);
+		mutex_lock(&rt5501_query.mlock);
 
-        if(rt5501_query.rt5501_status == RT5501_PLAYBACK) {
+		if(rt5501_query.rt5501_status == RT5501_PLAYBACK) {
 
-           if(high_imp) {
-               rt5501_write_reg(1,0x7);
-               rt5501_write_reg(0xb1,0x81);
-           } else {
-               rt5501_write_reg(1,0xc7);
+			if(high_imp) {
+				rt5501_write_reg(1,0x7);
+				rt5501_write_reg(0xb1,0x81);
+			} else {
+				rt5501_write_reg(1,0xc7);
 
-           }
-           //if (rt5501_i2c_write(RT5501_AMP_OFF.reg, RT5501_AMP_OFF.reg_len) == 0) {
-               last_spkamp_state = 0;
-               pr_info("%s: OFF\n", __func__);
-           //}
-            rt5501_query.rt5501_status = RT5501_SUSPEND;
-        }
-        pr_info("%s: headset in --\n",__func__);
-        mutex_unlock(&rt5501_query.mlock);
-        mutex_unlock(&rt5501_query.gpiolock);
-        //inited = 0;
-        queue_delayed_work(hs_wq,&rt5501_query.hs_imp_detec_work,msecs_to_jiffies(5));
-        pr_info("%s: headset in --2\n",__func__);
+			}
+			last_spkamp_state = 0;
+			pr_info("%s: OFF\n", __func__);
+			rt5501_query.rt5501_status = RT5501_SUSPEND;
+		}
+		pr_info("%s: headset in --\n",__func__);
+		mutex_unlock(&rt5501_query.mlock);
+		mutex_unlock(&rt5501_query.gpiolock);
 
-     } else {
+		queue_delayed_work(hs_wq,&rt5501_query.hs_imp_detec_work,msecs_to_jiffies(5));
+		pr_info("%s: headset in --2\n",__func__);
 
-        pr_info("%s: headset remove ++\n",__func__);
-        flush_work_sync(&rt5501_query.volume_ramp_work.work);
-        mutex_lock(&rt5501_query.mlock);
-        rt5501_query.hs_qstatus = RT5501_QUERY_OFF;
-        rt5501_query.headsetom = HEADSET_OM_UNDER_DETECT;
-        mutex_unlock(&rt5501_query.mlock);
+	} else {
 
-        cancel_delayed_work_sync(&rt5501_query.hs_imp_detec_work);
+		pr_info("%s: headset remove ++\n",__func__);
+		flush_work_sync(&rt5501_query.volume_ramp_work.work);
+		mutex_lock(&rt5501_query.mlock);
+		rt5501_query.hs_qstatus = RT5501_QUERY_OFF;
+		rt5501_query.headsetom = HEADSET_OM_UNDER_DETECT;
+		mutex_unlock(&rt5501_query.mlock);
 
-        mutex_lock(&rt5501_query.gpiolock);
-        mutex_lock(&rt5501_query.mlock);
+		cancel_delayed_work_sync(&rt5501_query.hs_imp_detec_work);
 
-        /*if(rt5501_query.s4status == AMP_S4_AUTO) {
-            pm8921_aud_set_s4_pwm();
-            rt5501_query.s4status = AMP_S4_PWM;
-        }*/
-
-        if(rt5501_query.rt5501_status == RT5501_PLAYBACK) {
-
-           if(high_imp) {
-               rt5501_write_reg(1,0x7);
-               rt5501_write_reg(0xb1,0x81);
-           } else {
-               rt5501_write_reg(1,0xc7);
-
-           }
-
-           //if (rt5501_i2c_write(RT5501_AMP_OFF.reg, RT5501_AMP_OFF.reg_len) == 0) {
-               last_spkamp_state = 0;
-               pr_info("%s: OFF\n", __func__);
-           //}
-            rt5501_query.rt5501_status = RT5501_SUSPEND;
-        }
-
-        rt5501_query.curmode = RT5501_MODE_OFF;
-        pr_info("%s: headset remove --1\n",__func__);
+		mutex_lock(&rt5501_query.gpiolock);
+		mutex_lock(&rt5501_query.mlock);
 
 
-        mutex_unlock(&rt5501_query.mlock);
-        mutex_unlock(&rt5501_query.gpiolock);
+		if(rt5501_query.rt5501_status == RT5501_PLAYBACK) {
 
-        pr_info("%s: headset remove --2\n",__func__);
+			if(high_imp) {
+				rt5501_write_reg(1,0x7);
+				rt5501_write_reg(0xb1,0x81);
+			} else {
+				rt5501_write_reg(1,0xc7);
 
-     }
+			}
 
-    return 0;
+			last_spkamp_state = 0;
+			pr_info("%s: OFF\n", __func__);
+
+			rt5501_query.rt5501_status = RT5501_SUSPEND;
+		}
+
+		rt5501_query.curmode = RT5501_MODE_OFF;
+		pr_info("%s: headset remove --1\n",__func__);
+
+		if(high_imp) {
+			int closegpio = 0;
+			if((rt5501_query.gpiostatus == AMP_GPIO_OFF) && pdata->gpio_rt5501_spk_en) {
+
+				if(rt5501_query.s4status == AMP_S4_AUTO) {
+					pm8921_aud_set_s4_pwm();
+					rt5501_query.s4status = AMP_S4_PWM;
+					msleep(1);
+				}
+
+				pr_info("%s: enable gpio %d\n",__func__,pdata->gpio_rt5501_spk_en);
+				gpio_direction_output(pdata->gpio_rt5501_spk_en, 1);
+				rt5501_query.gpiostatus = AMP_GPIO_ON;
+				closegpio = 1;
+				msleep(1);
+			}
+			pr_info("%s: reset rt5501\n",__func__);
+			rt5501_write_reg(0x0,0x4);
+			mdelay(1);
+
+			rt5501_write_reg(0x1,0xc7);
+			high_imp = 0;
+
+			if(closegpio && (rt5501_query.gpiostatus == AMP_GPIO_ON) && pdata->gpio_rt5501_spk_en) {
+				pr_info("%s: disable gpio %d\n",__func__,pdata->gpio_rt5501_spk_en);
+				gpio_direction_output(pdata->gpio_rt5501_spk_en, 0);
+				rt5501_query.gpiostatus = AMP_GPIO_OFF;
+
+				if(rt5501_query.s4status == AMP_S4_PWM) {
+					pm8921_aud_set_s4_auto();
+					rt5501_query.s4status = AMP_S4_AUTO;
+				}
+			}
+		}
+
+		mutex_unlock(&rt5501_query.mlock);
+		mutex_unlock(&rt5501_query.gpiolock);
+
+		pr_info("%s: headset remove --2\n",__func__);
+	}
+
+	return 0;
 }
 
 static int rt5501_write_reg(u8 reg, u8 val)
@@ -234,8 +259,8 @@ static int rt5501_i2c_write(struct rt5501_reg_data *txData, int length)
 		},
 	};
 	for (i = 0; i < length; i++) {
-		//if (i == 2)  /* According to rt5501 Spec */
-		//	mdelay(1);
+		
+		
 		buf[0] = txData[i].addr;
 		buf[1] = txData[i].val;
 
@@ -276,8 +301,8 @@ static int rt5501_i2c_write_for_read(char *txData, int length)
 		},
 	};
 	for (i = 0; i < length; i++) {
-		//if (i == 2)  /* According to rt5501 Spec */
-		//	mdelay(1);
+		
+		
 		buf[0] = i;
 		buf[1] = txData[i];
 #if DEBUG
@@ -367,12 +392,6 @@ static int rt5501_i2c_read_addr(char *rxData, unsigned char addr)
 		return rc;
 	}
 
-	/*{
-		int i = 0;
-		for (i = 0; i < length; i++)
-			pr_info("i2c_read %s: rx[%d] = %2x\n", __func__, i, \
-				rxData[i]);
-	}*/
         pr_info("%s:i2c_read addr 0x%x value = 0x%x\n", __func__, addr, *rxData);
 	return 0;
 }
@@ -441,13 +460,15 @@ static int init_rt5501(void)
 static void hs_imp_gpio_off(struct work_struct *work)
 {
     u64 timeout = get_jiffies_64() + 5*HZ;
+    wake_lock(&rt5501_query.gpio_wake_lock);
 
     while(1) {
         if(time_after64(get_jiffies_64(),timeout))
             break;
-        else if(rt5501_query.gpio_off_cancel)
+        else if(rt5501_query.gpio_off_cancel) {
+            wake_unlock(&rt5501_query.gpio_wake_lock);
             return;
-        else
+        } else
             msleep(10);
     }
 
@@ -462,7 +483,7 @@ static void hs_imp_gpio_off(struct work_struct *work)
     }
 
     mutex_unlock(&rt5501_query.gpiolock);
-
+    wake_unlock(&rt5501_query.gpio_wake_lock);
 }
 
 static void hs_imp_detec_func(struct work_struct *work)
@@ -474,7 +495,7 @@ static void hs_imp_detec_func(struct work_struct *work)
     pr_info("%s: read rt5501 hs imp \n",__func__);
 
     hs = container_of(work, struct headset_query, hs_imp_detec_work.work);
-    wake_lock_timeout(&hs->hs_wake_lock, HS_IMP_WAKE_LOCK_TIMEOUT);
+    wake_lock(&hs->hs_wake_lock);
 
     rt5501_query.gpio_off_cancel = 1;
     cancel_delayed_work_sync(&rt5501_query.gpio_off_work);
@@ -484,6 +505,7 @@ static void hs_imp_detec_func(struct work_struct *work)
     if(hs->hs_qstatus != RT5501_QUERY_HEADSET) {
         mutex_unlock(&hs->mlock);
         mutex_unlock(&hs->gpiolock);
+        wake_unlock(&hs->hs_wake_lock);
         return;
     }
 
@@ -505,7 +527,7 @@ static void hs_imp_detec_func(struct work_struct *work)
     rt5501_write_reg(0,0x04);
     rt5501_write_reg(0xa4,0x52);
 
-    //rt5501_write_reg(0xb1,0x80);
+    
 
     rt5501_write_reg(1,0x7);
     msleep(10);
@@ -535,6 +557,7 @@ static void hs_imp_detec_func(struct work_struct *work)
 
         mutex_unlock(&hs->mlock);
         mutex_unlock(&hs->gpiolock);
+        wake_unlock(&hs->hs_wake_lock);
         return;
     }
 
@@ -571,7 +594,7 @@ static void hs_imp_detec_func(struct work_struct *work)
         om = (temp[0] & 0xe) >> 1;
 
 	if(temp[0] == 0xc0 || temp[0] == 0xc1) {
-		//mono headset
+		
 		hsom = HEADSET_MONO;
 	} else {
 
@@ -606,12 +629,14 @@ static void hs_imp_detec_func(struct work_struct *work)
 		        break;
 		}
 	}
-        pr_info("rt5501 hs imp value 0x%x hsmode %d om 0x%x hsom %d\n",temp[0] & 0xf,hsmode,om,hsom);
+
         hs->hs_qstatus = RT5501_QUERY_FINISH;
         hs->headsetom = hsom;
 
         if(om >= HEADSET_256OM && om <= HEADSET_1KOM)
             high_imp = 1;
+
+        pr_info("rt5501 hs imp value 0x%x hsmode %d om 0x%x hsom %d high_imp %d\n",temp[0] & 0xf,hsmode,om,hsom,high_imp);
 
         if((hs->gpiostatus == AMP_GPIO_ON) && pdata->gpio_rt5501_spk_en) {
 
@@ -651,41 +676,52 @@ static void hs_imp_detec_func(struct work_struct *work)
     if(rt5501_status == RT5501_SUSPEND)
         set_rt5501_amp(1);
 
+    wake_unlock(&hs->hs_wake_lock);
 }
 
 static void volume_ramp_func(struct work_struct *work)
 {
 	mutex_lock(&rt5501_query.actionlock);
-            if(rt5501_query.rt5501_status != RT5501_PLAYBACK) {
-	        int i;
-	        u8 val;
-               pr_info("%s: ramping-------------------------\n",__func__);
-               mdelay(1);
-               //start state machine and disable noise gate
-               if(high_imp)
-                   rt5501_write_reg(0xb1,0x80);
+	if(rt5501_query.rt5501_status != RT5501_PLAYBACK) {
+		u8 val;
+		pr_info("%s: ramping-------------------------\n",__func__);
+		mdelay(1);
+		
+		if(high_imp)
+			rt5501_write_reg(0xb1,0x80);
 
-               rt5501_write_reg(0x2,0x0);
-               mdelay(1);
-               val = 0x7;
+		rt5501_write_reg(0x2,0x0);
+		mdelay(1);
+		val = 0x7;
 
+		if (MFG_MODE) {
+			pr_info("Skip volume ramp for MFG build");
+			val += 15;
+			rt5501_write_reg(1,val);
+		} else {
 #if 1
-               for(i=0; i<15; i++) {
-                 msleep(1);
-                 rt5501_write_reg(1,val);
-                 val++;
-               }
+			int i;
+			for(i=0; i<15; i++) {
+				if(!rt5501_query.action_on) {
+					mutex_unlock(&rt5501_query.actionlock);
+					return;
+				}
+				msleep(1);
+				rt5501_write_reg(1,val);
+				val++;
+			}
 #else
-               for(i=0; i<8; i++) {
-                 msleep(10);
-                 rt5501_write_reg(1,val);
-                 val += 2;
-               }
+			for(i=0; i<8; i++) {
+				msleep(10);
+				rt5501_write_reg(1,val);
+				val += 2;
+			}
 
 #endif
-            }
+		}
+	}
 
-        set_amp(1, &RT5501_AMP_ON);
+	set_amp(1, &RT5501_AMP_ON);
 	mutex_unlock(&rt5501_query.actionlock);
 }
 
@@ -734,8 +770,12 @@ int query_rt5501(void)
 
 void set_rt5501_amp(int on)
 {
+    pr_info("%s: %d\n", __func__, on);
     rt5501_query.gpio_off_cancel = 1;
+    if(!on)
+        rt5501_query.action_on = 0;
     cancel_delayed_work_sync(&rt5501_query.gpio_off_work);
+    cancel_delayed_work_sync(&rt5501_query.volume_ramp_work);
     flush_work_sync(&rt5501_query.volume_ramp_work.work);
     mutex_lock(&rt5501_query.gpiolock);
 
@@ -754,11 +794,10 @@ void set_rt5501_amp(int on)
             rt5501_query.gpiostatus = AMP_GPIO_ON;
             msleep(1);
         }
-
+                rt5501_query.action_on = 1;
 		queue_delayed_work(ramp_wq, &rt5501_query.volume_ramp_work, msecs_to_jiffies(0));
 
     } else {
-
         set_amp(0, &RT5501_AMP_ON);
         if((rt5501_query.gpiostatus == AMP_GPIO_ON) && pdata->gpio_rt5501_spk_en) {
 
@@ -812,7 +851,7 @@ static long rt5501_ioctl(struct file *file, unsigned int cmd,
 		pr_info("%s: RT5501_WRITE_REG\n", __func__);
 		mutex_lock(&hp_amp_lock);
 		if (!last_spkamp_state) {
-			/* According to rt5501 Spec */
+			
 			mdelay(30);
 		}
 		if (copy_from_user(reg_value, argp, sizeof(reg_value)))
@@ -834,7 +873,7 @@ err1:
 	case RT5501_READ_CONFIG:
 		mutex_lock(&hp_amp_lock);
 		if (!last_spkamp_state) {
-			/* According to rt5501 Spec */
+			
 			mdelay(30);
 		}
 
@@ -903,12 +942,12 @@ err2:
 
 		pr_info("%s: update rt5501 i2c commands #%d success.\n",
 				__func__, rt5501_config_data.mode_num);
-		/* update default paramater from csv*/
+		
                 mutex_lock(&hp_amp_lock);
 		update_amp_parameter(RT5501_MODE_OFF);
 		update_amp_parameter(RT5501_MUTE);
 		update_amp_parameter(RT5501_INIT);
-		//update_amp_parameter(RT5501_MODE_MFG);
+		
                 mutex_unlock(&hp_amp_lock);
 		rc = 0;
 		break;
@@ -949,7 +988,7 @@ int rt5501_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int ret = 0;
         int err = 0;
-
+	MFG_MODE = board_mfg_mode();
 	pdata = client->dev.platform_data;
 
 	if (pdata == NULL) {
@@ -975,58 +1014,80 @@ int rt5501_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto err_free_gpio_all;
 	}
 
-        if(pdata->gpio_rt5501_spk_en) {
-            char temp[2];
+	if(pdata->gpio_rt5501_spk_en) {
+		char temp[2];
 
-            err = gpio_request(pdata->gpio_rt5501_spk_en, "hp_en");
+		err = gpio_request(pdata->gpio_rt5501_spk_en, "hp_en");
 
-            ret = gpio_direction_output(pdata->gpio_rt5501_spk_en, 1);
+		ret = gpio_direction_output(pdata->gpio_rt5501_spk_en, 1);
 
-            if(ret < 0) {
-		pr_err("%s: gpio %d on error %d\n", __func__,pdata->gpio_rt5501_spk_en,ret);
-            }
+		if(ret < 0) {
+			pr_err("%s: gpio %d on error %d\n", __func__,pdata->gpio_rt5501_spk_en,ret);
+		}
 
-            mdelay(1);
+		mdelay(1);
 
-            ret = rt5501_i2c_read(temp, 2);
+		ret = rt5501_i2c_read(temp, 2);
 
-            if(ret < 0) {
-                pr_info("rt5501 is not connected\n");
-                rt5501Connect = 0;
-            } else {
-                pr_info("rt5501 is connected\n");
-                rt5501Connect = 1;
-            }
+		if(ret < 0) {
+			pr_info("rt5501 is not connected\n");
+			rt5501Connect = 0;
+		} else {
+			pr_info("rt5501 is connected\n");
+			rt5501Connect = 1;
+		}
 
-	    gpio_direction_output(pdata->gpio_rt5501_spk_en, 0);
+		rt5501_write_reg(0x0,0x4);
+		mdelay(1);
 
-            if(!err)
-                gpio_free(pdata->gpio_rt5501_spk_en);
+		rt5501_write_reg(0x0,0xc0);
+		rt5501_write_reg(0x81,0x30);
+		rt5501_write_reg(0x87,0xf6);
+		rt5501_write_reg(0x90,0xd0);
+		rt5501_write_reg(0x93,0x9d);
+		rt5501_write_reg(0x95,0x7b);
+		rt5501_write_reg(0xa4,0x01);
+		rt5501_write_reg(0x96,0xae);
+		rt5501_write_reg(0x97,0x11);
+		rt5501_write_reg(0x98,0x22);
+		rt5501_write_reg(0x99,0x44);
+		rt5501_write_reg(0x9a,0x55);
+		rt5501_write_reg(0x9b,0x66);
+		rt5501_write_reg(0x9c,0x99);
+		rt5501_write_reg(0x9d,0x66);
+		rt5501_write_reg(0x9e,0x99);
+		rt5501_write_reg(0x1,0xc7);
 
-            if(ret < 0) {
-		pr_err("%s: gpio %d off error %d\n", __func__,pdata->gpio_rt5501_spk_en,ret);
-            }
+		gpio_direction_output(pdata->gpio_rt5501_spk_en, 0);
 
-        }
+		if(!err)
+			gpio_free(pdata->gpio_rt5501_spk_en);
 
-        if(rt5501Connect) {
-            struct headset_notifier notifier;
-	    ret = misc_register(&rt5501_device);
-	    if (ret) {
-		pr_err("%s: rt5501_device register failed\n", __func__);
-		goto err_free_gpio_all;
-	    }
+		if(ret < 0) {
+			pr_err("%s: gpio %d off error %d\n", __func__,pdata->gpio_rt5501_spk_en,ret);
+		}
 
-            hs_wq = create_workqueue("rt5501_hsdetect");
-            INIT_DELAYED_WORK(&rt5501_query.hs_imp_detec_work,hs_imp_detec_func);
-            wake_lock_init(&rt5501_query.hs_wake_lock, WAKE_LOCK_SUSPEND, DRIVER_NAME);
-			ramp_wq = create_workqueue("rt5501_volume_ramp");
-			INIT_DELAYED_WORK(&rt5501_query.volume_ramp_work, volume_ramp_func);
-			gpio_wq = create_workqueue("rt5501_gpio_off");
-			INIT_DELAYED_WORK(&rt5501_query.gpio_off_work, hs_imp_gpio_off);
-            notifier.id = HEADSET_REG_MIC_BIAS;
-            notifier.func = rt5501_headset_detect;
-            headset_notifier_register(&notifier);
+	}
+
+	if(rt5501Connect) {
+		struct headset_notifier notifier;
+		ret = misc_register(&rt5501_device);
+		if (ret) {
+			pr_err("%s: rt5501_device register failed\n", __func__);
+			goto err_free_gpio_all;
+		}
+
+		hs_wq = create_workqueue("rt5501_hsdetect");
+		INIT_DELAYED_WORK(&rt5501_query.hs_imp_detec_work,hs_imp_detec_func);
+		wake_lock_init(&rt5501_query.hs_wake_lock, WAKE_LOCK_SUSPEND, DRIVER_NAME);
+		wake_lock_init(&rt5501_query.gpio_wake_lock, WAKE_LOCK_SUSPEND, DRIVER_NAME);
+		ramp_wq = create_workqueue("rt5501_volume_ramp");
+		INIT_DELAYED_WORK(&rt5501_query.volume_ramp_work, volume_ramp_func);
+		gpio_wq = create_workqueue("rt5501_gpio_off");
+		INIT_DELAYED_WORK(&rt5501_query.gpio_off_work, hs_imp_gpio_off);
+		notifier.id = HEADSET_REG_HS_INSERT;
+		notifier.func = rt5501_headset_detect;
+		headset_notifier_register(&notifier);
         }
 	return 0;
 
@@ -1051,6 +1112,53 @@ static int rt5501_remove(struct i2c_client *client)
 	return 0;
 }
 
+static void rt5501_shutdown(struct i2c_client *client)
+{
+	rt5501_query.gpio_off_cancel = 1;
+	cancel_delayed_work_sync(&rt5501_query.gpio_off_work);
+	cancel_delayed_work_sync(&rt5501_query.volume_ramp_work);
+
+	mutex_lock(&rt5501_query.gpiolock);
+	mutex_lock(&hp_amp_lock);
+        mutex_lock(&rt5501_query.mlock);
+
+	if((rt5501_query.gpiostatus == AMP_GPIO_OFF) && pdata->gpio_rt5501_spk_en) {
+
+		if(rt5501_query.s4status == AMP_S4_AUTO) {
+			pm8921_aud_set_s4_pwm();
+			rt5501_query.s4status = AMP_S4_PWM;
+			msleep(1);
+		}
+
+		pr_info("%s: enable gpio %d\n",__func__,pdata->gpio_rt5501_spk_en);
+		gpio_direction_output(pdata->gpio_rt5501_spk_en, 1);
+		rt5501_query.gpiostatus = AMP_GPIO_ON;
+		msleep(1);
+	}
+
+	pr_info("%s: reset rt5501\n",__func__);
+	rt5501_write_reg(0x0,0x4);
+	mdelay(1);
+
+	high_imp = 0;
+
+	if((rt5501_query.gpiostatus == AMP_GPIO_ON) && pdata->gpio_rt5501_spk_en) {
+		pr_info("%s: disable gpio %d\n",__func__,pdata->gpio_rt5501_spk_en);
+		gpio_direction_output(pdata->gpio_rt5501_spk_en, 0);
+		rt5501_query.gpiostatus = AMP_GPIO_OFF;
+
+		if(rt5501_query.s4status == AMP_S4_PWM) {
+			pm8921_aud_set_s4_auto();
+			rt5501_query.s4status = AMP_S4_AUTO;
+		}
+	}
+
+        mutex_unlock(&rt5501_query.mlock);
+	mutex_unlock(&hp_amp_lock);
+	mutex_unlock(&rt5501_query.gpiolock);
+
+}
+
 static int rt5501_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	return 0;
@@ -1069,6 +1177,7 @@ static const struct i2c_device_id rt5501_id[] = {
 static struct i2c_driver rt5501_driver = {
 	.probe = rt5501_probe,
 	.remove = rt5501_remove,
+	.shutdown = rt5501_shutdown,
 	.suspend = rt5501_suspend,
 	.resume = rt5501_resume,
 	.id_table = rt5501_id,

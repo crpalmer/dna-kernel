@@ -21,10 +21,9 @@ struct msm_buspm_map_dev {
 	size_t          buflen;
 };
 
-/* Read/write data into kernel buffer */
 struct buspm_xfer_req {
-	int size;		/* Size of this request, in bytes */
-	void *data;		/* Data buffer to transfer data to/from */
+	int size;		
+	void *data;		
 };
 
 struct buspm_alloc_params {

@@ -32,10 +32,8 @@
 #define CESR_TLBMH		BIT(16)
 #define CESR_I_MASK		0x000000CC
 
-/* Print a message for everything but TLB MH events */
 #define CESR_PRINT_MASK		0x000000FF
 
-/* Log everything but TLB MH events */
 #define CESR_LOG_EVENT_MASK	0x000000FF
 
 #define L2ESR_IND_ADDR		0x204
@@ -73,7 +71,7 @@
 #ifdef CONFIG_MSM_L2_ERP_1BIT_PANIC
 #define ERP_1BIT_ERR(a) panic(a)
 #else
-#define ERP_1BIT_ERR(a) do { } while (0)
+#define ERP_1BIT_ERR(a) WARN(1, a)
 #endif
 
 #ifdef CONFIG_MSM_L2_ERP_PRINT_ACCESS_ERRORS
@@ -85,7 +83,7 @@
 #ifdef CONFIG_MSM_L2_ERP_2BIT_PANIC
 #define ERP_2BIT_ERR(a) panic(a)
 #else
-#define ERP_2BIT_ERR(a) do { } while (0)
+#define ERP_2BIT_ERR(a) WARN(1, a)
 #endif
 
 #define MODULE_NAME "msm_cache_erp"
@@ -311,11 +309,6 @@ static irqreturn_t msm_l1_erp_irq(int irq, void *dev_id)
 		pr_alert("I-side CESYNR = 0x%08x\n", i_cesynr);
 		write_cesr(CESR_I_MASK);
 
-		/*
-		 * Clear the I-side bits from the captured CESR value so that we
-		 * don't accidentally clear any new I-side errors when we do
-		 * the CESR write-clear operation.
-		 */
 		cesr &= ~CESR_I_MASK;
 	}
 
@@ -327,7 +320,7 @@ static irqreturn_t msm_l1_erp_irq(int irq, void *dev_id)
 	if (log_event)
 		log_cpu_event();
 
-	/* Clear the interrupt bits we processed */
+	
 	write_cesr(cesr);
 
 	if (print_regs)

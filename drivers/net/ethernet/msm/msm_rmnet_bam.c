@@ -11,9 +11,6 @@
  *
  */
 
-/*
- * RMNET BAM Module.
- */
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -41,7 +38,6 @@
 
 static int ril_debug_flag = 0;
 
-/* Debug message support */
 static int msm_rmnet_bam_debug_mask;
 module_param_named(debug_enable, msm_rmnet_bam_debug_mask,
 			int, S_IRUGO | S_IWUSR | S_IWGRP);
@@ -58,10 +54,8 @@ module_param_named(debug_enable, msm_rmnet_bam_debug_mask,
 #define DBG1(x...) DBG(DEBUG_MASK_LVL1, x)
 #define DBG2(x...) DBG(DEBUG_MASK_LVL2, x)
 
-/* Configure device instances */
 #define RMNET_DEVICE_COUNT (8)
 
-/* allow larger frames */
 #define RMNET_DATA_LEN 2000
 
 #define DEVICE_ID_INVALID   -1
@@ -69,9 +63,9 @@ module_param_named(debug_enable, msm_rmnet_bam_debug_mask,
 #define DEVICE_INACTIVE      0
 #define DEVICE_ACTIVE        1
 
-#define HEADROOM_FOR_BAM   8 /* for mux header */
+#define HEADROOM_FOR_BAM   8 
 #define HEADROOM_FOR_QOS    8
-#define TAILROOM            8 /* for padding by mux layer */
+#define TAILROOM            8 
 
 struct rmnet_private {
 	struct net_device_stats stats;
@@ -86,23 +80,32 @@ struct rmnet_private {
 	spinlock_t lock;
 	spinlock_t tx_queue_lock;
 	struct tasklet_struct tsklt;
-	u32 operation_mode; /* IOCTL specified mode (protocol, QoS header) */
+	u32 operation_mode; 
 	uint8_t device_up;
 	uint8_t in_reset;
 };
+
+#define TX_DT_TP_L0_INTERVAL 5000
+#define TX_DT_TP_L1_INTERVAL 200
+#define TX_DT_TP_L2_INTERVAL 200
+#define TX_DT_TP_L1_TIME 30000
+#define TX_DT_TP_MIN_SIZE (10*1024)
+#define TX_DT_TP_L1_SIZE (40*1024)
+static struct timer_list	tx_throttle_timer;
+static bool enable_trottle = false;
+static unsigned long current_tx_bytes = 0;
+static unsigned long previous_tx_bytes = 0;
+static unsigned int tx_throttle_counter = 0;
+static unsigned int tx_throttle_level = 0;
+static unsigned long tx_throttle_limited_size = 2048;
 
 #ifdef CONFIG_MSM_RMNET_DEBUG
 static unsigned long timeout_us;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-/*
- * If early suspend is enabled then we specify two timeout values,
- * screen on (default), and screen is off.
- */
 static unsigned long timeout_suspend_us;
 static struct device *rmnet0;
 
-/* Set timeout in us when the screen is off. */
 static ssize_t timeout_suspend_store(struct device *d,
 				     struct device_attribute *attr,
 				     const char *buf, size_t n)
@@ -151,15 +154,14 @@ static int __init rmnet_late_init(void)
 late_initcall(rmnet_late_init);
 #endif
 
-/* Returns 1 if packet caused rmnet to wakeup, 0 otherwise. */
 static int rmnet_cause_wakeup(struct rmnet_private *p)
 {
 	int ret = 0;
 	ktime_t now;
-	if (p->timeout_us == 0) /* Check if disabled */
+	if (p->timeout_us == 0) 
 		return 0;
 
-	/* Use real (wall) time. */
+	
 	now = ktime_get_real();
 
 	if (ktime_us_delta(now, p->last_packet) > p->timeout_us)
@@ -188,7 +190,6 @@ static ssize_t wakeups_rcv_show(struct device *d, struct device_attribute *attr,
 
 DEVICE_ATTR(wakeups_rcv, 0444, wakeups_rcv_show, NULL);
 
-/* Set timeout in us. */
 static ssize_t timeout_store(struct device *d, struct device_attribute *attr,
 			     const char *buf, size_t n)
 {
@@ -196,7 +197,6 @@ static ssize_t timeout_store(struct device *d, struct device_attribute *attr,
 	struct rmnet_private *p = netdev_priv(to_net_dev(d));
 	p->timeout_us = timeout_us = strict_strtoul(buf, NULL, 10);
 #else
-/* If using early suspend/resume hooks do not write the value on store. */
 	timeout_us = strict_strtoul(buf, NULL, 10);
 #endif
 	return n;
@@ -213,8 +213,136 @@ static ssize_t timeout_show(struct device *d, struct device_attribute *attr,
 DEVICE_ATTR(timeout, 0664, timeout_show, timeout_store);
 #endif
 
+static void rmnet_bam_tx_dt (unsigned long param)
+{
+	struct net_device		*dev = (struct net_device *) param;
+	struct rmnet_private		*unet = netdev_priv(dev);
+	unsigned long		tp;
 
-/* Forward declaration */
+	switch (tx_throttle_level) {
+	case 0:
+		tp = ((unet->stats.tx_bytes-previous_tx_bytes)/TX_DT_TP_L0_INTERVAL)*1000;
+
+		DBG2("previous tx bytes: %lu, current tx bytes: %lu, tp: %lu\n", previous_tx_bytes, (unet->stats.tx_bytes), tp);
+
+		current_tx_bytes = 0;
+		previous_tx_bytes = unet->stats.tx_bytes;
+
+		if ( tp < TX_DT_TP_MIN_SIZE ) {
+			DBG0("current tp less than: %d, not enable DT\n", TX_DT_TP_MIN_SIZE);
+			tx_throttle_timer.expires = jiffies + msecs_to_jiffies(TX_DT_TP_L0_INTERVAL);
+		}
+		else if ( tp < TX_DT_TP_L1_SIZE )
+		{
+			DBG0("enable DT, migrate to level 2\n");
+			tx_throttle_limited_size = TX_DT_TP_MIN_SIZE/(1000/TX_DT_TP_L2_INTERVAL);
+			enable_trottle = true;
+			tx_throttle_level = 2;
+			tx_throttle_timer.expires = jiffies + msecs_to_jiffies(TX_DT_TP_L2_INTERVAL);
+		}
+		else
+		{
+			DBG0("enable DT, migrate to level 1\n");
+			tx_throttle_limited_size = (tp/2)/(1000/TX_DT_TP_L1_INTERVAL);
+			enable_trottle = true;
+			tx_throttle_level = 1;
+			tx_throttle_timer.expires = jiffies + msecs_to_jiffies(TX_DT_TP_L1_INTERVAL);
+		}
+		add_timer(&tx_throttle_timer);
+		break;
+	case 1:
+		tp = ((unet->stats.tx_bytes-previous_tx_bytes)/TX_DT_TP_L1_INTERVAL)*1000;
+
+		DBG2("previous tx bytes: %lu, current tx bytes: %lu, tp: %lu\n", previous_tx_bytes, (unet->stats.tx_bytes), tp);
+
+		current_tx_bytes = 0;
+		previous_tx_bytes = unet->stats.tx_bytes;
+		netif_wake_queue (dev);
+
+		tx_throttle_counter++;
+		if ( tx_throttle_counter > (TX_DT_TP_L1_TIME/TX_DT_TP_L1_INTERVAL) ) {
+			DBG0("tx_throttle_counter: %d reach time: %d, migrate to level 2\n", tx_throttle_counter,TX_DT_TP_L1_INTERVAL);
+			tx_throttle_level = 2;
+			tx_throttle_limited_size = TX_DT_TP_MIN_SIZE/(1000/TX_DT_TP_L2_INTERVAL);
+			tx_throttle_timer.expires = jiffies + msecs_to_jiffies(TX_DT_TP_L2_INTERVAL);
+		}
+		else
+		{
+			tx_throttle_timer.expires = jiffies + msecs_to_jiffies(TX_DT_TP_L1_INTERVAL);
+		}
+		add_timer(&tx_throttle_timer);
+		break;
+	case 2:
+		tp = ((unet->stats.tx_bytes-previous_tx_bytes)/TX_DT_TP_L2_INTERVAL)*1000;
+
+		DBG2("previous tx bytes: %lu, current tx bytes: %lu, tp: %lu\n", previous_tx_bytes, (unet->stats.tx_bytes), tp);
+
+		current_tx_bytes = 0;
+		previous_tx_bytes = unet->stats.tx_bytes;
+		netif_wake_queue(dev);
+
+		tx_throttle_timer.expires = jiffies + msecs_to_jiffies(TX_DT_TP_L2_INTERVAL);
+		add_timer(&tx_throttle_timer);
+		break;
+	default:
+		DBG0("Invalid level.\n");
+	}
+}
+
+static ssize_t rmnet_bam_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	DBG0("%s\n",__func__);
+
+	return sprintf(buf, "enable=%d, level=%d\n", enable_trottle, tx_throttle_level);
+}
+
+static ssize_t rmnet_bam_store(struct device *dev, struct device_attribute *attr, const char * buf, size_t count)
+{
+	int value;
+	struct net_device	*ndev = to_net_dev(dev);
+	struct rmnet_private		*unet = netdev_priv(ndev);
+	static int previous_value = 0;
+
+	if (sscanf(buf, "%d", &value) != 1)
+		return -EINVAL;
+
+	if (value == previous_value)
+		return count;
+	else
+		previous_value = value;
+
+	DBG0("%s enable=%d\n", __func__, value);
+
+	switch (value) {
+	case 0:
+		
+		del_timer_sync (&tx_throttle_timer);
+		tx_throttle_level = 0;
+		tx_throttle_counter = 0;
+		enable_trottle = false;
+		netif_wake_queue(ndev);
+		break;
+	case 1:
+		
+		tx_throttle_level = 0;
+		tx_throttle_counter = 0;
+		current_tx_bytes = 0;
+		previous_tx_bytes = unet->stats.tx_bytes;
+		init_timer(&tx_throttle_timer);
+		tx_throttle_timer.function = rmnet_bam_tx_dt;
+		tx_throttle_timer.data = (unsigned long) ndev;
+		tx_throttle_timer.expires = jiffies + msecs_to_jiffies(TX_DT_TP_L0_INTERVAL);
+		add_timer(&tx_throttle_timer);
+		break;
+	default:
+		DBG0("Invalid parameter.\n");
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR(throttle, S_IRUSR | S_IWUSR, rmnet_bam_show, rmnet_bam_store);
+
 static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd);
 
 static __be16 rmnet_ip_type_trans(struct sk_buff *skb, struct net_device *dev)
@@ -223,7 +351,7 @@ static __be16 rmnet_ip_type_trans(struct sk_buff *skb, struct net_device *dev)
 
 	skb->dev = dev;
 
-	/* Determine L3 protocol */
+	
 	switch (skb->data[0] & 0xf0) {
 	case 0x40:
 		protocol = htons(ETH_P_IP);
@@ -234,7 +362,7 @@ static __be16 rmnet_ip_type_trans(struct sk_buff *skb, struct net_device *dev)
 	default:
 		pr_err(MODULE_NAME "[%s] rmnet_recv() L3 protocol decode error: 0x%02x",
 		       dev->name, skb->data[0] & 0xf0);
-		/* skb will be dropped in upper layer for unknown protocol */
+		
 	}
 	return protocol;
 }
@@ -249,7 +377,6 @@ static int count_this_packet(void *_hdr, int len)
 	return 1;
 }
 
-/* Rx Callback, Called in Work Queue context */
 static void bam_recv_notify(void *dev, struct sk_buff *skb)
 {
 	struct rmnet_private *p = netdev_priv(dev);
@@ -258,16 +385,16 @@ static void bam_recv_notify(void *dev, struct sk_buff *skb)
 
 	if (skb) {
 		skb->dev = dev;
-		/* Handle Rx frame format */
+		
 		spin_lock_irqsave(&p->lock, flags);
 		opmode = p->operation_mode;
 		spin_unlock_irqrestore(&p->lock, flags);
 
 		if (RMNET_IS_MODE_IP(opmode)) {
-			/* Driver in IP mode */
+			
 			skb->protocol = rmnet_ip_type_trans(skb, dev);
 		} else {
-			/* Driver in Ethernet mode */
+			
 			skb->protocol = eth_type_trans(skb, dev);
 		}
 		if (RMNET_IS_MODE_IP(opmode) ||
@@ -282,7 +409,7 @@ static void bam_recv_notify(void *dev, struct sk_buff *skb)
 			((struct net_device *)dev)->name,
 			p->stats.rx_packets, skb->len);
 
-		/* Deliver to network stack */
+		
 		netif_rx(skb);
 	} else
 		pr_err(MODULE_NAME "[%s] %s: No skb received",
@@ -297,7 +424,7 @@ static int _rmnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	u32 opmode;
 	unsigned long flags;
 
-	/* For QoS mode, prepend QMI header and assign flow ID from skb->mark */
+	
 	spin_lock_irqsave(&p->lock, flags);
 	opmode = p->operation_mode;
 	spin_unlock_irqrestore(&p->lock, flags);
@@ -311,7 +438,7 @@ static int _rmnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	dev->trans_start = jiffies;
-	/* if write() succeeds, skb access is unsafe in this process */
+	
 	bam_ret = msm_bam_dmux_write(p->ch_id, skb);
 
 	if (bam_ret != 0 && bam_ret != -EAGAIN && bam_ret != -EFAULT) {
@@ -344,12 +471,26 @@ static void bam_write_done(void *dev, struct sk_buff *skb)
 	dev_kfree_skb_any(skb);
 
 	spin_lock_irqsave(&p->tx_queue_lock, flags);
-	if (netif_queue_stopped(dev) &&
-	    msm_bam_dmux_is_ch_low(p->ch_id)) {
-		DBG0("%s: Low WM hit, waking queue=%p\n",
-		      __func__, skb);
-		netif_wake_queue(dev);
+	
+	if ( enable_trottle == false )
+	{
+		if (netif_queue_stopped(dev) &&
+			msm_bam_dmux_is_ch_low(p->ch_id)) {
+			DBG0("%s: Low WM hit, waking queue=%p\n",
+				__func__, skb);
+			netif_wake_queue(dev);
+		}
 	}
+	else
+	{
+		if (netif_queue_stopped(dev) && msm_bam_dmux_is_ch_low(p->ch_id) && (current_tx_bytes <= tx_throttle_limited_size))
+		{
+			DBG0("%s: Low WM hit, waking queue=%p, current_tx_bytes=%lu\n",
+				__func__, skb, current_tx_bytes);
+			netif_wake_queue(dev);
+		}
+	}
+	
 	spin_unlock_irqrestore(&p->tx_queue_lock, flags);
 }
 
@@ -434,8 +575,6 @@ static int __rmnet_close(struct net_device *dev)
 	DBG0("[%s] __rmnet_close()\n", dev->name);
 
 	if (p->device_up) {
-		/* do not close rmnet port once up,  this causes
-		   remote side to hang if tried to open again */
 		p->device_up = DEVICE_INACTIVE;
 		return rc;
 	} else
@@ -482,7 +621,7 @@ static int rmnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	spin_lock_irqsave(&p->lock, flags);
 	awake = msm_bam_dmux_ul_power_vote();
 	if (!awake) {
-		/* send SKB once wakeup is complete */
+		
 		netif_stop_queue(dev);
 		p->waiting_for_ul_skb = skb;
 		spin_unlock_irqrestore(&p->lock, flags);
@@ -497,10 +636,6 @@ static int rmnet_xmit(struct sk_buff *skb, struct net_device *dev)
 		goto exit;
 	}
 
-	/*
-	 * detected SSR a bit early.  shut some things down now, and leave
-	 * the rest to the main ssr handling code when that happens later
-	 */
 	if (ret == -EFAULT) {
 		netif_carrier_off(dev);
 		dev_kfree_skb_any(skb);
@@ -509,24 +644,29 @@ static int rmnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	if (ret == -EAGAIN) {
-		/*
-		 * This should not happen
-		 * EAGAIN means we attempted to overflow the high watermark
-		 * Clearly the queue is not stopped like it should be, so
-		 * stop it and return BUSY to the TCP/IP framework.  It will
-		 * retry this packet with the queue is restarted which happens
-		 * in the write_done callback when the low watermark is hit.
-		 */
 		netif_stop_queue(dev);
 		ret = NETDEV_TX_BUSY;
 		goto exit;
 	}
 
 	spin_lock_irqsave(&p->tx_queue_lock, flags);
-	if (msm_bam_dmux_is_ch_full(p->ch_id)) {
-		netif_stop_queue(dev);
-		DBG0("%s: High WM hit, stopping queue=%p\n",    __func__, skb);
+	
+	if ( enable_trottle == false )
+	{
+		if (msm_bam_dmux_is_ch_full(p->ch_id)) {
+			netif_stop_queue(dev);
+			DBG0("%s: High WM hit, stopping queue=%p\n",    __func__, skb);
+		}
 	}
+	else
+	{
+		current_tx_bytes += skb->len;
+		if (msm_bam_dmux_is_ch_full(p->ch_id) || (current_tx_bytes > tx_throttle_limited_size)) {
+			netif_stop_queue(dev);
+			DBG0("%s: High WM hit, stopping queue=%p, current_tx_bytes=%lu\n",    __func__, skb, current_tx_bytes);
+		}
+	}
+	
 	spin_unlock_irqrestore(&p->tx_queue_lock, flags);
 
 exit:
@@ -577,10 +717,10 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 	int prev_mtu = dev->mtu;
 	int rc = 0;
 
-	/* Process IOCTL command */
+	
 	switch (cmd) {
-	case RMNET_IOCTL_SET_LLP_ETHERNET:  /* Set Ethernet protocol   */
-		/* Perform Ethernet config only if in IP mode currently*/
+	case RMNET_IOCTL_SET_LLP_ETHERNET:  
+		
 		if (p->operation_mode & RMNET_MODE_LLP_IP) {
 			ether_setup(dev);
 			random_ether_addr(dev->dev_addr);
@@ -597,12 +737,12 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		}
 		break;
 
-	case RMNET_IOCTL_SET_LLP_IP:        /* Set RAWIP protocol      */
-		/* Perform IP config only if in Ethernet mode currently*/
+	case RMNET_IOCTL_SET_LLP_IP:        
+		
 		if (p->operation_mode & RMNET_MODE_LLP_ETH) {
 
-			/* Undo config done in ether_setup() */
-			dev->header_ops         = 0;  /* No header */
+			
+			dev->header_ops         = 0;  
 			dev->type               = ARPHRD_RAWIP;
 			dev->hard_header_len    = 0;
 			dev->mtu                = prev_mtu;
@@ -624,13 +764,13 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		}
 		break;
 
-	case RMNET_IOCTL_GET_LLP:           /* Get link protocol state */
+	case RMNET_IOCTL_GET_LLP:           
 		ifr->ifr_ifru.ifru_data =
 			(void *)(p->operation_mode &
 				 (RMNET_MODE_LLP_ETH|RMNET_MODE_LLP_IP));
 		break;
 
-	case RMNET_IOCTL_SET_QOS_ENABLE:    /* Set QoS header enabled  */
+	case RMNET_IOCTL_SET_QOS_ENABLE:    
 		spin_lock_irqsave(&p->lock, flags);
 		p->operation_mode |= RMNET_MODE_QOS;
 		spin_unlock_irqrestore(&p->lock, flags);
@@ -638,7 +778,7 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			dev->name);
 		break;
 
-	case RMNET_IOCTL_SET_QOS_DISABLE:   /* Set QoS header disabled */
+	case RMNET_IOCTL_SET_QOS_DISABLE:   
 		spin_lock_irqsave(&p->lock, flags);
 		p->operation_mode &= ~RMNET_MODE_QOS;
 		spin_unlock_irqrestore(&p->lock, flags);
@@ -646,22 +786,22 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 			dev->name);
 		break;
 
-	case RMNET_IOCTL_GET_QOS:           /* Get QoS header state    */
+	case RMNET_IOCTL_GET_QOS:           
 		ifr->ifr_ifru.ifru_data =
 			(void *)(p->operation_mode & RMNET_MODE_QOS);
 		break;
 
-	case RMNET_IOCTL_GET_OPMODE:        /* Get operation mode      */
+	case RMNET_IOCTL_GET_OPMODE:        
 		ifr->ifr_ifru.ifru_data = (void *)p->operation_mode;
 		break;
 
-	case RMNET_IOCTL_OPEN:              /* Open transport port     */
+	case RMNET_IOCTL_OPEN:              
 		rc = __rmnet_open(dev);
 		DBG0("[%s] rmnet_ioctl(): open transport port\n",
 			dev->name);
 		break;
 
-	case RMNET_IOCTL_CLOSE:             /* Close transport port    */
+	case RMNET_IOCTL_CLOSE:             
 		rc = __rmnet_close(dev);
 		DBG0("[%s] rmnet_ioctl(): close transport port\n",
 			dev->name);
@@ -680,17 +820,17 @@ static int rmnet_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
 static void __init rmnet_setup(struct net_device *dev)
 {
-	/* Using Ethernet mode by default */
+	
 	dev->netdev_ops = &rmnet_ops_ether;
 	ether_setup(dev);
 
-	/* set this after calling ether_setup */
+	
 	dev->mtu = RMNET_DATA_LEN;
 	dev->needed_headroom = HEADROOM_FOR_BAM + HEADROOM_FOR_QOS ;
 	dev->needed_tailroom = TAILROOM;
 	random_ether_addr(dev->dev_addr);
 
-	dev->watchdog_timeo = 1000; /* 10 seconds? */
+	dev->watchdog_timeo = 1000; 
 }
 
 static struct net_device *netdevs[RMNET_DEVICE_COUNT];
@@ -709,6 +849,11 @@ static int bam_rmnet_probe(struct platform_device *pdev)
 		if (!strncmp(pdev->name, name, BAM_DMUX_CH_NAME_MAX_LEN))
 			break;
 	}
+       
+       if (i >= RMNET_DEVICE_COUNT) {
+               return 0;
+       }
+       
 
 	p = netdev_priv(netdevs[i]);
 	if (p->in_reset) {
@@ -735,6 +880,11 @@ static int bam_rmnet_remove(struct platform_device *pdev)
 		if (!strncmp(pdev->name, name, BAM_DMUX_CH_NAME_MAX_LEN))
 			break;
 	}
+       
+       if (i >= RMNET_DEVICE_COUNT) {
+               return 0;
+       }
+       
 
 	p = netdev_priv(netdevs[i]);
 	p->in_reset = 1;
@@ -781,7 +931,7 @@ static int __init rmnet_init(void)
 		netdevs[n] = dev;
 		d = &(dev->dev);
 		p = netdev_priv(dev);
-		/* Initial config uses Ethernet */
+		
 		p->operation_mode = RMNET_MODE_LLP_ETH;
 		p->ch_id = n;
 		p->waiting_for_ul_skb = NULL;
@@ -801,6 +951,11 @@ static int __init rmnet_init(void)
 			return ret;
 		}
 
+		
+		if (device_create_file(d, &dev_attr_throttle))
+			continue;
+		
+
 #ifdef CONFIG_MSM_RMNET_DEBUG
 		if (device_create_file(d, &dev_attr_timeout))
 			continue;
@@ -812,7 +967,7 @@ static int __init rmnet_init(void)
 		if (device_create_file(d, &dev_attr_timeout_suspend))
 			continue;
 
-		/* Only care about rmnet0 for suspend/resume tiemout hooks. */
+		
 		if (n == 0)
 			rmnet0 = d;
 #endif

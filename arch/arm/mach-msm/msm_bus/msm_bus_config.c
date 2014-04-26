@@ -25,10 +25,6 @@
 
 static DEFINE_MUTEX(msm_bus_config_lock);
 
-/**
- * msm_bus_axi_porthalt() - Halt the given axi master port
- * @master_port: AXI Master port to be halted
- */
 int msm_bus_axi_porthalt(int master_port)
 {
 	int ret = 0;
@@ -51,10 +47,6 @@ int msm_bus_axi_porthalt(int master_port)
 }
 EXPORT_SYMBOL(msm_bus_axi_porthalt);
 
-/**
- * msm_bus_axi_portunhalt() - Unhalt the given axi master port
- * @master_port: AXI Master port to be unhalted
- */
 int msm_bus_axi_portunhalt(int master_port)
 {
 	int ret = 0;

@@ -28,15 +28,6 @@ enum pm8xxx_blink_type {
 	BLINK_1SEC_PER_2SEC,
 };
 
-/**
- * enum pm8xxx_leds - PMIC8XXX supported led ids
- * @PM8XXX_ID_LED_KB_LIGHT - keyboard backlight led
- * @PM8XXX_ID_LED_0 - First low current led
- * @PM8XXX_ID_LED_1 - Second low current led
- * @PM8XXX_ID_LED_2 - Third low current led
- * @PM8XXX_ID_FLASH_LED_0 - First flash led
- * @PM8XXX_ID_FLASH_LED_0 - Second flash led
- */
 enum pm8xxx_leds {
 	PM8XXX_ID_GPIO24 = 0,
 	PM8XXX_ID_GPIO25,
@@ -49,9 +40,6 @@ enum pm8xxx_leds {
 	PM8XXX_ID_FLASH_LED_1,
 };
 
-/**
- * pm8xxx_led_modes - Operating modes of LEDs
- */
 enum pm8xxx_led_modes {
 	PM8XXX_LED_MODE_MANUAL = 0,
 	PM8XXX_LED_MODE_PWM1,
@@ -80,9 +68,12 @@ struct pm8xxx_led_configure {
 	int 		lut_flag;
 	int 		led_sync;
 	int		out_current;
+	int		blink_duty_per_2sec;
 	int		function_flags;
 	int		duties[64];
+	int		pwm_coefficient;
 	void 		(*gpio_status_switch)(bool);
+	int		(*lpm_power)(int on);
 };
 
 struct pm8xxx_led_platform_data {
@@ -102,8 +93,10 @@ struct pm8xxx_led_data {
 	int 				 duites_size;
 	int 					lut_flag;
 	int					 out_current;
+	int				blink_duty_per_2sec;
 	int 				     *duties;
 	int 					led_sync;
+	int				pwm_coefficient;
 	u8			             	 reg;
 	struct device				*dev;
 	struct delayed_work		blink_delayed_work;
@@ -111,7 +104,8 @@ struct pm8xxx_led_data {
 	struct work_struct 		led_work;
 	struct alarm		   led_alarm;
 	void (*gpio_status_switch)(bool);
+	int		(*lpm_power)(int on);
 };
 void pm8xxx_led_current_set_for_key(int brightness_key);
 
-#endif /* __LEDS_PM8XXX_H__ */
+#endif 

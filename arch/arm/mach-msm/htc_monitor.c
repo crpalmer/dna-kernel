@@ -4,9 +4,8 @@
 #include <linux/seq_file.h>
 #include <net/tcp.h>
 
-//#define MAXDATASIZE	5000000
 #define MAXDATASIZE	5000000
-#define MAXTMP1SIZE 512
+#define MAXTMPSIZE	150
 
 #define NIPQUAD(addr) \
     ((unsigned char *)&addr)[0], \
@@ -16,11 +15,18 @@
 
 unsigned int probe_seq_tx;
 
-/* Using Procfs to record log data */
 static struct proc_dir_entry *proc_mtd;
-static char *ProcBuffer;//[MAXDATASIZE]={0};
-static char *Tmp1;//[MAXTMP1SIZE]={0};
+static char *ProcBuffer;
 static int Ring=0, WritingLength;
+static int enable_log = 0;
+static DEFINE_MUTEX(probe_data_mutexlock);
+
+extern void (*record_probe_data_fp)(struct sock *sk, int type, size_t size, unsigned long long t_pre);
+#if defined(CONFIG_USB_EHCI_HCD) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+extern void (*set_htc_monitor_resume_state_fp)(void);
+#endif
+void record_probe_data(struct sock *sk, int type, size_t size, unsigned long long t_pre);
+void set_htc_monitor_resume_state(void);
 
 static void* 	log_seq_start(struct seq_file *sfile, loff_t *pos);
 static void* 	log_seq_next(struct seq_file *sfile, void *v, loff_t *pos);
@@ -44,66 +50,120 @@ static struct file_operations log_proc_ops = {
 	.release = seq_release
 };
 
+static struct kobject *htc_monitor_status_obj;
+static uint32_t htc_monitor_param = 0; 
+
+static ssize_t htc_monitor_param_get(struct device *dev,
+                                struct device_attribute *attr, char *buf)
+{
+        ssize_t length;
+        length = sprintf(buf, "%d\n", htc_monitor_param);
+        return length;
+}
+
+static ssize_t htc_monitor_param_set(struct device *dev,
+                struct device_attribute *attr, const char *buf, size_t count)
+{
+        unsigned long result;
+	ssize_t ret = -EINVAL;
+
+	if(htc_monitor_param == 1) {
+		pr_info(" htc_monitor_param already enabled, can not be disabled\n");
+		return -EINVAL;
+	}
+
+	ret = strict_strtoul(buf, 10, &result);
+	if (!ret) {
+		if( result != 1) 
+			return -EINVAL;
+		else {
+			htc_monitor_param = 1;
+			pr_info(" htc_monitor_param: %d\n",  htc_monitor_param);
+			record_probe_data_fp = record_probe_data;
+			
+#if defined(CONFIG_USB_EHCI_HCD) && defined(CONFIG_USB_EHCI_MSM_HSIC)
+			set_htc_monitor_resume_state_fp = set_htc_monitor_resume_state;
+#endif
+			
+		}
+	}
+
+        return ret;
+}
+
+static DEVICE_ATTR(htc_monitor_param, 0644,
+        htc_monitor_param_get,
+        htc_monitor_param_set);
+
 int init_module(void)
 {
-	/* Procfs setting */
-	ProcBuffer = vmalloc(MAXDATASIZE);
-	Tmp1 = vmalloc(MAXDATASIZE);
-	if(ProcBuffer == NULL || Tmp1 == NULL)
+	int ret;
+
+	ProcBuffer = vmalloc(sizeof(char)*MAXDATASIZE);
+	if(ProcBuffer == NULL) {
 		return -ENOMEM;
-	memset(ProcBuffer,0,MAXDATASIZE);
-	memset(Tmp1,0,MAXDATASIZE);
+	}
+	memset(ProcBuffer,0,sizeof(char)*MAXDATASIZE);
 	WritingLength = 0;
-	if( (proc_mtd = create_proc_entry("htc_monitor", 0, 0)) ){
+
+	
+	if( (proc_mtd = create_proc_entry("htc_monitor", 0444, NULL)) ) {
 		proc_mtd->proc_fops = &log_proc_ops;
 	}
+
+	
+	htc_monitor_status_obj = kobject_create_and_add("htc_monitor_status", NULL);
+	if (htc_monitor_status_obj == NULL) {
+		pr_info("kobject_create_and_add: htc_monitor_status failed\n");
+                return -EFAULT;
+	}
+
+	ret = sysfs_create_file(htc_monitor_status_obj,
+             &dev_attr_htc_monitor_param.attr);
+        if (ret) {
+                pr_info("sysfs_create_file: dev_attr_htc_monitor_param failed\n");
+                return -EFAULT;
+        }
 
 	return 0;
 }
 
 void cleanup_module(void)
 {
-	/* Procfs setting */
-	if(proc_mtd)
-		remove_proc_entry("test", 0);
 	vfree(ProcBuffer);
-	vfree(Tmp1);
-	printk("\n--- Transmit Module uninstall ok! ---\n");
+
+	
+	remove_proc_entry("htc_monitor", NULL);
+
+	
+	if(htc_monitor_status_obj != NULL) {
+		sysfs_remove_file(htc_monitor_status_obj,
+        	     &dev_attr_htc_monitor_param.attr);
+		kobject_put(htc_monitor_status_obj);
+	}
 }
 
 static void* log_seq_start(struct seq_file *sfile, loff_t *pos)
 {
-/*	
-	if(*pos >= WritingLength)
+	if(*pos >= MAXDATASIZE) {
 		return NULL;
-		
-	return ProcBuffer + *pos;
-*/
-	if(*pos >= MAXDATASIZE)
-	{
-     return NULL; 
-	}
-	else
-	{
+	} else {
 		if (*pos >= WritingLength && 0==Ring)
 			return NULL;
-  }
-	return ProcBuffer + *pos;
+	}
+	return &ProcBuffer[*pos];
 }
 
 static void* log_seq_next(struct seq_file *sfile, void *v, loff_t *pos)
 {
 	(*pos)++;
-	if(*pos >= MAXDATASIZE)
-	{
-     return NULL; 
-	}
-	else
-	{
+	if(*pos >= MAXDATASIZE) {
+		return NULL;
+	} else {
 		if (*pos >= WritingLength && 0==Ring)
 			return NULL;
-  }		
-	return ProcBuffer + *pos;
+	}
+	return &ProcBuffer[*pos];
 }
 
 static void log_seq_stop(struct seq_file *sfile, void *v)
@@ -121,124 +181,131 @@ static int log_seq_show(struct seq_file *sfile, void *v)
 
 static int log_proc_open(struct inode *inode, struct file *file)
 {
+	if( htc_monitor_param == 0 )
+		return -EPERM;
 	return seq_open(file, &log_seq_ops);
 }
 
-inline void record_probe_data(struct sock *sk, int type, size_t size, unsigned long long t_pre)
+void set_htc_monitor_resume_state(void)
 {
-//   struct timeval tv;	
-   struct inet_sock *inet = inet_sk(sk);
-   __be16 sport, dport;
-   __be32 daddr, saddr;
-	 unsigned long long t_now;
-	unsigned long nanosec_rem;
-	unsigned long nanosec_rem_pre;
-	 t_now = sched_clock();
-	 nanosec_rem=do_div(t_now, 1000000000U);
-	 nanosec_rem_pre=do_div(t_pre, 1000000000U);
-//   do_gettimeofday(&tv);
-
-   if (!inet)
-      return;
-   saddr=inet->inet_rcv_saddr;
-   sport=inet->inet_num;
-   daddr=inet->inet_daddr;
-   dport=inet->inet_dport;
-    
-   //filter
-   if (0x00000000==saddr || 0x0100007f==saddr)
-      return;
-   memset(Tmp1, 0, sizeof(char)*MAXTMP1SIZE);
-   
-   switch (type)
-   {
-      case 1: //send
-      {
-         unsigned long long t_diff=t_now-t_pre;
-	  unsigned long nanosec_rem_diff;
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_pre,nanosec_rem_pre);
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_now,nanosec_rem);
-	  if (nanosec_rem>=nanosec_rem_pre)
-	     	nanosec_rem_diff=nanosec_rem-nanosec_rem_pre;
-	  else
-	  {
-	       if (t_diff>0)
-	       {
-	          t_diff=t_diff-1;
-	          nanosec_rem_diff=1000000000+nanosec_rem-nanosec_rem_pre;
-	       }
-	       else
-	     	{
-	     	   t_diff=t_pre;
-		   nanosec_rem_diff=nanosec_rem_pre;
-	     	}
-	  }
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_diff,nanosec_rem_diff);	  
-          sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d        SEND S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,%08d Bytes,D.T[%01u.%09lu]\n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport,size,(unsigned)t_diff,nanosec_rem_diff);     
-          memset(&t_pre,0,sizeof(unsigned long long)); 
-      	   break;
-      }
-      case 2: //recv
-      {
-         unsigned long long t_diff=t_now-t_pre;		 
-	  unsigned long nanosec_rem_diff;
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_pre,nanosec_rem_pre);
-//	  printk("[victor_kernel] [%05u.%09lu] \n", (unsigned)t_now,nanosec_rem);	  
-	  if (nanosec_rem>=nanosec_rem_pre)
-	     	nanosec_rem_diff=nanosec_rem-nanosec_rem_pre;
-	  else
-	  {
-	       if (t_diff>0)
-	       {
-	          t_diff=t_diff-1;
-	          nanosec_rem_diff=1000000000+nanosec_rem-nanosec_rem_pre;
-	       }
-	       else
-	     	{
-	     	   t_diff=t_pre;
-		   nanosec_rem_diff=nanosec_rem_pre;
-	       }
-	  }
-          sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d        RECV S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,%08d Bytes,D.T[%01u.%09lu]\n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport,size,(unsigned)t_diff,nanosec_rem_diff); 
-          memset(&t_pre,0,sizeof(unsigned long long));  		  
-      	   break;
-      	}
-       case 3: //accept
-        sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d      ACCEPT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);      	
-      	break;      	
-      case 4: //tcp connect
-        sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d TCP CONNECT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);	      	
-      	break;
-      case 5: //udp connect
-        sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d UDP CONNECT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);		 	      	
-      	break;
-      case 6: //close
-        sprintf(Tmp1,"[%05u.%09lu] UID%05d PID%05d       CLOSE S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);      	
-      	break;
-      default:
-      	break;
-   }	  
-//	 printk("[victor_kernel_Tmp1]%s\n", Tmp1);	  
-	 if(WritingLength + strlen(Tmp1) < MAXDATASIZE)
-	 {
-      memcpy(&ProcBuffer[WritingLength], Tmp1, strlen(Tmp1));
-	    WritingLength += strlen(Tmp1);
-	 }
-   else
-   {
-   	  //char *startpos=NULL;
-      //printk("[victor_kernel] else \n");	   	  
-   	  //startpos=strstr(&ProcBuffer[StartLength], "\n");
-   	  //WritingLength=startpos-ProcBuffer;
-      //printk("[victor_kernel]ProcBuffer=%p, startpos=%p, WritingLength=%d \n", WritingLength, ProcBuffer, startpos);	   	  
-      WritingLength=0;
-      Ring=1;
-      memcpy(&ProcBuffer[WritingLength], Tmp1, strlen(Tmp1));
-	    WritingLength += strlen(Tmp1);
-   }
+	enable_log = 1;
 }
 
-// --modify by victor START
+void record_probe_data(struct sock *sk, int type, size_t size, unsigned long long t_pre)
+{
+	char Tmp1[MAXTMPSIZE];
+	int Tmp1_len;
+	struct inet_sock *inet = inet_sk(sk);
+	__be16 sport, dport;
+	__be32 daddr, saddr;
+	unsigned long long t_now;
+	unsigned long nanosec_rem;
+	unsigned long nanosec_rem_pre;
+	t_now = sched_clock();
+	nanosec_rem=do_div(t_now, 1000000000U);
+	nanosec_rem_pre=do_div(t_pre, 1000000000U);
+
+	if (!inet)
+		return;
+
+	saddr=inet->inet_rcv_saddr;
+	sport=inet->inet_num;
+	daddr=inet->inet_daddr;
+	dport=inet->inet_dport;
+
+	
+	if (0x00000000==saddr || 0x0100007f==saddr)
+		return;
+
+	memset(Tmp1,0,sizeof(char)*MAXTMPSIZE);
+
+	switch (type)
+	{
+		case 1: 
+		{
+			unsigned long long t_diff=t_now-t_pre;
+			unsigned long nanosec_rem_diff;
+
+			if (nanosec_rem>=nanosec_rem_pre)
+				nanosec_rem_diff=nanosec_rem-nanosec_rem_pre;
+			else {
+				if (t_diff>0) {
+					t_diff=t_diff-1;
+					nanosec_rem_diff=1000000000+nanosec_rem-nanosec_rem_pre;
+				} else {
+					t_diff=t_pre;
+					nanosec_rem_diff=nanosec_rem_pre;
+				}
+			}
+			snprintf(Tmp1,MAXTMPSIZE,"[%05u.%09lu] UID%05d PID%05d        SEND S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,%08d Bytes,D.T[%01u.%09lu]\n",
+					(unsigned)t_now,nanosec_rem,
+					current->cred->uid, current->pid,
+					NIPQUAD(saddr),sport,
+					NIPQUAD(daddr),dport,
+					size,(unsigned)t_diff,nanosec_rem_diff);
+			break;
+		}
+		case 2: 
+		{
+			unsigned long long t_diff=t_now-t_pre;
+			unsigned long nanosec_rem_diff;
+
+			if (nanosec_rem>=nanosec_rem_pre)
+				nanosec_rem_diff=nanosec_rem-nanosec_rem_pre;
+			else {
+				if (t_diff>0) {
+					t_diff=t_diff-1;
+					nanosec_rem_diff=1000000000+nanosec_rem-nanosec_rem_pre;
+				} else {
+					t_diff=t_pre;
+					nanosec_rem_diff=nanosec_rem_pre;
+				}
+			}
+			snprintf(Tmp1,MAXTMPSIZE,"[%05u.%09lu] UID%05d PID%05d        RECV S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,%08d Bytes,D.T[%01u.%09lu]\n",
+					(unsigned)t_now,nanosec_rem,
+					current->cred->uid,current->pid,
+					NIPQUAD(saddr),sport,
+					NIPQUAD(daddr),dport,
+					size,(unsigned)t_diff,nanosec_rem_diff);
+			break;
+		}
+		case 3: 
+			snprintf(Tmp1,MAXTMPSIZE,"[%05u.%09lu] UID%05d PID%05d      ACCEPT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);
+			break;
+		case 4: 
+			snprintf(Tmp1,MAXTMPSIZE,"[%05u.%09lu] UID%05d PID%05d TCP CONNECT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);
+			break;
+		case 5: 
+			snprintf(Tmp1,MAXTMPSIZE,"[%05u.%09lu] UID%05d PID%05d UDP CONNECT S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);
+			break;
+		case 6: 
+			snprintf(Tmp1,MAXTMPSIZE,"[%05u.%09lu] UID%05d PID%05d       CLOSE S.IP:%03d.%03d.%03d.%03d/%05d, D.IP:%03d.%03d.%03d.%03d/%05d,              ,                \n",(unsigned)t_now,nanosec_rem,current->cred->uid,current->pid,NIPQUAD(saddr),sport,NIPQUAD(daddr),dport);
+			break;
+		default:
+			break;
+	}
+
+	Tmp1_len = strlen(Tmp1);
+
+	mutex_lock(&probe_data_mutexlock);
+	if(WritingLength + Tmp1_len < MAXDATASIZE) {
+		memcpy(&ProcBuffer[WritingLength], Tmp1, Tmp1_len);
+		WritingLength += Tmp1_len;
+	} else {
+		WritingLength=0;
+		Ring=1;
+		memcpy(&ProcBuffer[WritingLength], Tmp1, Tmp1_len);
+		WritingLength += Tmp1_len;
+	}
+	
+	if ( enable_log ) {
+		enable_log = 0;
+		pr_info("[htc_monitor]%s", Tmp1);
+	}
+	
+	mutex_unlock(&probe_data_mutexlock);
+	return;
+}
 
 static int __init monitor_init(void)
 {
@@ -256,4 +323,3 @@ MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("htc monitor driver");
 MODULE_VERSION("1.0");
 MODULE_ALIAS("platform:htc_monitor");
-// -- modify by victor END

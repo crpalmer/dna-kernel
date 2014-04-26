@@ -16,7 +16,6 @@
 #include <linux/ion.h>
 #include <media/msm/vidc_type.h>
 #include <media/msm/vcd_property.h>
-#include <mach/msm_rtb_enable.h>
 
 #define VIDC_MAX_NUM_CLIENTS 4
 #define MAX_VIDEO_NUM_OF_BUFF 100

@@ -67,6 +67,7 @@
 
 #define DRIVER_HS_MGR_RPC_SERVER	(1 << 0)
 #define DRIVER_HS_MGR_FLOAT_DET		(1 << 1)
+#define DRIVER_HS_MGR_OLD_AJ		(1 << 2)
 
 #define DEBUG_FLAG_LOG		(1 << 0)
 #define DEBUG_FLAG_ADC		(1 << 1)
@@ -126,6 +127,7 @@
 #define HS_DELAY_MIC_DETECT		1000
 #define HS_DELAY_INSERT			300
 #define HS_DELAY_REMOVE			200
+#define HS_DELAY_REMOVE_LONG		500
 #define HS_DELAY_BUTTON			500
 #define HS_DELAY_1WIRE_BUTTON		800
 #define HS_DELAY_1WIRE_BUTTON_SHORT	20
@@ -136,6 +138,7 @@
 #define HS_JIFFIES_MIC_DETECT		msecs_to_jiffies(HS_DELAY_MIC_DETECT)
 #define HS_JIFFIES_INSERT		msecs_to_jiffies(HS_DELAY_INSERT)
 #define HS_JIFFIES_REMOVE		msecs_to_jiffies(HS_DELAY_REMOVE)
+#define HS_JIFFIES_REMOVE_LONG		msecs_to_jiffies(HS_DELAY_REMOVE_LONG)
 #define HS_JIFFIES_BUTTON		msecs_to_jiffies(HS_DELAY_BUTTON)
 #define HS_JIFFIES_1WIRE_BUTTON		msecs_to_jiffies(HS_DELAY_1WIRE_BUTTON)
 #define HS_JIFFIES_1WIRE_BUTTON_SHORT	msecs_to_jiffies(HS_DELAY_1WIRE_BUTTON_SHORT)
@@ -145,27 +148,25 @@
 #define HS_RPC_TIMEOUT			(5 * HZ)
 #define HS_MIC_DETECT_TIMEOUT		(HZ + HZ / 2)
 
-/* Definitions for Headset RPC Server */
 #define HS_RPC_SERVER_PROG		0x30100004
 #define HS_RPC_SERVER_VERS		0x00000000
 #define HS_RPC_SERVER_PROC_NULL		0
 #define HS_RPC_SERVER_PROC_KEY		1
 
-/* Definitions for Headset RPC Client */
 #define HS_RPC_CLIENT_PROG		0x30100005
 #define HS_RPC_CLIENT_VERS		0x00000000
 #define HS_RPC_CLIENT_PROC_NULL		0
 #define HS_RPC_CLIENT_PROC_ADC		1
 
-#define HS_MGR_KEYCODE_END	KEY_END			/* 107 */
-#define HS_MGR_KEYCODE_MUTE	KEY_MUTE		/* 113 */
-#define HS_MGR_KEYCODE_VOLDOWN	KEY_VOLUMEDOWN		/* 114 */
-#define HS_MGR_KEYCODE_VOLUP	KEY_VOLUMEUP		/* 115 */
-#define HS_MGR_KEYCODE_FORWARD	KEY_NEXTSONG		/* 163 */
-#define HS_MGR_KEYCODE_PLAY	KEY_PLAYPAUSE		/* 164 */
-#define HS_MGR_KEYCODE_BACKWARD	KEY_PREVIOUSSONG	/* 165 */
-#define HS_MGR_KEYCODE_MEDIA	KEY_MEDIA		/* 226 */
-#define HS_MGR_KEYCODE_SEND	KEY_SEND		/* 231 */
+#define HS_MGR_KEYCODE_END	KEY_END			
+#define HS_MGR_KEYCODE_MUTE	KEY_MUTE		
+#define HS_MGR_KEYCODE_VOLDOWN	KEY_VOLUMEDOWN		
+#define HS_MGR_KEYCODE_VOLUP	KEY_VOLUMEUP		
+#define HS_MGR_KEYCODE_FORWARD	KEY_NEXTSONG		
+#define HS_MGR_KEYCODE_PLAY	KEY_PLAYPAUSE		
+#define HS_MGR_KEYCODE_BACKWARD	KEY_PREVIOUSSONG	
+#define HS_MGR_KEYCODE_MEDIA	KEY_MEDIA		
+#define HS_MGR_KEYCODE_SEND	KEY_SEND		
 #define HS_MGR_KEYCODE_FF	KEY_FASTFORWARD
 #define HS_MGR_KEYCODE_RW	KEY_REWIND
 
@@ -186,6 +187,7 @@ enum {
 	HEADSET_INDICATOR	= 7,
 	HEADSET_BEATS		= 8,
 	HEADSET_BEATS_SOLO	= 9,
+	HEADSET_UART		= 10,
 };
 
 enum {
@@ -207,11 +209,13 @@ enum {
 	HEADSET_REG_KEY_INT_ENABLE,
 	HEADSET_REG_KEY_ENABLE,
 	HEADSET_REG_INDICATOR_ENABLE,
+	HEADSET_REG_UART_SET,
 	HEADSET_REG_1WIRE_INIT,
 	HEADSET_REG_1WIRE_QUERY,
 	HEADSET_REG_1WIRE_READ_KEY,
 	HEADSET_REG_1WIRE_DEINIT,
 	HEADSET_REG_1WIRE_REPORT_TYPE,
+	HEADSET_REG_HS_INSERT,
 };
 
 enum {
@@ -283,11 +287,13 @@ struct hs_notifier_func {
 	int (*key_int_enable)(int);
 	void (*key_enable)(int);
 	int (*indicator_enable)(int);
+	void (*uart_set)(int);
 	int (*hs_1wire_init)(void);
 	int (*hs_1wire_query)(int);
 	int (*hs_1wire_read_key)(void);
 	int (*hs_1wire_deinit)(void);
 	int (*hs_1wire_report_type)(char **);
+	int (*hs_insert)(int);
 };
 
 struct htc_headset_mgr_platform_data {
@@ -337,17 +343,17 @@ struct htc_headset_mgr_info {
 
 	unsigned int irq_btn_35mm;
 
-	/* The variables were used by 35mm headset*/
+	
 	int key_level_flag;
 	int hs_35mm_type;
 	int h2w_35mm_type;
 	int is_ext_insert;
 	int mic_bias_state;
 	int mic_detect_counter;
-	int metrico_status; /* For HW Metrico lab test */
+	int metrico_status; 
 	int quick_boot_status;
 
-	/*Variables for one wire driver*/
+	
 	int driver_one_wire_exist;
 	int one_wire_mode;
 	int key_code_1wire[15];

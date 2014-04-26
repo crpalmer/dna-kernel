@@ -11,7 +11,6 @@
  * GNU General Public License for more details.
  */
 
-/* add additional information to our printk's */
 #define pr_fmt(fmt) "%s: " fmt "\n", __func__
 
 #include <linux/kernel.h>
@@ -43,7 +42,7 @@ struct diag_bridge {
 	struct diag_bridge_ops	*ops;
 	struct platform_device	*pdev;
 
-	/* debugging counters */
+	
 	unsigned long		bytes_to_host;
 	unsigned long		bytes_to_mdm;
 	unsigned		pending_reads;
@@ -98,7 +97,7 @@ static void diag_bridge_read_cb(struct urb *urb)
 	dev_dbg(&dev->ifc->dev, "%s: status:%d actual:%d\n", __func__,
 			urb->status, urb->actual_length);
 
-	/* save error so that subsequent read/write returns ENODEV */
+	
 	if (urb->status == -EPROTO)
 		dev->err = urb->status;
 
@@ -145,7 +144,7 @@ int diag_bridge_read(char *data, int size)
 		goto error;
 	}
 
-	/* if there was a previous unrecoverable error, just quit */
+	
 	if (dev->err) {
 		ret = -ENODEV;
 		goto error;
@@ -183,7 +182,7 @@ int diag_bridge_read(char *data, int size)
 free_error:
 	usb_free_urb(urb);
 put_error:
-	if (ret) /* otherwise this is done in the completion handler */
+	if (ret) 
 		kref_put(&dev->kref, diag_bridge_delete);
 error:
 	mutex_unlock(&dev->ifc_mutex);
@@ -200,7 +199,7 @@ static void diag_bridge_write_cb(struct urb *urb)
 
 	usb_autopm_put_interface_async(dev->ifc);
 
-	/* save error so that subsequent read/write returns ENODEV */
+	
 	if (urb->status == -EPROTO)
 		dev->err = urb->status;
 
@@ -247,7 +246,7 @@ int diag_bridge_write(char *data, int size)
 		goto error;
 	}
 
-	/* if there was a previous unrecoverable error, just quit */
+	
 	if (dev->err) {
 		ret = -ENODEV;
 		goto error;
@@ -286,7 +285,7 @@ int diag_bridge_write(char *data, int size)
 free_error:
 	usb_free_urb(urb);
 put_error:
-	if (ret) /* otherwise this is done in the completion handler */
+	if (ret) 
 		kref_put(&dev->kref, diag_bridge_delete);
 error:
 	mutex_unlock(&dev->ifc_mutex);
@@ -386,7 +385,7 @@ diag_bridge_probe(struct usb_interface *ifc, const struct usb_device_id *id)
 
 	ifc_num = ifc->cur_altsetting->desc.bInterfaceNumber;
 
-	/* is this interface supported ? */
+	
 	if (ifc_num != id->driver_info)
 		return -ENODEV;
 
@@ -488,6 +487,13 @@ static int diag_bridge_resume(struct usb_interface *ifc)
 	return 0;
 }
 
+
+int diag_bridge_reset_resume(struct usb_interface *intf)
+{
+	pr_info("%s intf %p\n", __func__, intf);
+	return diag_bridge_resume(intf);
+}
+
 #define VALID_INTERFACE_NUM	0
 static const struct usb_device_id diag_bridge_ids[] = {
 	{ USB_DEVICE(0x5c6, 0x9001),
@@ -499,7 +505,7 @@ static const struct usb_device_id diag_bridge_ids[] = {
 	{ USB_DEVICE(0x5c6, 0x904C),
 	.driver_info = VALID_INTERFACE_NUM, },
 
-	{} /* terminating entry */
+	{} 
 };
 MODULE_DEVICE_TABLE(usb, diag_bridge_ids);
 
@@ -509,6 +515,7 @@ static struct usb_driver diag_bridge_driver = {
 	.disconnect =	diag_bridge_disconnect,
 	.suspend =	diag_bridge_suspend,
 	.resume =	diag_bridge_resume,
+	.reset_resume =	diag_bridge_reset_resume,
 	.id_table =	diag_bridge_ids,
 	.supports_autosuspend = 1,
 };

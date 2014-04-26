@@ -710,6 +710,12 @@ config SERIAL_CORE
 config SERIAL_CORE_CONSOLE
 	bool
 
+config IMC_UART2DM_HANDSHAKE
+	bool "UART2DM handshake"
+	default n
+	help
+	  Enable UART2DM Handshaking for IMC modem
+
 config CONSOLE_POLL
 	bool
 
@@ -988,6 +994,18 @@ config SERIAL_MSM_HS
 	  Choose M here to compile it as a module. The module will be
 	  called msm_serial_hs.
 
+config SERIAL_MSM_HS_IMC
+	tristate "MSM UART High Speed: Serial Driver for IMC modem"
+	depends on ARCH_MSM
+	select SERIAL_CORE
+	help
+		If you have a machine based on MSM family of SoCs, you
+		can enable its onboard high speed serial port by enabling
+		this option.
+
+		Choose M here to compile it as a module. The module will be
+		called msm_serial_hs.
+
 config SERIAL_MSM_CLOCK_CONTROL
 	bool "Allow tty clients to make clock requests to msm uarts."
 	depends on SERIAL_MSM=y
@@ -1011,6 +1029,13 @@ config SERIAL_MSM_HSL
 	default n
 	help
 	  Select this module to enable MSM high speed UART driver.
+
+config SERIAL_MSM_HS_DEBUG_RINGBUFFER
+	bool "Capture UART raw data in a ringbuffer for debug purpose."
+	depends on SERIAL_MSM_HS
+	default n
+	help
+	  Capture UART raw data in a ringbuffer for debug purpose.
 
 config SERIAL_IRDA
 	tristate "MSM UART High Speed : Legacy mode IRDA Driver"

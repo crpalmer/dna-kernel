@@ -23,7 +23,6 @@
 #include <mach/panel_id.h>
 #include <mach/debug_display.h>
 
-/* Select panel operate mode : CMD, VIDEO or SWITCH mode */
 #define EVA_CMD_MODE_PANEL
 #undef EVA_VIDEO_MODE_PANEL
 #undef EVA_SWITCH_MODE_PANEL
@@ -45,11 +44,9 @@ static int wled_trigger_initialized;
 #define MIPI_DSI_NOVATEK_SPI_DEVICE_NAME	"dsi_novatek_3d_panel_spi"
 #define HPCI_FPGA_READ_CMD	0x84
 #define HPCI_FPGA_WRITE_CMD	0x04
-///HTC:
 #ifdef CONFIG_SPI_QUP
 #undef CONFIG_SPI_QUP
 #endif
-///:HTC
 #ifdef CONFIG_SPI_QUP
 static struct spi_device *panel_3d_spi_client;
 
@@ -160,108 +157,105 @@ static void novatek_fpga_read(uint8 addr)
 #endif
 
 
-/* novatek blue panel */
 
 #ifdef NOVETAK_COMMANDS_UNUSED
 static char display_config_cmd_mode1[] = {
-	/* TYPE_DCS_LWRITE */
+	
 	0x2A, 0x00, 0x00, 0x01,
 	0x3F, 0xFF, 0xFF, 0xFF
 };
 
 static char display_config_cmd_mode2[] = {
-	/* DTYPE_DCS_LWRITE */
+	
 	0x2B, 0x00, 0x00, 0x01,
 	0xDF, 0xFF, 0xFF, 0xFF
 };
 
 static char display_config_cmd_mode3_666[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0x3A, 0x66, 0x15, 0x80 /* 666 Packed (18-bits) */
+	
+	0x3A, 0x66, 0x15, 0x80 
 };
 
 static char display_config_cmd_mode3_565[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0x3A, 0x55, 0x15, 0x80 /* 565 mode */
+	
+	0x3A, 0x55, 0x15, 0x80 
 };
 
 static char display_config_321[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0x66, 0x2e, 0x15, 0x00 /* Reg 0x66 : 2E */
+	
+	0x66, 0x2e, 0x15, 0x00 
 };
 
 static char display_config_323[] = {
-	/* DTYPE_DCS_WRITE */
-	0x13, 0x00, 0x05, 0x00 /* Reg 0x13 < Set for Normal Mode> */
+	
+	0x13, 0x00, 0x05, 0x00 
 };
 
 static char display_config_2lan[] = {
-	/* DTYPE_DCS_WRITE */
-	0x61, 0x01, 0x02, 0xff /* Reg 0x61 : 01,02 < Set for 2 Data Lane > */
+	
+	0x61, 0x01, 0x02, 0xff 
 };
 
 static char display_config_exit_sleep[] = {
-	/* DTYPE_DCS_WRITE */
-	0x11, 0x00, 0x05, 0x80 /* Reg 0x11 < exit sleep mode> */
+	
+	0x11, 0x00, 0x05, 0x80 
 };
 
 static char display_config_TE_ON[] = {
-	/* DTYPE_DCS_WRITE1 */
+	
 	0x35, 0x00, 0x15, 0x80
 };
 
 static char display_config_39H[] = {
-	/* DTYPE_DCS_WRITE */
+	
 	0x39, 0x00, 0x05, 0x80
 };
 
 static char display_config_set_tear_scanline[] = {
-	/* DTYPE_DCS_LWRITE */
+	
 	0x44, 0x00, 0x00, 0xff
 };
 
 static char display_config_set_twolane[] = {
-	/* DTYPE_DCS_WRITE1 */
+	
 	0xae, 0x03, 0x15, 0x80
 };
 
 static char display_config_set_threelane[] = {
-	/* DTYPE_DCS_WRITE1 */
+	
 	0xae, 0x05, 0x15, 0x80
 };
 
 #else
 #if 0
-static char sw_reset[2] = {0x01, 0x00}; /* DTYPE_DCS_WRITE */
-static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
-static char exit_sleep[2] = {0x11, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_off[2] = {0x28, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_on[2] = {0x29, 0x00}; /* DTYPE_DCS_WRITE */
+static char sw_reset[2] = {0x01, 0x00}; 
+static char enter_sleep[2] = {0x10, 0x00}; 
+static char exit_sleep[2] = {0x11, 0x00}; 
+static char display_off[2] = {0x28, 0x00}; 
+static char display_on[2] = {0x29, 0x00}; 
 
 
 
-static char rgb_888[2] = {0x3A, 0x77}; /* DTYPE_DCS_WRITE1 */
+static char rgb_888[2] = {0x3A, 0x77}; 
 
 #if defined(NOVATEK_TWO_LANE)
-static char set_num_of_lanes[2] = {0xae, 0x03}; /* DTYPE_DCS_WRITE1 */
-#else  /* 1 lane */
-static char set_num_of_lanes[2] = {0xae, 0x01}; /* DTYPE_DCS_WRITE1 */
+static char set_num_of_lanes[2] = {0xae, 0x03}; 
+#else  
+static char set_num_of_lanes[2] = {0xae, 0x01}; 
 #endif
-/* commands by Novatke */
-static char novatek_f4[2] = {0xf4, 0x55}; /* DTYPE_DCS_WRITE1 */
-static char novatek_8c[16] = { /* DTYPE_DCS_LWRITE */
+static char novatek_f4[2] = {0xf4, 0x55}; 
+static char novatek_8c[16] = { 
 	0x8C, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x08, 0x08, 0x00, 0x30, 0xC0, 0xB7, 0x37};
-static char novatek_ff[2] = {0xff, 0x55 }; /* DTYPE_DCS_WRITE1 */
+static char novatek_ff[2] = {0xff, 0x55 }; 
 
-static char set_width[5] = { /* DTYPE_DCS_LWRITE */
-	0x2A, 0x00, 0x00, 0x02, 0x1B}; /* 540 - 1 */
-static char set_height[5] = { /* DTYPE_DCS_LWRITE */
-	0x2B, 0x00, 0x00, 0x03, 0xBF}; /* 960 - 1 */
+static char set_width[5] = { 
+	0x2A, 0x00, 0x00, 0x02, 0x1B}; 
+static char set_height[5] = { 
+	0x2B, 0x00, 0x00, 0x03, 0xBF}; 
 #endif
 #endif
-static char led_pwm2[2] = {0x53, 0x24}; /* DTYPE_DCS_WRITE1 */
-//static char led_pwm3[2] = {0x55, 0x00}; /* DTYPE_DCS_WRITE1 */
+static char led_pwm2[2] = {0x53, 0x24}; 
 
 #if 0
 static struct dsi_cmd_desc novatek_video_on_cmds[] = {
@@ -315,40 +309,39 @@ static struct dsi_cmd_desc novatek_display_off_cmds[] = {
 		sizeof(enter_sleep), enter_sleep}
 };
 #endif
-/* K2 panel initial setting */
 static char k2_f0_1[] = {
     0xF0, 0x55, 0xAA, 0x52,
-    0x08, 0x01}; /* DTYPE_DCS_LWRITE */
+    0x08, 0x01}; 
 static char k2_b0_1[] = {
-    0xB0, 0x12}; /* DTYPE_DCS_WRITE1 */
+    0xB0, 0x12}; 
 static char k2_b1_1[] = {
-    0xB1, 0x12}; /* DTYPE_DCS_WRITE1 */
+    0xB1, 0x12}; 
 static char k2_b2[] = {
-    0xB2, 0x00}; /* DTYPE_DCS_WRITE1 */
+    0xB2, 0x00}; 
 static char k2_b3[] = {
-    0xB3, 0x07}; /* DTYPE_DCS_WRITE1 */
+    0xB3, 0x07}; 
 static char k2_b6_1[] = {
-    0xB6, 0x14}; /* DTYPE_DCS_WRITE1 */
+    0xB6, 0x14}; 
 static char k2_b7_1[] = {
-    0xB7, 0x15}; /* DTYPE_DCS_WRITE1 */
+    0xB7, 0x15}; 
 static char k2_b8_1[] = {
-    0xB8, 0x24}; /* DTYPE_DCS_WRITE1 */
+    0xB8, 0x24}; 
 static char k2_b9[] = {
-    0xB9, 0x24}; /* DTYPE_DCS_WRITE1 */
+    0xB9, 0x24}; 
 static char k2_ba[] = {
-    0xBA, 0x14}; /* DTYPE_DCS_WRITE1 */
+    0xBA, 0x14}; 
 static char k2_bf[] = {
-    0xBF, 0x01}; /* DTYPE_DCS_WRITE1 */
+    0xBF, 0x01}; 
 static char k2_c3[] = {
-    0xC3, 0x06}; /* DTYPE_DCS_WRITE1 */
+    0xC3, 0x06}; 
 static char k2_c2[] = {
-    0xC2, 0x00}; /* DTYPE_DCS_WRITE1 */
+    0xC2, 0x00}; 
 static char k2_c0[] = {
-    0xC0, 0x00, 0x00}; /* DTYPE_DCS_LWRITE */
+    0xC0, 0x00, 0x00}; 
 static char k2_bc_1[] = {
-    0xBC, 0x00, 0x80, 0x00}; /* DTYPE_DCS_LWRITE */
+    0xBC, 0x00, 0x80, 0x00}; 
 static char k2_bd[] = {
-    0xBD, 0x00, 0x80, 0x00}; /* DTYPE_DCS_LWRITE */
+    0xBD, 0x00, 0x80, 0x00}; 
 
 static char k2_d1[] = {
     0xD1, 0x00, 0x58, 0x00, 0x64, 0x00, 0x76, 0x00, 0x88, 0x00,
@@ -395,51 +388,51 @@ static char k2_d6[] = {
 
 static char k2_f0_2[] = {
     0xF0, 0x55, 0xAA, 0x52,
-    0x08, 0x00}; /* DTYPE_DCS_LWRITE */
+    0x08, 0x00}; 
 static char k2_b6_2[] = {
-    0xB6, 0x03}; /* DTYPE_DCS_WRITE1 */
+    0xB6, 0x03}; 
 static char k2_b7_2[] = {
-    0xB7, 0x70, 0x70}; /* DTYPE_DCS_LWRITE */
+    0xB7, 0x70, 0x70}; 
 static char k2_b8_2[] = {
     0xB8, 0x01, 0x06, 0x06,
-    0x06}; /* DTYPE_DCS_LWRITE */
+    0x06}; 
 static char k2_bc_2[] = {
-    0xBC, 0x00}; /* DTYPE_DCS_WRITE1 */
+    0xBC, 0x00}; 
 static char k2_b0_2[] = {
     0xB0, 0x00, 0x0A, 0x0E,
-    0x09, 0x04}; /* DTYPE_DCS_LWRITE */
+    0x09, 0x04}; 
 static char k2_b1_2[] = {
-    0xB1, 0x60, 0x00, 0x01}; /* DTYPE_DCS_LWRITE */
+    0xB1, 0x60, 0x00, 0x01}; 
 static char k2_b4_2[] = {
-    0xB4, 0x10}; /* DTYPE_DCS_WRITE1 */
+    0xB4, 0x10}; 
 
 static char k2_ff_1[] = {
     0xFF, 0xAA, 0x55, 0xA5,
-    0x80}; /* DTYPE_DCS_LWRITE */
+    0x80}; 
 static char k2_f7[] = {
     0xF7, 0x63, 0x40, 0x00,
     0x00, 0x00, 0x01, 0xC4,
     0xA2, 0x00, 0x02, 0x64,
-    0x54, 0x48, 0x00, 0xD0}; /* DTYPE_DCS_LWRITE */
+    0x54, 0x48, 0x00, 0xD0}; 
 static char k2_f8[] = {
     0xF8, 0x00, 0x00, 0x33,
     0x0F, 0x0F, 0x20, 0x00,
     0x01, 0x00, 0x00, 0x20,
     0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00}; /* DTYPE_DCS_LWRITE */
+    0x00, 0x00, 0x00}; 
 static char k2_ff_2[] = {
     0xFF, 0xAA, 0x55, 0xA5,
-    0x00}; /* DTYPE_DCS_LWRITE */
+    0x00}; 
 
 static char k2_b7_3[] = {
-    0xB7, 0x02, 0x50}; /* DTYPE_DCS_LWRITE */
+    0xB7, 0x02, 0x50}; 
 static char k2_bd_3[] = {
-    0xBD, 0x00, 0x00}; /* DTYPE_DCS_LWRITE */
+    0xBD, 0x00, 0x00}; 
 static char k2_bc_3[] = {
-    0xBC, 0x00, 0x00}; /* DTYPE_DCS_LWRITE */
+    0xBC, 0x00, 0x00}; 
 
-static char k2_peripheral_on[] = {0x00, 0x00}; /* DTYPE_PERIPHERAL_ON */
-static char k2_peripheral_off[] = {0x00, 0x00}; /* DTYPE_PERIPHERAL_OFF */
+static char k2_peripheral_on[] = {0x00, 0x00}; 
+static char k2_peripheral_off[] = {0x00, 0x00}; 
 
 static struct dsi_cmd_desc k2_auo_display_on_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(k2_f0_1), k2_f0_1},
@@ -487,24 +480,20 @@ static struct dsi_cmd_desc k2_auo_display_off_cmds[] = {
 	{DTYPE_PERIPHERAL_OFF, 1, 0, 1, 70, sizeof(k2_peripheral_off), k2_peripheral_off},
 };
 
-static char set_threelane[2] = {0xBA, 0x02}; /* DTYPE_DCS_WRITE-1 */
+static char set_threelane[2] = {0xBA, 0x02}; 
 
 #ifdef EVA_CMD_MODE_PANEL
-static char display_mode_cmd[2] = {0xC2, 0x08}; /* DTYPE_DCS_WRITE-1 */
+static char display_mode_cmd[2] = {0xC2, 0x08}; 
 #else
-static char display_mode_video[2] = {0xC2, 0x03}; /* DTYPE_DCS_WRITE-1 */
+static char display_mode_video[2] = {0xC2, 0x03}; 
 #endif
 
-static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
-static char exit_sleep[2] = {0x11, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_on[2] = {0x29, 0x00}; /* DTYPE_DCS_WRITE */
-static char display_off[2] = {0x28, 0x00}; /* DTYPE_DCS_WRITE */
+static char enter_sleep[2] = {0x10, 0x00}; 
+static char exit_sleep[2] = {0x11, 0x00}; 
+static char display_on[2] = {0x29, 0x00}; 
+static char display_off[2] = {0x28, 0x00}; 
 
-//static char led_pwm3[2] = {0x55, 0x00};
-//static char sw_reset[2] = {0x01, 0x00}; /* DTYPE_DCS_WRITE */
-static char enable_te[2] = {0x35, 0x00};/* DTYPE_DCS_WRITE1 */
-//static char pwm_freq[] = {0xC9, 0x0F, 0x04, 0x1E, 0x1E,
-//						  0x00, 0x00, 0x00, 0x10, 0x3E};/* 9.41kHz */
+static char enable_te[2] = {0x35, 0x00};
 
 static char swr01[2] = {0x01, 0x33};
 static char swr02[2] = {0x02, 0x53};
@@ -522,7 +511,7 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_id28103_ver008[] = {
 #endif
 
 #if 1
-	/* vivi color ver 2 */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x03}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFE, 0x08}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x18, 0x00}},
@@ -553,7 +542,7 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_id28103_ver008[] = {
 #endif
 
 #if 1
-	/* gamma 2.2 6b setting start */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x01}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(swr01), swr01},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(swr02), swr02},
@@ -928,7 +917,7 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_id28103_ver008[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x09, 0x20}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x0A, 0x09}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFB, 0x01}},
-	/* gamma 2.2 6b setting end */
+	
 #endif
 
 #if 1
@@ -952,15 +941,15 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_id28103_ver008[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x46, 0x00} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x00} },
 
-	/* For random dot noise */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0xEE} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x12, 0x50} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x13, 0x02} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x6A, 0x60} },
-	//{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFB, 0x01} },
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x00} },
 
-	/* Enable CABC setting */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x04} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x05, 0x2D} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x21, 0xFF} },
@@ -978,20 +967,20 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_id28103_ver008[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(enable_te), enable_te},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x5E, 0x06} },
 
-	/* NVT: Enable vivid-color, but disable CABC, please set register(55h) as 0x80  */
-	/*{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55,0x80}},*/
+	
+	
 
-	/* NVT: Enable vivid-color, and enable CABC UI-Mode, please set register(55h) as 0x81 */
-	/* {DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55,0x81}}, */
+	
+	
 
-	/* NVT: Enable vivid-color, and enable CABC Still-Mode, please set register(55h) as 0x82 */
-	/* {DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55, 0x82} }, */
+	
+	
 
-	/* NVT: Enable vivid-color, and enable CABC Moving-Mode, please set register(55h) as 0x83 */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55,0x83}},
 
 
-	/*	{DTYPE_DCS_WRITE, 1, 0, 0, 150, sizeof(exit_sleep), exit_sleep},*/
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x53, 0x24} },
 };
 
@@ -1004,7 +993,7 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_c2[] = {
 #endif
 
 #if 1
-	/* vivi color ver 2 */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x03}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFE, 0x08}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x18, 0x00}},
@@ -1035,7 +1024,7 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_c2[] = {
 #endif
 
 #if 1
-	/* gamma 2.2 6b setting start */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x01}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(swr01), swr01},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(swr02), swr02},
@@ -1410,7 +1399,7 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_c2[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x09, 0x20}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x0A, 0x09}},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFB, 0x01}},
-	/* gamma 2.2 6b setting end */
+	
 #endif
 
 #if 1
@@ -1426,15 +1415,15 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_c2[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x00} },
 	{DTYPE_DCS_WRITE, 1, 0, 0, 100, sizeof(exit_sleep), exit_sleep},
 
-	/* For random dot noise */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0xEE} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x12, 0x50} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x13, 0x02} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x6A, 0x60} },
-	//{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFB, 0x01} },
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x00} },
 
-	/* Enable CABC setting */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0xFF, 0x04} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x05, 0x2D} },
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x21, 0xFF} },
@@ -1452,20 +1441,20 @@ static struct dsi_cmd_desc sony_panel_video_mode_cmds_c2[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(enable_te), enable_te},
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x5E, 0x06}},
 
-	/* NVT: Enable vivid-color, but disable CABC, please set register(55h) as 0x80  */
-	/* {DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55,0x80}}, */
+	
+	
 
-	/* NVT: Enable vivid-color, and enable CABC UI-Mode, please set register(55h) as 0x81 */
-	/* {DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55,0x81}}, */
+	
+	
 
-	/* NVT: Enable vivid-color, and enable CABC Still-Mode, please set register(55h) as 0x82 */
-	/* {DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55,0x82}}, */
+	
+	
 
-	/* NVT: Enable vivid-color, and enable CABC Moving-Mode, please set register(55h) as 0x83 */
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x55,0x83}},
 
 
-	/*	{DTYPE_DCS_WRITE, 1, 0, 0, 150, sizeof(exit_sleep), exit_sleep},*/
+	
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x53, 0x24}},
 };
 
@@ -1476,12 +1465,8 @@ static struct dsi_cmd_desc sony_display_off_cmds[] = {
 		sizeof(enter_sleep), enter_sleep}
 };
 
-/* static struct dsi_cmd_desc sony_cmd_backlight_cmds[] = {
- * 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(led_pwm1), led_pwm1}
- * };
- */
 
-static char manufacture_id[2] = {0x04, 0x00}; /* DTYPE_DCS_READ */
+static char manufacture_id[2] = {0x04, 0x00}; 
 
 static struct dsi_cmd_desc novatek_manufacture_id_cmd = {
 	DTYPE_DCS_READ, 1, 0, 1, 5, sizeof(manufacture_id), manufacture_id};
@@ -1623,14 +1608,6 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 	PR_DISP_INFO("Display On. (%s)\n", ptype);
 
 	if (mipi->mode == DSI_VIDEO_MODE) {
-		/* HTC FIXME: video mode support is not verified
-		cmdreq.cmds = novatek_video_on_cmds;
-		cmdreq.cmds_cnt = ARRAY_SIZE(novatek_video_on_cmds);
-		cmdreq.flags = CMD_REQ_COMMIT;
-		cmdreq.rlen = 0;
-		cmdreq.cb = NULL;
-		mipi_dsi_cmdlist_put(&cmdreq);
-		*/
 	} else {
 		cmdreq.cmds = novatek_display_on_cmds;
 		cmdreq.cmds_cnt = novatek_display_on_cmds_size;
@@ -1639,7 +1616,7 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 		cmdreq.cb = NULL;
 		mipi_dsi_cmdlist_put(&cmdreq);
 
-		mipi_dsi_cmd_bta_sw_trigger(); /* clean up ack_err_status */
+		mipi_dsi_cmd_bta_sw_trigger(); 
 
 		mipi_novatek_manufacture_id(mfd);
 	}
@@ -1685,20 +1662,20 @@ static void mipi_novatek_display_on(struct msm_fb_data_type *mfd)
 
 DEFINE_LED_TRIGGER(bkl_led_trigger);
 
-static char led_pwm1[2] = {0x51, 0xF0};	/* DTYPE_DCS_WRITE1 */
+static char led_pwm1[2] = {0x51, 0xF0};	
 static struct dsi_cmd_desc backlight_cmd[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 1, sizeof(led_pwm1), led_pwm1},
 };
 
 static void mipi_novatek_set_backlight(struct msm_fb_data_type *mfd)
 {
-	if ((mipi_novatek_pdata->enable_wled_bl_ctrl)
+	if ((mipi_novatek_pdata && mipi_novatek_pdata->enable_wled_bl_ctrl)
 	    && (wled_trigger_initialized)) {
 		led_trigger_event(bkl_led_trigger, mfd->bl_level);
 		return;
 	}
 
-	/* HTC: using board-specific shrink function for pwm adjustment */
+	
 	if (mipi_novatek_pdata && mipi_novatek_pdata->shrink_pwm)
 		led_pwm1[1] = mipi_novatek_pdata->shrink_pwm(mfd->bl_level);
 	else
@@ -1742,7 +1719,7 @@ static int __devinit mipi_novatek_lcd_probe(struct platform_device *pdev)
 			mipi_novatek_3d_init(mipi_novatek_pdata
 	->fpga_3d_config_addr, mipi_novatek_pdata->fpga_ctrl_mode);
 
-		/* create sysfs to control 3D barrier for the Sharp panel */
+		
 		if (mipi_dsi_3d_barrier_sysfs_register(&pdev->dev)) {
 			pr_err("%s: Failed to register 3d Barrier sysfs\n",
 						__func__);

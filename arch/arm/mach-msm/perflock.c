@@ -66,7 +66,7 @@ static struct kernel_param_ops param_ops_str = {
 module_param_cb(debug_mask, &param_ops_str, &debug_mask, S_IWUSR | S_IRUGO);
 
 #ifdef CONFIG_HTC_PNPMGR
-static int legacy_mode = 1;
+static int legacy_mode = 0;
 module_param_cb(legacy_mode, &param_ops_str, &legacy_mode, S_IWUSR | S_IRUGO);
 extern struct kobject *cpufreq_kobj;
 #endif
@@ -76,8 +76,6 @@ static unsigned int get_cpufreq_ceiling_speed(void);
 static void print_active_locks(void);
 
 #ifdef CONFIG_PERFLOCK_SCREEN_POLICY
-/* Increase cpufreq minumum frequency when screen on.
-    Pull down to lowest speed when screen off. */
 static unsigned int screen_off_policy_req;
 static unsigned int screen_on_policy_req;
 static void perflock_early_suspend(struct early_suspend *handler)
@@ -104,19 +102,7 @@ static void perflock_late_resume(struct early_suspend *handler)
 	unsigned long irqflags;
 	int cpu;
 
-/*
- * This workaround is for hero project
- * May cause potential bug:
- * Accidentally set cpu in high freq in screen off mode.
- * senario: in screen off early suspended state, runs the following sequence:
- * 1.perflock_late_resume():acpuclk_set_rate(high freq);screen_on_pilicy_req=1;
- * 2.perflock_early_suspend():if(screen_on_policy_req) return;
- * 3.perflock_notifier_call(): only set policy's min and max
- */
 #ifdef CONFIG_MACH_HERO
-	/* Work around for display driver,
-	 * need to increase cpu speed immediately.
-	 */
 	unsigned int lock_speed = get_perflock_speed() / 1000;
 	if (lock_speed > CONFIG_PERFLOCK_SCREEN_ON_MIN)
 		acpuclk_set_rate(lock_speed * 1000, 0);
@@ -144,7 +130,6 @@ static struct early_suspend perflock_power_suspend = {
 	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 1,
 };
 
-/* 7k projects need to raise up cpu freq before panel resume for stability */
 #if defined(CONFIG_HTC_ONMODE_CHARGING) && \
 	(defined(CONFIG_ARCH_MSM7225) || \
 	defined(CONFIG_ARCH_MSM7227) || \
@@ -160,7 +145,6 @@ static int __init perflock_screen_policy_init(void)
 {
 	int cpu;
 	register_early_suspend(&perflock_power_suspend);
-/* 7k projects need to raise up cpu freq before panel resume for stability */
 #if defined(CONFIG_HTC_ONMODE_CHARGING) && \
 	(defined(CONFIG_ARCH_MSM7225) || \
 	defined(CONFIG_ARCH_MSM7227) || \
@@ -220,7 +204,7 @@ int perflock_override(const struct cpufreq_policy *policy, const unsigned int ne
 		return 0;
 #endif
 	if (policy != NULL) {
-		/* only responds to ondemand governor */
+		
 		if (strncmp("ondemand", policy->governor->name, 8) != 0)
 			return 0;
 		policy_min = policy->min;
@@ -237,7 +221,7 @@ int perflock_override(const struct cpufreq_policy *policy, const unsigned int ne
 	if ((lock_speed = (get_perflock_speed() / 1000))) {
 		target_min_freq = lock_speed > policy_min? lock_speed : policy_min;
 		target_max_freq = policy_max;
-		/* perflock will respect policy->max prevent thermal issue*/
+		
 		if (target_min_freq > target_max_freq)
 			target_min_freq = target_max_freq;
 		if (debug_mask & PERF_CPUFREQ_LOCK_DEBUG) {
@@ -248,7 +232,7 @@ int perflock_override(const struct cpufreq_policy *policy, const unsigned int ne
 	} else if ((cpufreq_ceiling_speed = (get_cpufreq_ceiling_speed() / 1000))) {
 		target_max_freq = cpufreq_ceiling_speed > policy_max? policy_max : cpufreq_ceiling_speed;
 		target_min_freq = policy_min;
-		/* cpufreq_ceiling will respect policy->min to prevent performance low*/
+		
 		if (target_max_freq < target_min_freq)
 			target_max_freq = target_min_freq;
 		if (debug_mask & PERF_CPUFREQ_LOCK_DEBUG) {
@@ -257,7 +241,7 @@ int perflock_override(const struct cpufreq_policy *policy, const unsigned int ne
 			print_active_locks();
 		}
 	} else {
-		/* no perflock */
+		
 		spin_unlock_irqrestore(&policy_update_lock, irqflags);
 		return 0;
 	}
@@ -272,7 +256,7 @@ int perflock_override(const struct cpufreq_policy *policy, const unsigned int ne
 		return target_min_freq;
 	else
 		return new_freq;
-	/* should not be here */
+	
 	return 0;
 }
 
@@ -296,7 +280,7 @@ static unsigned int get_perflock_speed(void)
 	struct perf_lock *lock;
 	unsigned int perf_level = 0;
 
-	/* Get the maxmimum perf level. */
+	
 	if (list_empty(&active_perf_locks))
 		return 0;
 
@@ -316,7 +300,7 @@ static unsigned int get_cpufreq_ceiling_speed(void)
 	struct perf_lock *lock;
 	unsigned int perf_level = 0;
 
-	/* Get the maxmimum perf level. */
+	
 	if (list_empty(&active_cpufreq_ceiling_locks))
 		return 0;
 
@@ -368,21 +352,7 @@ void htc_print_active_perf_locks(void)
 	spin_unlock_irqrestore(&list_lock, irqflags);
 }
 
-void perf_lock_init_v2(struct perf_lock *lock,
-			unsigned int level, const char *name)
-{
-	lock->type = TYPE_CPUFREQ_CEILING;
-	perf_lock_init(lock, level, name);
-}
-/**
- * perf_lock_init - acquire a perf lock
- * @lock: perf lock to acquire
- * @level: performance level of @lock
- * @name: the name of @lock
- *
- * Acquire @lock with @name and @level. (It doesn't activate the lock.)
- */
-void perf_lock_init(struct perf_lock *lock,
+void perf_lock_init(struct perf_lock *lock, unsigned int type,
 			unsigned int level, const char *name)
 {
 	unsigned long irqflags = 0;
@@ -401,6 +371,7 @@ void perf_lock_init(struct perf_lock *lock,
 	lock->name = name;
 	lock->flags = PERF_LOCK_INITIALIZED;
 	lock->level = level;
+	lock->type = type;
 
 	INIT_LIST_HEAD(&lock->link);
 	spin_lock_irqsave(&list_lock, irqflags);
@@ -412,16 +383,20 @@ void perf_lock_init(struct perf_lock *lock,
 }
 EXPORT_SYMBOL(perf_lock_init);
 
-/**
- * perf_lock - activate a perf lock
- * @lock: perf lock to activate
- *
- * Activate @lock.(Need to init_perf_lock before activate)
- */
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND
+extern bool is_governor_ondemand(void);
+extern bool is_ondemand_locked(void);
+#endif
 static void do_set_rate_fn(struct work_struct *work)
 {
 	struct cpufreq_freqs freqs;
 	int ret = 0;
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND
+	if(is_governor_ondemand() && is_ondemand_locked()) {
+		pr_info("[K] perflock ignore setrate, ondemand governor locked\n");
+		return;
+	}
+#endif
 	freqs.new = perflock_override(NULL, 0);
 	freqs.cpu = smp_processor_id();
 	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
@@ -486,12 +461,6 @@ void perf_lock(struct perf_lock *lock)
 }
 EXPORT_SYMBOL(perf_lock);
 
-/**
- * perf_unlock - de-activate a perf lock
- * @lock: perf lock to de-activate
- *
- * de-activate @lock.
- */
 void perf_unlock(struct perf_lock *lock)
 {
 	unsigned long irqflags;
@@ -542,34 +511,18 @@ void perf_unlock(struct perf_lock *lock)
 }
 EXPORT_SYMBOL(perf_unlock);
 
-/**
- * is_perf_lock_active - query if a perf_lock is active or not
- * @lock: target perf lock
- * RETURN: 0: inactive; 1: active
- *
- * query if @lock is active or not
- */
 inline int is_perf_lock_active(struct perf_lock *lock)
 {
 	return (lock->flags & PERF_LOCK_ACTIVE);
 }
 EXPORT_SYMBOL(is_perf_lock_active);
 
-/**
- * is_perf_locked - query if there is any perf lock activates
- * RETURN: 0: no perf lock activates 1: at least a perf lock activates
- */
 int is_perf_locked(void)
 {
 	return (!list_empty(&active_perf_locks));
 }
 EXPORT_SYMBOL(is_perf_locked);
 
-/**
- * perflock_find - find perflock by given name
- * INPUT: name   - string name of the perflock
- * RETURN: lock  - pointer of the perflock
- */
 static struct perf_lock *perflock_find(const char *name)
 {
 	struct perf_lock *lock;
@@ -605,11 +558,6 @@ static struct perf_lock *perflock_find(const char *name)
 	return NULL;
 }
 
-/**
- * perflock_acquire - acquire a perflock
- * INPUT: name      - string name of this perflock
- * RETURN: lock     - pointer of this perf_lock
- */
 struct perf_lock *perflock_acquire(const char *name)
 {
 	struct perf_lock *lock = NULL;
@@ -621,22 +569,16 @@ struct perf_lock *perflock_acquire(const char *name)
 	lock = kzalloc(sizeof(struct perf_lock), GFP_KERNEL);
 	if(!lock) {
 		pr_err("%s: fail to alloc perflock %s\n", __func__, name);
-		return NULL; //ENOMEM
+		return NULL; 
 	}
 	lock->name = name;
-	/* Caller MUST init this lock before using it!! */
-	lock->flags = 0; //None-INITIALIZED
+	
+	lock->flags = 0; 
 
 	return lock;
 }
 EXPORT_SYMBOL(perflock_acquire);
 
-/**
- * perflock_release - release a perflock
- * INPUT: name - the string name of this perf_lock
- * RETURN: 0   - successful
- *     -ENOMEM - no memory ??
- */
 int perflock_release(const char *name)
 {
 	struct perf_lock *lock = NULL;
@@ -646,7 +588,7 @@ int perflock_release(const char *name)
 	if(!lock)
 		return -ENODEV;
 
-	/* Unlock (move to inactive list), delete and kfree it */
+	
 	if(is_perf_lock_active(lock))
 		perf_unlock(lock);
 
@@ -659,7 +601,6 @@ int perflock_release(const char *name)
 EXPORT_SYMBOL(perflock_release);
 
 #ifdef CONFIG_PERFLOCK_BOOT_LOCK
-/* Stop cpufreq and lock cpu, shorten boot time. */
 #define BOOT_LOCK_TIMEOUT	(60 * HZ)
 static struct perf_lock boot_perf_lock;
 
@@ -692,9 +633,11 @@ static void perf_acpu_table_fixup(void)
 			perf_acpu_table[i] = policy_min * 1000;
 	}
 
+#ifdef PERFLOCK_FIX_UP
 	if (table_size >= 1)
 		if (perf_acpu_table[table_size - 1] < policy_max * 1000)
 			perf_acpu_table[table_size - 1] = policy_max * 1000;
+#endif
 }
 
 static void cpufreq_ceiling_acpu_table_fixup(void)
@@ -708,7 +651,6 @@ static void cpufreq_ceiling_acpu_table_fixup(void)
 	}
 }
 
-/* initialize local stored policy min/max */
 static inline void init_local_freq_policy(unsigned int cpu_min
 		, unsigned int cpu_max)
 {
@@ -757,8 +699,8 @@ static void perflock_floor_init(struct perflock_data *pdata)
 	initialized = 1;
 	pr_info("perflock floor init done\n");
 #ifdef CONFIG_PERFLOCK_BOOT_LOCK
-	/* Stop cpufreq and lock cpu, shorten boot time. */
-	perf_lock_init(&boot_perf_lock, PERF_LOCK_HIGHEST, "boot-time");
+	
+	perf_lock_init(&boot_perf_lock, TYPE_PERF_LOCK, PERF_LOCK_HIGHEST, "boot-time");
 	perf_lock(&boot_perf_lock);
 	schedule_delayed_work(&work_expire_boot_lock, BOOT_LOCK_TIMEOUT);
 	pr_info("Acquire 'boot-time' perf_lock\n");

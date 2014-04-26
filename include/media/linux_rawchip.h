@@ -98,5 +98,5 @@ struct rawchip_stats_event_ctrl {
 	void *data;
 };
 
-#endif /* __LINUX_RAWCHIP_H */
+#endif 
 

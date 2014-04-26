@@ -37,17 +37,17 @@ struct ion_iommu_priv_data {
 	unsigned long size;
 };
 
-//HTC_START
 atomic_t v = ATOMIC_INIT(0);
-//HTC_END
 
 static int ion_iommu_heap_allocate(struct ion_heap *heap,
 				      struct ion_buffer *buffer,
 				      unsigned long size, unsigned long align,
 				      unsigned long flags)
 {
-	int ret, i;
+	int ret = 0, i;
 	struct ion_iommu_priv_data *data = NULL;
+	pgprot_t page_prot = pgprot_writecombine(PAGE_KERNEL);
+	void *ptr = NULL;
 
 	if (msm_use_iommu()) {
 		struct scatterlist *sg;
@@ -79,17 +79,25 @@ static int ion_iommu_heap_allocate(struct ion_heap *heap,
 			goto err2;
 
 		for_each_sg(table->sgl, sg, table->nents, i) {
-			data->pages[i] = alloc_page(GFP_KERNEL | __GFP_ZERO);
+			data->pages[i] = alloc_page(GFP_KERNEL | __GFP_HIGHMEM);
 			if (!data->pages[i])
 				goto err3;
 
 			sg_set_page(sg, data->pages[i], PAGE_SIZE, 0);
 		}
 
+		ptr = vmap(data->pages, data->nrpages, VM_IOREMAP, page_prot);
+		if (ptr != NULL) {
+			memset(ptr, 0, data->size);
+			dmac_flush_range(ptr, ptr + data->size);
+			vunmap(ptr);
+		} else
+			pr_err("%s: vmap() failed\n", __func__);
+
 		buffer->priv_virt = data;
-		//HTC_START
+		
 		atomic_add(data->size, &v);
-		//HTC_END
+		
 		return 0;
 
 	} else {
@@ -124,20 +132,51 @@ static void ion_iommu_heap_free(struct ion_buffer *buffer)
 	for (i = 0; i < data->nrpages; i++)
 		__free_page(data->pages[i]);
 
+	
+	atomic_sub(data->size, &v);
+	
+
 	kfree(data->pages);
 	kfree(data);
-	//HTC_START
-	atomic_sub(data->size, &v);
-	//HTC_END
 }
 
-//HTC_START
 int ion_iommu_heap_dump_size(void)
 {
 	int ret = atomic_read(&v);
 	return ret;
 }
-//HTC_END
+
+static int ion_iommu_print_debug(struct ion_heap *heap, struct seq_file *s,
+				    const struct rb_root *mem_map)
+{
+	seq_printf(s, "Total bytes currently allocated: %d (%x)\n",
+		atomic_read(&v), atomic_read(&v));
+
+	if (mem_map) {
+		struct rb_node *n;
+
+		seq_printf(s, "\nBuffer Info\n");
+		seq_printf(s, "%16.s %16.s %14.s\n",
+			   "client", "creator", "size (hex)");
+
+		for (n = rb_first(mem_map); n; n = rb_next(n)) {
+			struct mem_map_data *data =
+					rb_entry(n, struct mem_map_data, node);
+			const char *client_name = "(null)";
+			const char *creator_name = "(null)";
+
+			if (data->client_name)
+				client_name = data->client_name;
+
+			if (data->creator_name)
+				creator_name = data->creator_name;
+
+			seq_printf(s, "%16.s %16.s %14lu (%lx)\n",
+				   client_name, creator_name, data->size, data->size);
+		}
+	}
+	return 0;
+}
 
 void *ion_iommu_heap_map_kernel(struct ion_heap *heap,
 				struct ion_buffer *buffer)
@@ -181,10 +220,6 @@ int ion_iommu_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 	curr_addr = vma->vm_start;
 	for (i = 0; i < data->nrpages && curr_addr < vma->vm_end; i++) {
 		if (vm_insert_page(vma, curr_addr, data->pages[i])) {
-			/*
-			 * This will fail the mmap which will
-			 * clean up the vma space properly.
-			 */
 			return -EINVAL;
 		}
 		curr_addr += PAGE_SIZE;
@@ -345,6 +380,7 @@ static struct ion_heap_ops iommu_heap_ops = {
 	.cache_op = ion_iommu_cache_ops,
 	.map_dma = ion_iommu_heap_map_dma,
 	.unmap_dma = ion_iommu_heap_unmap_dma,
+	.print_debug = ion_iommu_print_debug,
 };
 
 struct ion_heap *ion_iommu_heap_create(struct ion_platform_heap *heap_data)

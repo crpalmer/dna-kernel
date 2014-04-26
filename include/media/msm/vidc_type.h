@@ -22,7 +22,6 @@
 #include <linux/time.h>
 #include <linux/dma-mapping.h>
 #include <linux/android_pmem.h>
-#include <mach/msm_rtb_enable.h>
 
 #define DEBUG   0
 #define VIDC_ENABLE_DBGFS

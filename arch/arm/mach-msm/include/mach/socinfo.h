@@ -22,12 +22,6 @@
 
 #include <asm/cputype.h>
 #include <asm/mach-types.h>
-/*
- * SOC version type with major number in the upper 16 bits and minor
- * number in the lower 16 bits.  For example:
- *   1.0 -> 0x00010000
- *   2.3 -> 0x00020003
- */
 #define SOCINFO_VERSION_MAJOR(ver) ((ver & 0xffff0000) >> 16)
 #define SOCINFO_VERSION_MINOR(ver) (ver & 0x0000ffff)
 
@@ -54,6 +48,7 @@
 #endif
 
 #define PLATFORM_SUBTYPE_SGLTE	6
+#define PLATFORM_SUBTYPE_DSDA	7
 
 enum msm_cpu {
 	MSM_CPU_UNKNOWN = 0,
@@ -73,6 +68,7 @@ enum msm_cpu {
 	MSM_CPU_7X25AA,
 	MSM_CPU_7X25AB,
 	MSM_CPU_8064,
+	MSM_CPU_8064AB,
 	MSM_CPU_8930,
 	MSM_CPU_8930AA,
 	MSM_CPU_7X27AA,
@@ -114,6 +110,7 @@ int __init socinfo_init(void) __must_check;
 const int read_msm_cpu_type(void);
 const int get_core_count(void);
 const int cpu_is_krait_v1(void);
+const int cpu_is_krait_v3(void);
 
 static inline int cpu_is_msm7x01(void)
 {
@@ -283,6 +280,15 @@ static inline int cpu_is_apq8064(void)
 #endif
 }
 
+static inline int cpu_is_apq8064ab(void)
+{
+#ifdef CONFIG_ARCH_APQ8064
+	return read_msm_cpu_type() == MSM_CPU_8064AB;
+#else
+	return 0;
+#endif
+}
+
 static inline int cpu_is_msm8930(void)
 {
 #ifdef CONFIG_ARCH_MSM8930
@@ -303,7 +309,6 @@ static inline int cpu_is_msm8930aa(void)
 
 static inline int cpu_is_msm8627(void)
 {
-/* 8930 and 8627 will share the same CONFIG_ARCH type unless otherwise needed */
 #ifdef CONFIG_ARCH_MSM8930
 	return read_msm_cpu_type() == MSM_CPU_8627;
 #else

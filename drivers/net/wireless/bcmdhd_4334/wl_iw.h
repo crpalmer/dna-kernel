@@ -95,16 +95,12 @@ struct cntry_locales_custom {
 #define AP_LPB_CMD              (SIOCIWFIRSTPRIV+23)
 #define WL_AP_STOP              (SIOCIWFIRSTPRIV+25)
 #define WL_FW_RELOAD            (SIOCIWFIRSTPRIV+27)
-/* HTC_CSP_START */
 #define WL_SET_AP_TXPWR         (SIOCIWFIRSTPRIV+29)
-/* HTC_CSP_END */
 #define WL_AP_STA_DISASSOC		(SIOCIWFIRSTPRIV+31)
 #define WL_COMBO_SCAN           (SIOCIWFIRSTPRIV+33)
-//BRCM WPSAP START
 #ifdef BRCM_WPSAP
 #define WL_REGISTRAR_WSEC       (SIOCIWFIRSTPRIV+35)
-#endif /* BRCM_WPSAP */
-//BRCM WPSAP END
+#endif 
 
 #define 		G_SCAN_RESULTS 8*1024
 #define 		WE_ADD_EVENT_FIX	0x80

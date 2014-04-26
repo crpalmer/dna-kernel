@@ -10,17 +10,14 @@
  * GNU General Public License for more details.
  */
 
-/**
- * Pipe-Memory allocation/free management.
- */
 
-#include <linux/types.h>	/* u32 */
-#include <linux/kernel.h>	/* pr_info() */
-#include <linux/io.h>		/* ioremap() */
-#include <linux/mutex.h>	/* mutex */
-#include <linux/list.h>		/* list_head */
-#include <linux/genalloc.h>	/* gen_pool_alloc() */
-#include <linux/errno.h>	/* ENOMEM */
+#include <linux/types.h>	
+#include <linux/kernel.h>	
+#include <linux/io.h>		
+#include <linux/mutex.h>	
+#include <linux/list.h>		
+#include <linux/genalloc.h>	
+#include <linux/errno.h>	
 
 #include "sps_bam.h"
 #include "spsi.h"
@@ -32,14 +29,9 @@ static u32 iomem_offset;
 static struct gen_pool *pool;
 static u32 nid = 0xaa;
 
-/* Debug */
 static u32 total_alloc;
 static u32 total_free;
 
-/**
- * Translate physical to virtual address
- *
- */
 void *spsi_get_mem_ptr(u32 phys_addr)
 {
 	void *virt = NULL;
@@ -55,10 +47,6 @@ void *spsi_get_mem_ptr(u32 phys_addr)
 	return virt;
 }
 
-/**
- * Allocate I/O (pipe) memory
- *
- */
 u32 sps_mem_alloc_io(u32 bytes)
 {
 	u32 phys_addr = SPS_ADDR_INVALID;
@@ -80,10 +68,6 @@ u32 sps_mem_alloc_io(u32 bytes)
 	return phys_addr;
 }
 
-/**
- * Free I/O memory
- *
- */
 void sps_mem_free_io(u32 phys_addr, u32 bytes)
 {
 	u32 virt_addr = 0;
@@ -98,15 +82,11 @@ void sps_mem_free_io(u32 phys_addr, u32 bytes)
 	total_free += bytes;
 }
 
-/**
- * Initialize driver memory module
- *
- */
 int sps_mem_init(u32 pipemem_phys_base, u32 pipemem_size)
 {
 	int res;
 
-	/* 2^8=128. The desc-fifo and data-fifo minimal allocation. */
+	
 	int min_alloc_order = 8;
 
 	if ((d_type == 0) || (d_type == 2)) {
@@ -145,10 +125,6 @@ int sps_mem_init(u32 pipemem_phys_base, u32 pipemem_size)
 	return 0;
 }
 
-/**
- * De-initialize driver memory module
- *
- */
 int sps_mem_de_init(void)
 {
 	if (iomem_virt != NULL) {

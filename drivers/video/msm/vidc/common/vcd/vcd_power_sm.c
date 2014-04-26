@@ -303,7 +303,7 @@ u32 vcd_set_perf_turbo_level(struct vcd_clnt_ctxt *cctxt)
 	u32 rc = VCD_S_SUCCESS;
 #ifdef CONFIG_MSM_BUS_SCALING
 	struct vcd_dev_ctxt *dev_ctxt = cctxt->dev_ctxt;
-	pr_err("\n Setting Turbo mode !!");
+	pr_info("\n Setting Turbo mode !! \n");
 
 	if (res_trk_update_bus_perf_level(dev_ctxt,
 			RESTRK_1080P_TURBO_PERF_LEVEL) < 0) {

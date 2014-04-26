@@ -51,6 +51,7 @@ void mmc_set_driver_type(struct mmc_host *host, unsigned int drv_type);
 void mmc_power_off(struct mmc_host *host);
 extern int mmc_send_status(struct mmc_card *, u32 *);
 extern int mmc_card_stop_bkops(struct mmc_host *);
+extern int is_wifi_mmc_host(struct mmc_host *mmc);
 static inline void mmc_delay(unsigned int ms)
 {
 	if (ms < 1000 / HZ) {
@@ -74,16 +75,11 @@ int mmc_attach_sd(struct mmc_host *host);
 int mmc_attach_sdio(struct mmc_host *host);
 
 #ifdef CONFIG_MMC_CPRM_SUPPORT
-/* For [3 party] tony */
-int mmc_sd_get_card_info(struct mmc_card *card);
 int mmc_sd_read_sd_status(struct mmc_card *card);
-/* 2012-03-26 */
 #endif
 
-/* Module parameters */
 extern bool use_spi_crc;
 
-/* Debugfs information for hosts and cards */
 void mmc_add_host_debugfs(struct mmc_host *host);
 void mmc_remove_host_debugfs(struct mmc_host *host);
 
@@ -91,9 +87,6 @@ void mmc_add_card_debugfs(struct mmc_card *card);
 void mmc_remove_card_debugfs(struct mmc_card *card);
 void mmc_remove_sd_card(struct work_struct *work);
 
-/*
-* 2012-05-17 Add eMMC SPOR prevention code
-*/
 extern atomic_t emmc_reboot;
 
 #endif

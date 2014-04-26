@@ -44,7 +44,6 @@ enum {
 	MSM_RPM_CTX_REJECTED = 31,
 };
 
-/* RPM control message RAM enums */
 enum {
 	MSM_RPM_CTRL_VERSION_MAJOR,
 	MSM_RPM_CTRL_VERSION_MINOR,
@@ -77,7 +76,7 @@ enum {
 
 	MSM_RPM_ID_RPM_CTL,
 
-	/* TRIGGER_CLEAR/SET deprecated in these 24 RESERVED bytes */
+	
 	MSM_RPM_ID_RESERVED_0,
 	MSM_RPM_ID_RESERVED_5 =
 		MSM_RPM_ID_RESERVED_0 + 5,
@@ -229,7 +228,7 @@ enum {
 	MSM_RPM_ID_DDR_DMM_1,
 	MSM_RPM_ID_QDSS_CLK,
 
-	/* 8660 specific ids */
+	
 	MSM_RPM_ID_TRIGGER_SET_FROM,
 	MSM_RPM_ID_TRIGGER_SET_TO,
 	MSM_RPM_ID_TRIGGER_SET_TRIGGER,
@@ -241,7 +240,7 @@ enum {
 	MSM_RPM_ID_SMI_CLK,
 	MSM_RPM_ID_APPS_L2_CACHE_CTL,
 
-	/* pmic 8901 */
+	
 	MSM_RPM_ID_SMPS0B_0,
 	MSM_RPM_ID_SMPS0B_1,
 	MSM_RPM_ID_SMPS1B_0,
@@ -272,7 +271,7 @@ enum {
 	MSM_RPM_ID_LVS3B,
 	MSM_RPM_ID_MVS,
 
-	/* pmic 8058 */
+	
 	MSM_RPM_ID_SMPS0_0,
 	MSM_RPM_ID_SMPS0_1,
 	MSM_RPM_ID_SMPS1_0,
@@ -338,7 +337,7 @@ enum {
 	MSM_RPM_ID_LVS0,
 	MSM_RPM_ID_LVS1,
 
-	/* 9615 specific */
+	
 	MSM_RPM_ID_PM8018_S1_0,
 	MSM_RPM_ID_PM8018_S1_1,
 	MSM_RPM_ID_PM8018_S2_0,
@@ -379,7 +378,7 @@ enum {
 	MSM_RPM_ID_PM8018_L14_1,
 	MSM_RPM_ID_PM8018_LVS1,
 
-	/* 8930 specific */
+	
 	MSM_RPM_ID_PM8038_S1_0,
 	MSM_RPM_ID_PM8038_S1_1,
 	MSM_RPM_ID_PM8038_S2_0,
@@ -454,7 +453,7 @@ enum {
 	MSM_RPM_ID_PM8038_LVS2,
 	MSM_RPM_ID_VOLTAGE_CORNER,
 
-	/* 8064 specific */
+	
 	MSM_RPM_ID_PM8821_S1_0,
 	MSM_RPM_ID_PM8821_S1_1,
 	MSM_RPM_ID_PM8821_S2_0,
@@ -606,7 +605,7 @@ enum {
 	MSM_RPM_STATUS_ID_EBI1_CH1_RANGE,
 	MSM_RPM_STATUS_ID_QDSS_CLK,
 
-	/* 8660 Specific */
+	
 	MSM_RPM_STATUS_ID_PLL_4,
 	MSM_RPM_STATUS_ID_SMI_CLK,
 	MSM_RPM_STATUS_ID_APPS_L2_CACHE_CTL,
@@ -704,7 +703,7 @@ enum {
 	MSM_RPM_STATUS_ID_LVS0,
 	MSM_RPM_STATUS_ID_LVS1,
 
-	/* 9615 Specific */
+	
 	MSM_RPM_STATUS_ID_PM8018_S1_0,
 	MSM_RPM_STATUS_ID_PM8018_S1_1,
 	MSM_RPM_STATUS_ID_PM8018_S2_0,
@@ -745,7 +744,7 @@ enum {
 	MSM_RPM_STATUS_ID_PM8018_L14_1,
 	MSM_RPM_STATUS_ID_PM8018_LVS1,
 
-	/* 8930 specific */
+	
 	MSM_RPM_STATUS_ID_PM8038_S1_0,
 	MSM_RPM_STATUS_ID_PM8038_S1_1,
 	MSM_RPM_STATUS_ID_PM8038_S2_0,
@@ -820,7 +819,7 @@ enum {
 	MSM_RPM_STATUS_ID_PM8038_LVS2,
 	MSM_RPM_STATUS_ID_VOLTAGE_CORNER,
 
-	/* 8064 specific */
+	
 	MSM_RPM_STATUS_ID_PM8821_S1_0,
 	MSM_RPM_STATUS_ID_PM8821_S1_1,
 	MSM_RPM_STATUS_ID_PM8821_S2_0,
@@ -853,9 +852,9 @@ struct msm_rpm_iv_pair {
 };
 
 struct msm_rpm_notification {
-	struct list_head list;  /* reserved for RPM use */
+	struct list_head list;  
 	struct semaphore sem;
-	uint32_t sel_masks[SEL_MASK_SIZE];  /* reserved for RPM use */
+	uint32_t sel_masks[SEL_MASK_SIZE];  
 };
 
 struct msm_rpm_map_data {
@@ -947,7 +946,9 @@ void msm_rpm_print_sleep_tick(void);
 uint64_t msm_rpm_get_xo_time(void);
 uint64_t msm_rpm_get_vdd_time(void);
 void msm_rpm_set_suspend_flag(bool app_from_suspend);
-
+#ifdef CONFIG_ARCH_MSM8X60
+void msm_rpm_lpm_init(uint32_t *lpm_setting, uint32_t num);
+#endif
 #else
 
 static inline int msm_rpm_local_request_is_outstanding(void)
@@ -1013,7 +1014,12 @@ static inline int msm_rpm_init(struct msm_rpm_platform_data *data)
 }
 
 void msm_rpm_set_suspend_flag(bool app_from_suspend) { };
-#endif /* CONFIG_RPM */
+
+#ifdef CONFIG_ARCH_MSM8X60
+void msm_rpm_lpm_init(uint32_t *lpm_setting, uint32_t num) { };
+#endif
+
+#endif 
 
 #define RPM_DEBUG_RAM_DEBUG		0x1
 #define RPM_DEBUG_RAM_DUMP		0x2
@@ -1040,25 +1046,58 @@ typedef enum {
   RPM_STAT_VDD_MIN_TIME = 3,
   RPM_MAX_STATS,
   RPM_HTC_REGION = 63,
+#ifdef CONFIG_ARCH_MSM8X60
+  RPM_LPM_PM8058 = 125,
+  RPM_LPM_PM8901 = 126,
+#endif
 } stat_assignments;
 
 typedef enum {
   RPM_MASTER_0 = 0,
   RPM_MASTER_1,
   RPM_MASTER_2,
+#ifndef CONFIG_ARCH_MSM8X60
   RPM_MASTER_3,
   RPM_MASTER_4,
+#endif
   RPM_MASTER_COUNT,
 } rpm_master_type;
 
-  /* stat_sleep_info - uint32_t stats[3];
-  stats[0] bit0 : is_sleep_mode
-  stats[0] bit1 : cxo
-  stats[0] bit2 : pxo
-  stats[0] bit3~bit31 : vdd_mem
-  stats[1] vdd_dig
-  stats[2] reserve
-  */
+#ifdef CONFIG_ARCH_MSM8X60
+
+typedef struct {
+  uint32_t timestamp;
+} stat_wakeup_info;
+
+typedef struct {
+  uint32_t timestamp;
+  uint32_t cxo:1;
+  uint32_t pxo:1;
+  uint32_t vdd_mem:12;
+  uint32_t vdd_dig:12;
+  uint32_t reversed:6;
+} stat_sleep_info;
+
+typedef struct {
+  uint32_t num_stats;
+  rpm_stat  stats[RPM_MAX_STATS];
+  uint32_t reversed1[62 - ((sizeof(rpm_stat)/sizeof(uint32_t)) * RPM_MAX_STATS)];
+#ifdef CONFIG_ARCH_MSM8X60_LTE
+  uint32_t reversed2[35];
+  htc_sleep_info_ex sleep_info_ex[RPM_MASTER_COUNT];
+#else
+  uint32_t reversed2[44];
+#endif
+  uint32_t app_from_suspend;
+  stat_wakeup_info wake_info[RPM_MASTER_COUNT];
+  stat_sleep_info sleep_info[RPM_MASTER_COUNT];
+  uint32_t mpm_trigger[RPM_MASTER_COUNT][2];
+  uint32_t mpm_int_status[2];
+  uint32_t lpm_pm8058;
+  uint32_t lpm_pm8901;
+} stats_blob;
+
+#else
 typedef struct {
   uint32_t count;
   uint32_t sleep_timestamp;
@@ -1070,7 +1109,7 @@ typedef struct {
   uint32_t num_stats;
   rpm_stat stats[RPM_MAX_STATS];
   uint32_t reversed1[62 - ((sizeof(rpm_stat)/sizeof(uint32_t)) * RPM_MAX_STATS)];
-#ifdef CONFIG_APQ8064_ONLY /* check krait up time for debugging modem crash */
+#ifdef CONFIG_APQ8064_ONLY 
   uint32_t reversed2[27];
   uint32_t core0_shutdown_time;
   uint32_t core0_bringup_time;
@@ -1084,7 +1123,8 @@ typedef struct {
   uint32_t rpm_debug_mode;
   stat_sleep_info sleep_info[RPM_MASTER_COUNT];
 } stats_blob;
+#endif
 
 int htc_get_xo_vdd_min_info(uint32_t *xo_count, uint64_t *xo_time, uint32_t *vddmin_count, uint64_t *vddmin_time);
 
-#endif /* __ARCH_ARM_MACH_MSM_RPM_H */
+#endif 

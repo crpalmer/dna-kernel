@@ -68,7 +68,7 @@ else
 		obj-y += pm8921-charger-htc.o
 endif
 endif
-ifdef CONFIG_AMP_TPA6185
+ifdef CONFIG_AMP_RT5501
                obj-y += pm8921-audio.o
 endif
 obj-$(CONFIG_LTC4088_CHARGER)	+= ltc4088-charger.o

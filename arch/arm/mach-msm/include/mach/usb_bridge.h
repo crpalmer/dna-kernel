@@ -17,16 +17,13 @@
 #include <linux/netdevice.h>
 #include <linux/usb.h>
 
-/* bridge device 0: DUN
- * bridge device 1 : Tethered RMNET
- */
 #define MAX_BRIDGE_DEVICES 2
 
 struct bridge_ops {
 	int (*send_pkt)(void *, void *, size_t actual);
 	void (*send_cbits)(void *, unsigned int);
 
-	/* flow control */
+	
 	void (*unthrottle_tx)(void *);
 };
 
@@ -34,35 +31,18 @@ struct bridge_ops {
 #define RX_THROTTLED BIT(1)
 
 struct bridge {
-	/* context of the gadget port using bridge driver */
+	
 	void *ctx;
 
-	/* bridge device array index mapped to the gadget port array index.
-	 * data bridge[ch_id] <-- bridge --> gadget port[ch_id]
-	 */
 	unsigned int ch_id;
 
-	/* flow control bits */
+	
 	unsigned long flags;
 
-	/* data/ctrl bridge callbacks */
+	
 	struct bridge_ops ops;
 };
 
-/**
- * timestamp_info: stores timestamp info for skb life cycle during data
- * transfer for tethered rmnet/DUN.
- * @created: stores timestamp at the time of creation of SKB.
- * @rx_queued: stores timestamp when SKB queued to HW to receive
- * data.
- * @rx_done: stores timestamp when skb queued to h/w is completed.
- * @rx_done_sent: stores timestamp when SKB is sent from gadget rmnet/DUN
- * driver to bridge rmnet/DUN driver or vice versa.
- * @tx_queued: stores timestamp when SKB is queued to send data.
- *
- * note that size of this struct shouldnt exceed 48bytes that's the max skb->cb
- * holds.
- */
 struct timestamp_info {
 	struct data_bridge	*dev;
 
@@ -73,23 +53,19 @@ struct timestamp_info {
 	unsigned int		tx_queued;
 };
 
-/* Maximum timestamp message length */
 #define DBG_DATA_MSG	128UL
 
-/* Maximum timestamp messages */
 #define DBG_DATA_MAX	32UL
 
-/* timestamp buffer descriptor */
 struct timestamp_buf {
-	char		(buf[DBG_DATA_MAX])[DBG_DATA_MSG];   /* buffer */
-	unsigned	idx;   /* index */
-	rwlock_t	lck;   /* lock */
+	char		(buf[DBG_DATA_MAX])[DBG_DATA_MSG];   
+	unsigned	idx;   
+	rwlock_t	lck;   
 };
 
 #if defined(CONFIG_USB_QCOM_MDM_BRIDGE) ||	\
 	defined(CONFIG_USB_QCOM_MDM_BRIDGE_MODULE)
 
-/* Bridge APIs called by gadget driver */
 int ctrl_bridge_open(struct bridge *);
 void ctrl_bridge_close(unsigned int);
 int ctrl_bridge_write(unsigned int, char *, size_t);
@@ -100,7 +76,6 @@ void data_bridge_close(unsigned int);
 int data_bridge_write(unsigned int , struct sk_buff *);
 int data_bridge_unthrottle_rx(unsigned int);
 
-/* defined in control bridge */
 int ctrl_bridge_probe(struct usb_interface *, struct usb_host_endpoint *, int);
 void ctrl_bridge_disconnect(unsigned int);
 int ctrl_bridge_resume(unsigned int);

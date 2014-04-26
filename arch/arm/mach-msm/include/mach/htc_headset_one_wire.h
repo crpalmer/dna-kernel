@@ -35,7 +35,7 @@ struct htc_headset_1wire_platform_data {
 	unsigned int uart_tx;
 	unsigned int uart_rx;
 	unsigned int remote_press;
-	char one_wire_remote[6]; /* Key code for press and release */
+	char one_wire_remote[6]; 
 	char onewire_tty_dev[15];
 
 };
@@ -44,4 +44,5 @@ struct htc_35mm_1wire_info {
 	struct htc_headset_1wire_platform_data pdata;
 	char aid;
 	struct wake_lock hs_wake_lock;
+	struct mutex mutex_lock;
 };

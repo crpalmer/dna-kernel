@@ -29,6 +29,7 @@
 #include <linux/suspend.h>
 #include <mach/socinfo.h>
 #include <mach/cpufreq.h>
+#include <mach/board.h>
 
 #include "acpuclock.h"
 #ifdef CONFIG_PERFLOCK
@@ -287,11 +288,6 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	table = cpufreq_frequency_get_table(policy->cpu);
 	if (table == NULL)
 		return -ENODEV;
-	/*
-	 * In 8625 both cpu core's frequency can not
-	 * be changed independently. Each cpu is bound to
-	 * same frequency. Hence set the cpumask to all cpu.
-	 */
 	if (cpu_is_msm8625())
 		cpumask_setall(policy->cpus);
 
@@ -304,6 +300,13 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 #ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
 	policy->min = CONFIG_MSM_CPU_FREQ_MIN;
 	policy->max = CONFIG_MSM_CPU_FREQ_MAX;
+#endif
+
+#ifdef CONFIG_ARCH_APQ8064
+	if( board_mfg_mode() == 5) {
+		policy->cpuinfo.max_freq = 918000;
+		policy->max = 918000;
+	}
 #endif
 
 	cur_freq = acpuclk_get_rate(policy->cpu);
@@ -385,7 +388,7 @@ static struct freq_attr *msm_freq_attr[] = {
 };
 
 static struct cpufreq_driver msm_cpufreq_driver = {
-	/* lps calculations are handled here. */
+	
 	.flags		= CPUFREQ_STICKY | CPUFREQ_CONST_LOOPS,
 	.init		= msm_cpufreq_init,
 	.verify		= msm_cpufreq_verify,

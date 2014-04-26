@@ -1,4 +1,3 @@
-/* Bluetooth HCI driver model support. */
 
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -105,11 +104,6 @@ static void add_conn(struct work_struct *work)
 	hci_dev_hold(hdev);
 }
 
-/*
- * The rfcomm tty device will possibly retain even when conn
- * is down, and sysfs doesn't support move zombie device,
- * so we should move the device before conn device is destroyed.
- */
 static int __match_tty(struct device *dev, void *data)
 {
 	return !strncmp(dev_name(dev), "rfcomm", 6);

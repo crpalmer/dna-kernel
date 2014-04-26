@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,7 +19,6 @@
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
 #include "kgsl_device.h"
-#include <mach/msm_rtb_enable.h>
 
 struct kgsl_pwrscale_attribute {
 	struct attribute attr;
@@ -40,7 +39,6 @@ container_of(a, struct kgsl_pwrscale_policy_attribute, attr)
 struct kgsl_pwrscale_attribute pwrscale_attr_##_name = \
 __ATTR(_name, _mode, _show, _store)
 
-/* Master list of available policies */
 
 static struct kgsl_pwrscale_policy *kgsl_pwrscale_policies[] = {
 #ifdef CONFIG_MSM_SCM
@@ -61,8 +59,6 @@ static ssize_t pwrscale_policy_store(struct kgsl_device *device,
 	int i;
 	struct kgsl_pwrscale_policy *policy = NULL;
 
-	/* The special keyword none allows the user to detach all
-	   policies */
 	if (!strncmp("none", buf, 4)) {
 		kgsl_pwrscale_detach_policy(device);
 		return count;
@@ -238,11 +234,9 @@ EXPORT_SYMBOL(kgsl_pwrscale_wake);
 void kgsl_pwrscale_busy(struct kgsl_device *device)
 {
 	if (PWRSCALE_ACTIVE(device) && device->pwrscale.policy->busy)
-		if ((!device->pwrscale.gpu_busy) &&
-			(device->requested_state != KGSL_STATE_SLUMBER))
+		if (device->requested_state != KGSL_STATE_SLUMBER)
 			device->pwrscale.policy->busy(device,
 					&device->pwrscale);
-	device->pwrscale.gpu_busy = 1;
 }
 
 void kgsl_pwrscale_idle(struct kgsl_device *device)
@@ -252,7 +246,6 @@ void kgsl_pwrscale_idle(struct kgsl_device *device)
 			device->requested_state != KGSL_STATE_SLEEP)
 			device->pwrscale.policy->idle(device,
 					&device->pwrscale);
-	device->pwrscale.gpu_busy = 0;
 }
 EXPORT_SYMBOL(kgsl_pwrscale_idle);
 
@@ -303,8 +296,10 @@ static void _kgsl_pwrscale_detach_policy(struct kgsl_device *device)
 {
 	if (device->pwrscale.policy != NULL) {
 		device->pwrscale.policy->close(device, &device->pwrscale);
+
+
 		kgsl_pwrctrl_pwrlevel_change(device,
-				device->pwrctrl.thermal_pwrlevel);
+				device->pwrctrl.max_pwrlevel);
 	}
 	device->pwrscale.policy = NULL;
 }
@@ -337,7 +332,7 @@ int kgsl_pwrscale_attach_policy(struct kgsl_device *device,
 
 	device->pwrscale.policy = policy;
 
-	/* Pwrscale is enabled by default at attach time */
+	
 	kgsl_pwrscale_enable(device);
 
 	if (policy) {

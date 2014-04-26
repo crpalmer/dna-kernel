@@ -19,8 +19,8 @@
 #include <mach/mhl.h>
 #include "TypeDefs.h"
 #include <mach/board.h>
-bool TPI_Init(void);				/* Document purpose, usage */
-void TPI_Poll(void);			/* Document purpose, usage, rename */
+bool TPI_Init(void);				
+void TPI_Poll(void);			
 byte Status_Query(void);
 void D2ToD3(void);
 bool tpi_get_hpd_state(void);

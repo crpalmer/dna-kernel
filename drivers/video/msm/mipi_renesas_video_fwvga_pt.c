@@ -14,22 +14,21 @@
 #include "mipi_dsi.h"
 #include "mipi_renesas.h"
 #include <mach/panel_id.h>
-#include <mach/msm_rtb_enable.h>
 
 static struct msm_panel_info pinfo;
 
 static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db = {
-	/* DSI_BIT_CLK at 860MHz, 4 lane, RGB888 */
-	/* regulator *//* off=0x0500 */
+	
+	
 	{0x03, 0x08, 0x05, 0x00, 0x20},
-	/* timing *//* off=0x0440 */
+	
 	{0xDD, 0x51, 0x27, 0x00, 0x6E, 0x74, 0x2C,
 	0x55, 0x3E, 0x3, 0x4, 0xA0},
-	/* phy ctrl *//* off=0x0470 */
+	
 	{0x5F, 0x00, 0x00, 0x10},
-	/* strength *//* off=0x0480 */
+	
 	{0xFF, 0x00, 0x06, 0x00},
-	/* pll control *//* off=0x0204 */
+	
 	{0x00, 0x38, 0x32, 0xDA, 0x00, 0x10, 0x0F, 0x61,
 	0x41, 0x0F, 0x01,
 	0x00, 0x1A, 0x00, 0x00, 0x02, 0x00, 0x20, 0x00, 0x02 },
@@ -68,8 +67,8 @@ static int __init mipi_video_renesas_fwvga_pt_init(void)
                 pinfo.lcd.v_front_porch = 3;
 	        pinfo.lcd.v_pulse_width = 2;
 	}
-	pinfo.lcdc.border_clr = 0;	/* blk */
-	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
+	pinfo.lcdc.border_clr = 0;	
+	pinfo.lcdc.underflow_clr = 0xff;	
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.bl_max = 255;
 	pinfo.bl_min = 1;
@@ -95,7 +94,7 @@ static int __init mipi_video_renesas_fwvga_pt_init(void)
 	pinfo.mipi.tx_eot_append = TRUE;
 	pinfo.mipi.t_clk_post = 0x05;
 	pinfo.mipi.t_clk_pre = 0x2D;
-	pinfo.mipi.stream = 0; /* dma_p */
+	pinfo.mipi.stream = 0; 
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_SW;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
 	pinfo.mipi.frame_rate = 60;

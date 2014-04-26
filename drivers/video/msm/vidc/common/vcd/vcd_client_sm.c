@@ -503,7 +503,7 @@ static u32 vcd_set_property_cmn
 
 	rc = ddl_set_property(cctxt->ddl_handle, prop_hdr, prop_val);
 	if (rc) {
-		/* Some properties aren't known to ddl that we can handle */
+		
 		if (prop_hdr->prop_id != VCD_I_VOP_TIMING_CONSTANT_DELTA)
 			VCD_FAILED_RETURN(rc, "Failed: ddl_set_property");
 	}
@@ -543,8 +543,7 @@ static u32 vcd_set_property_cmn
 		}
 	case VCD_I_SET_TURBO_CLK:
 	{
-		if (cctxt->sched_clnt_hdl)
-			rc = vcd_set_perf_turbo_level(cctxt);
+        rc = vcd_set_perf_turbo_level(cctxt);
 		break;
 	}
 	case VCD_I_INTRA_PERIOD:
@@ -594,7 +593,7 @@ static u32 vcd_get_property_cmn
 	}
 	rc = ddl_get_property(cctxt->ddl_handle, prop_hdr, prop_val);
 	if (rc) {
-		/* Some properties aren't known to ddl that we can handle */
+		
 		if (prop_hdr->prop_id != VCD_I_VOP_TIMING_CONSTANT_DELTA)
 			VCD_FAILED_RETURN(rc, "Failed: ddl_set_property");
 	}

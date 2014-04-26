@@ -128,6 +128,10 @@ enum {
 };
 
 enum {
+	DEBUG_FLAG_DISABLE_PMIC_RESET = BIT(24)
+};
+
+enum {
 	MFG_MODE_NORMAL,
 	MFG_MODE_FACTORY2,
 	MFG_MODE_RECOVERY,
@@ -139,7 +143,6 @@ enum {
 	MFG_MODE_MFGKERNEL,
 	MFG_MODE_MINI,
 };
-/* common init routines for use by arch/arm/mach-msm/board-*.c */
 
 void __init msm_add_usb_devices(void (*phy_reset) (void));
 void __init msm_add_mem_devices(struct msm_pmem_setting *setting);
@@ -150,7 +153,6 @@ int __init msm_add_sdcc_devices(unsigned int controller, struct mmc_platform_dat
 int __init msm_add_serial_devices(unsigned uart);
 
 #if defined(CONFIG_USB_FUNCTION_MSM_HSUSB)
-/* START: add USB connected notify function */
 struct t_usb_status_notifier{
 	struct list_head notifier_link;
 	const char *name;
@@ -158,21 +160,25 @@ struct t_usb_status_notifier{
 };
 	int htc_usb_register_notifier(struct t_usb_status_notifier *);
 	static LIST_HEAD(g_lh_usb_notifier_list);
-/* END: add USB connected notify function */
 #endif
 
 #ifdef CONFIG_RESET_BY_CABLE_IN
 void reset_dflipflop(void);
 #endif
 
-int __init board_mfg_mode(void);
+int board_mfg_mode(void);
 int __init parse_tag_smi(const struct tag *tags);
 int __init parse_tag_hwid(const struct tag * tags);
 int __init parse_tag_skuid(const struct tag * tags);
 int parse_tag_engineerid(const struct tag * tags);
+int __init parse_tag_smlog(const struct tag *tags);
 
 char *board_serialno(void);
 unsigned long get_kernel_flag(void);
+unsigned long get_debug_flag(void);
 unsigned int get_radio_flag(void);
-
+unsigned int get_tamper_sf(void);
+int get_ls_setting(void);
+int get_wifi_setting(void);
+int state_helper_register_notifier(void (*func)(void), const char *name);
 #endif

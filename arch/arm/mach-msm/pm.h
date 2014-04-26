@@ -52,20 +52,19 @@ enum msm_pm_sleep_mode {
 	MSM_PM_SLEEP_MODE_RETENTION = MSM_PM_SLEEP_MODE_APPS_SLEEP,
 	MSM_PM_SLEEP_MODE_POWER_COLLAPSE_SUSPEND = 5,
 	MSM_PM_SLEEP_MODE_POWER_COLLAPSE_NO_XO_SHUTDOWN = 6,
-	MSM_PM_SLEEP_MODE_NR
+	MSM_PM_SLEEP_MODE_NR = 7,
+	MSM_PM_SLEEP_MODE_NOT_SELECTED,
 };
 
 #define MSM_PM_MODE(cpu, mode_nr)  ((cpu) * MSM_PM_SLEEP_MODE_NR + (mode_nr))
 
 struct msm_pm_platform_data {
-	u8 idle_supported;   /* Allow device to enter mode during idle */
-	u8 suspend_supported; /* Allow device to enter mode during suspend */
-	u8 suspend_enabled;  /* enabled for suspend */
-	u8 idle_enabled;     /* enabled for idle low power */
-	u32 latency;         /* interrupt latency in microseconds when entering
-				and exiting the low power mode */
-	u32 residency;       /* time threshold in microseconds beyond which
-				staying in the low power mode saves power */
+	u8 idle_supported;   
+	u8 suspend_supported; 
+	u8 suspend_enabled;  
+	u8 idle_enabled;     
+	u32 latency;         
+	u32 residency;       
 };
 
 extern struct msm_pm_platform_data msm_pm_sleep_modes[];
@@ -102,11 +101,13 @@ void msm_pm_set_rpm_wakeup_irq(unsigned int irq);
 int msm_pm_wait_cpu_shutdown(unsigned int cpu);
 bool msm_pm_verify_cpu_pc(unsigned int cpu);
 void msm_pm_set_sleep_ops(struct msm_pm_sleep_ops *ops);
+void msm_pm_radio_info_init(unsigned int *addr);
 #else
 static inline void msm_pm_set_rpm_wakeup_irq(unsigned int irq) {}
 static inline int msm_pm_wait_cpu_shutdown(unsigned int cpu) { return 0; }
 static inline bool msm_pm_verify_cpu_pc(unsigned int cpu) { return true; }
 static inline void msm_pm_set_sleep_ops(struct msm_pm_sleep_ops *ops) {}
+static inline void msm_pm_radio_info_init(unsigned int *addr) {}
 #endif
 #ifdef CONFIG_HOTPLUG_CPU
 int msm_platform_secondary_init(unsigned int cpu);
@@ -145,4 +146,4 @@ static inline void msm_pm_add_stat(enum msm_pm_time_stats_id id, int64_t t) {}
 int print_gpio_buffer(struct seq_file *m);
 int free_gpio_buffer(void);
 
-#endif  /* __ARCH_ARM_MACH_MSM_PM_H */
+#endif  

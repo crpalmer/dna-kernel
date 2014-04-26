@@ -62,6 +62,10 @@ acpuclk_set_rate footprint cpu0 	: phy 0x8F1F106C : virt 0xFB60006C
 acpuclk_set_rate footprint cpu1       	: phy 0x8F1F1070 : virt 0xFB600070
 acpuclk_set_rate footprint cpu2         : phy 0x8F1F1074 : virt 0xFB600074
 acpuclk_set_rate footprint cpu3         : phy 0x8F1F1078 : virt 0xFB600078
+io footprint cpu 0			: phy 0x8F1F107C-0x8F1F1084 : virt 0xFB60007C-0xFB600084
+io footprint cpu 1			: phy 0x8F1F1088-0x8F1F1090 : virt 0xFB600088-0xFB600090
+io footprint cpu 2			: phy 0x8F1F1094-0x8F1F109C : virt 0xFB600094-0xFB60009C
+io footprint cpu 3			: phy 0x8F1F10A0-0x8F1F10A8 : virt 0xFB6000A0-0xFB6000A8
 */
 
 #define CPU_FOOT_PRINT_MAGIC			0xACBDFE00
@@ -77,8 +81,8 @@ acpuclk_set_rate footprint cpu3         : phy 0x8F1F1078 : virt 0xFB600078
 	ldr	r5, =cur_cpu
 	ldr	r5, [r5]
 	ldr	r6, =CPU_FOOT_PRINT_BASE_CPU0_VIRT
-	ldr	r7, =(CPU_FOOT_PRINT_MAGIC | \x)	/* make status number. */
-	str	r7, [r6, r5, LSL #2]
+	mov	r7, #\x
+	strb	r7, [r6, r5, LSL #2] /* write footprint x, x must be 1 byte*/
 	dsb						/* ensure data are written. */
 	ldmfd	sp!, {r5-r7}
 .endm
@@ -261,15 +265,17 @@ ENTRY(msm_pm_collapse_exit)
 	mov     r1, #'A'
 	str     r1, [r0, #0x00C]
 #endif
+	mrc	p15, 0, r2, c0, c0, 5	/* MPIDR */
+	ands	r2, r2, #15		/* What CPU am I */
 	ldr	r1, =CPU0_EXIT_COUNT_PHYS
-	ldr     r2, [r1]
-	add 	r2, r2, #1
-	str	r2, [r1]
+	ldr     r3, [r1, r2, LSL #2]
+	add 	r3, r3, #1
+	str	r3, [r1]
 	dsb
 
 	ldr	r1, =CPU_FOOT_PRINT_BASE_CPU0_PHY
-	ldr	r2, =0xACBDFE04	/* make status number. */
-	str	r2, [r1]
+	mov	r3, #4
+	strb	r3, [r1, r2, LSL #2] /* write footprint 4 */
 	dsb
 
 	ldr     r1, =msm_saved_state_phys
@@ -368,8 +374,8 @@ ENTRY(msm_pm_boot_entry)
 	and     r0, r0, #15              /* what CPU am I                  */
 
 	ldr	r1, =CPU_FOOT_PRINT_BASE_CPU0_PHY
-	ldr	r2, =0xACBDFE02	/* make status number. */
-	str	r2, [r1, r0, LSL #2]
+	mov	r2, #2              /* write footprint 2 */
+	strb	r2, [r1, r0, LSL #2]
 	dsb						/* ensure data are written. */
 
 	ldr     r1, =msm_pm_boot_vector
@@ -379,8 +385,8 @@ ENTRY(msm_pm_boot_entry)
 	sub     r1, r1, r2
 
 	ldr	r3, =CPU_FOOT_PRINT_BASE_CPU0_PHY
-	ldr	r2, =0xACBDFE03	/* make status number. */
-	str	r2, [r3, r0, LSL #2]
+	mov	r2, #3
+	strb	r2, [r3, r0, LSL #2]     /* write footprint 3 */
 	dsb
 
 	add     r1, r1, r0, LSL #2       /* locate boot vector for our cpu */

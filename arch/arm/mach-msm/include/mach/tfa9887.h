@@ -1,6 +1,3 @@
-/*
- * Definitions for tpa2051d3 speaker amp chip.
- */
 #ifndef TFA9887_H
 #define TFA9887_H
 

@@ -17,10 +17,12 @@
 #include <linux/errno.h>
 #include <linux/err.h>
 #include <linux/init.h>
+#include <linux/sched.h>
 
 #include <asm/cacheflush.h>
 
 #include <mach/scm.h>
+#include <mach/msm_watchdog.h>
 
 static int simlock_mask;
 static int unlock_mask;
@@ -38,30 +40,19 @@ module_param_named(simlock_code, simlock_code, charp, S_IRUGO | S_IWUSR | S_IWGR
 
 static DEFINE_MUTEX(scm_lock);
 
-/**
- * struct scm_command - one SCM command buffer
- * @len: total available memory for command and response
- * @buf_offset: start of command buffer
- * @resp_hdr_offset: start of response buffer
- * @id: command to be executed
- * @buf: buffer returned from scm_get_command_buffer()
- *
- * An SCM command is laid out in memory as follows:
- *
- *	------------------- <--- struct scm_command
- *	| command header  |
- *	------------------- <--- scm_get_command_buffer()
- *	| command buffer  |
- *	------------------- <--- struct scm_response and
- *	| response header |      scm_command_to_response()
- *	------------------- <--- scm_get_response_buffer()
- *	| response buffer |
- *	-------------------
- *
- * There can be arbitrary padding between the headers and buffers so
- * you should always use the appropriate scm_get_*_buffer() routines
- * to access the buffers in a safe manner.
- */
+#define TAG "[SEC] "
+#undef PDEBUG
+#define PDEBUG(fmt, args...) printk(KERN_INFO TAG "[K] %s(%i, %s): " fmt "\n", \
+		__func__, current->pid, current->comm, ##args)
+
+#undef PERR
+#define PERR(fmt, args...) printk(KERN_ERR TAG "[E] %s(%i, %s): " fmt "\n", \
+		__func__, current->pid, current->comm, ##args)
+
+#undef PINFO
+#define PINFO(fmt, ...) printk(KERN_INFO TAG "[I] %s(%i, %s): " fmt "\n", \
+		__func__, current->pid, current->comm, ##__VA_ARGS__)
+
 struct scm_command {
 	u32	len;
 	u32	buf_offset;
@@ -70,12 +61,6 @@ struct scm_command {
 	u32	buf[0];
 };
 
-/**
- * struct scm_response - one SCM response buffer
- * @len: total available memory for response
- * @buf_offset: start of response data relative to start of scm_response
- * @is_complete: indicates if the command has finished processing
- */
 struct scm_response {
 	u32	len;
 	u32	buf_offset;
@@ -108,16 +93,6 @@ struct oem_3rd_party_syscall_req {
 	u32 len;
 };
 
-/**
- * alloc_scm_command() - Allocate an SCM command
- * @cmd_size: size of the command buffer
- * @resp_size: size of the response buffer
- *
- * Allocate an SCM command, including enough room for the command
- * and response headers as well as the command and response buffers.
- *
- * Returns a valid &scm_command on success or %NULL if the allocation fails.
- */
 static struct scm_command *alloc_scm_command(size_t cmd_size, size_t resp_size)
 {
 	struct scm_command *cmd;
@@ -133,46 +108,22 @@ static struct scm_command *alloc_scm_command(size_t cmd_size, size_t resp_size)
 	return cmd;
 }
 
-/**
- * free_scm_command() - Free an SCM command
- * @cmd: command to free
- *
- * Free an SCM command.
- */
 static inline void free_scm_command(struct scm_command *cmd)
 {
 	kfree(cmd);
 }
 
-/**
- * scm_command_to_response() - Get a pointer to a scm_response
- * @cmd: command
- *
- * Returns a pointer to a response for a command.
- */
 static inline struct scm_response *scm_command_to_response(
 		const struct scm_command *cmd)
 {
 	return (void *)cmd + cmd->resp_hdr_offset;
 }
 
-/**
- * scm_get_command_buffer() - Get a pointer to a command buffer
- * @cmd: command
- *
- * Returns a pointer to the command buffer of a command.
- */
 static inline void *scm_get_command_buffer(const struct scm_command *cmd)
 {
 	return (void *)cmd->buf;
 }
 
-/**
- * scm_get_response_buffer() - Get a pointer to a response buffer
- * @rsp: response
- *
- * Returns a pointer to a response buffer of a response.
- */
 static inline void *scm_get_response_buffer(const struct scm_response *rsp)
 {
 	return (void *)rsp + rsp->buf_offset;
@@ -223,11 +174,6 @@ static int __scm_call(const struct scm_command *cmd)
 	int ret;
 	u32 cmd_addr = virt_to_phys(cmd);
 
-	/*
-	 * Flush the entire cache here so callers don't have to remember
-	 * to flush the cache when passing physical addresses to the secure
-	 * side in the buffer.
-	 */
 	flush_cache_all();
 	ret = smc(cmd_addr);
 	if (ret < 0)
@@ -252,17 +198,6 @@ void scm_inv_range(unsigned long start, unsigned long end)
 }
 EXPORT_SYMBOL(scm_inv_range);
 
-/**
- * scm_call() - Send an SCM command
- * @svc_id: service identifier
- * @cmd_id: command identifier
- * @cmd_buf: command buffer
- * @cmd_len: length of the command buffer
- * @resp_buf: response buffer
- * @resp_len: length of the response buffer
- *
- * Sends a command to the SCM and waits for the command to finish processing.
- */
 int scm_call(u32 svc_id, u32 cmd_id, const void *cmd_buf, size_t cmd_len,
 		void *resp_buf, size_t resp_len)
 {
@@ -310,15 +245,6 @@ EXPORT_SYMBOL(scm_call);
 				SCM_MASK_IRQS | \
 				(n & 0xf))
 
-/**
- * scm_call_atomic1() - Send an atomic SCM command with one argument
- * @svc_id: service identifier
- * @cmd_id: command identifier
- * @arg1: first argument
- *
- * This shall only be used with commands that are guaranteed to be
- * uninterruptable, atomic and SMP safe.
- */
 s32 scm_call_atomic1(u32 svc, u32 cmd, u32 arg1)
 {
 	int context_id;
@@ -342,16 +268,6 @@ s32 scm_call_atomic1(u32 svc, u32 cmd, u32 arg1)
 }
 EXPORT_SYMBOL(scm_call_atomic1);
 
-/**
- * scm_call_atomic2() - Send an atomic SCM command with two arguments
- * @svc_id: service identifier
- * @cmd_id: command identifier
- * @arg1: first argument
- * @arg2: second argument
- *
- * This shall only be used with commands that are guaranteed to be
- * uninterruptable, atomic and SMP safe.
- */
 s32 scm_call_atomic2(u32 svc, u32 cmd, u32 arg1, u32 arg2)
 {
 	int context_id;
@@ -455,10 +371,10 @@ int secure_read_simlock_mask(void)
 	ret = scm_call(SCM_SVC_OEM, TZ_HTC_SVC_READ_SIMLOCK_MASK,
 			&dummy, sizeof(dummy), NULL, 0);
 
-	pr_info("TZ_HTC_SVC_READ_SIMLOCK_MASK ret = %d\n", ret);
+	PINFO("TZ_HTC_SVC_READ_SIMLOCK_MASK ret = %d", ret);
 	if (ret > 0)
 		ret &= 0x1F;
-	pr_info("TZ_HTC_SVC_READ_SIMLOCK_MASK modified ret = %d\n", ret);
+	PINFO("TZ_HTC_SVC_READ_SIMLOCK_MASK modified ret = %d", ret);
 
 	return ret;
 }
@@ -475,7 +391,7 @@ int secure_simlock_unlock(unsigned int unlock, unsigned char *code)
 	ret = scm_call(SCM_SVC_OEM, TZ_HTC_SVC_SIMLOCK_UNLOCK,
 			&req, sizeof(req), NULL, 0);
 
-	pr_info("TZ_HTC_SVC_SIMLOCK_UNLOCK ret = %d\n", ret);
+	PINFO("TZ_HTC_SVC_SIMLOCK_UNLOCK ret = %d", ret);
 	return ret;
 }
 EXPORT_SYMBOL(secure_simlock_unlock);
@@ -488,10 +404,10 @@ int secure_get_security_level(void)
 	ret = scm_call(SCM_SVC_OEM, TZ_HTC_SVC_GET_SECURITY_LEVEL,
 			&dummy, sizeof(dummy), NULL, 0);
 
-	pr_info("TZ_HTC_SVC_GET_SECURITY_LEVEL ret = %d\n", ret);
+	PINFO("TZ_HTC_SVC_GET_SECURITY_LEVEL ret = %d", ret);
 	if (ret > 0)
 		ret &= 0x0F;
-	pr_info("TZ_HTC_SVC_GET_SECURITY_LEVEL modified ret = %d\n", ret);
+	PINFO("TZ_HTC_SVC_GET_SECURITY_LEVEL modified ret = %d", ret);
 
 	return ret;
 }
@@ -505,7 +421,7 @@ int secure_memprot(void)
 	ret = scm_call(SCM_SVC_OEM, TZ_HTC_SVC_MEMPROT,
 			&dummy, sizeof(dummy), NULL, 0);
 
-	pr_info("TZ_HTC_SVC_MEMPROT ret = %d\n", ret);
+	PINFO("TZ_HTC_SVC_MEMPROT ret = %d", ret);
 	return ret;
 }
 EXPORT_SYMBOL(secure_memprot);
@@ -522,7 +438,7 @@ int secure_log_operation(unsigned int address, unsigned int size,
 	req.revert = revert;
 	ret = scm_call(SCM_SVC_OEM, TZ_HTC_SVC_LOG_OPERATOR,
 			&req, sizeof(req), NULL, 0);
-	pr_info("TZ_HTC_SVC_LOG_OPERATOR ret = %d\n", ret);
+	PINFO("TZ_HTC_SVC_LOG_OPERATOR ret = %d", ret);
 	return ret;
 }
 EXPORT_SYMBOL(secure_log_operation);
@@ -540,19 +456,13 @@ int secure_access_item(unsigned int is_write, unsigned int id, unsigned int buf_
 	ret = scm_call(SCM_SVC_OEM, TZ_HTC_SVC_ACCESS_ITEM,
 			&req, sizeof(req), NULL, 0);
 
-	pr_info("TZ_HTC_SVC_ACCESS_ITEM id %d ret = %d\n", id, ret);
+	PINFO("TZ_HTC_SVC_ACCESS_ITEM id %d ret = %d", id, ret);
 	return ret;
 }
 
 #if 1
-int scm_pas_enable_dx_bw(void)
-{
-	return 0;
-}
-void scm_pas_disable_bw(void)
-{
-}
-void pet_watchdog(void);
+int scm_pas_enable_dx_bw(void);
+void scm_pas_disable_dx_bw(void);
 
 int secure_3rd_party_syscall(unsigned int id, unsigned char *buf, int len)
 {
@@ -573,7 +483,7 @@ int secure_3rd_party_syscall(unsigned int id, unsigned char *buf, int len)
 	end = start + len;
 	scm_inv_range(start, end);
 	if (!bus_ret)
-		scm_pas_disable_bw();
+		scm_pas_disable_dx_bw();
 
 	return ret;
 }
@@ -622,9 +532,9 @@ static int lock_set_func(const char *val, struct kernel_param *kp)
 {
 	int ret;
 
-	printk(KERN_INFO "%s started(%d)...\n", __func__, strlen(val));
+	PINFO("started(%d)...", strlen(val));
 	ret = param_set_int(val, kp);
-	printk(KERN_INFO "%s finished(%d): %d...\n", __func__, ret, simlock_mask);
+	PINFO("finished(%d): %d...", ret, simlock_mask);
 
 	return ret;
 }
@@ -635,7 +545,7 @@ static int lock_get_func(char *val, struct kernel_param *kp)
 
 	simlock_mask = secure_read_simlock_mask();
 	ret = param_get_int(val, kp);
-	printk(KERN_INFO "%s: %d, %d(%x)...\n", __func__, ret, simlock_mask, simlock_mask);
+	PINFO("%d, %d(%x)...", ret, simlock_mask, simlock_mask);
 
 	return ret;
 }
@@ -645,14 +555,14 @@ static int unlock_set_func(const char *val, struct kernel_param *kp)
 	int ret, ret2;
 	static unsigned char scode[17];
 
-	printk(KERN_INFO "%s started(%d)...\n", __func__, strlen(val));
+	PINFO("started(%d)...", strlen(val));
 	ret = param_set_int(val, kp);
 	ret2 = strlen(simlock_code);
 	strcpy(scode, simlock_code);
 	scode[ret2 - 1] = 0;
-	printk(KERN_INFO "%s finished(%d): %d, '%s'...\n", __func__, ret, unlock_mask, scode);
+	PINFO("finished(%d): %d, '%s'...", ret, unlock_mask, scode);
 	ret2 = secure_simlock_unlock(unlock_mask, scode);
-	printk(KERN_INFO "secure_simlock_unlock ret %d...\n", ret2);
+	PINFO("secure_simlock_unlock ret %d...", ret2);
 
 	return ret;
 }
@@ -662,7 +572,7 @@ static int unlock_get_func(char *val, struct kernel_param *kp)
 	int ret;
 
 	ret = param_get_int(val, kp);
-	printk(KERN_INFO "%s: %d, %d(%x)...\n", __func__, ret, unlock_mask, unlock_mask);
+	PINFO("%d, %d(%x)...", ret, unlock_mask, unlock_mask);
 
 	return ret;
 }
@@ -671,9 +581,9 @@ static int level_set_func(const char *val, struct kernel_param *kp)
 {
 	int ret;
 
-	printk(KERN_INFO "%s started(%d)...\n", __func__, strlen(val));
+	PINFO("started(%d)...", strlen(val));
 	ret = param_set_int(val, kp);
-	printk(KERN_INFO "%s finished(%d): %d...\n", __func__, ret, security_level);
+	PINFO("finished(%d): %d...", ret, security_level);
 
 	return ret;
 }
@@ -684,7 +594,7 @@ static int level_get_func(char *val, struct kernel_param *kp)
 
 	security_level = secure_get_security_level();
 	ret = param_get_int(val, kp);
-	printk(KERN_INFO "%s: %d, %d(%x)...\n", __func__, ret, security_level, security_level);
+	PINFO("%d, %d(%x)...", ret, security_level, security_level);
 
 	return ret;
 }

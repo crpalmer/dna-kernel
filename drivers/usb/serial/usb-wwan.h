@@ -1,6 +1,3 @@
-/*
- * Definitions for USB serial mobile broadband cards
- */
 
 #ifndef __LINUX_USB_USB_WWAN
 #define __LINUX_USB_USB_WWAN
@@ -31,7 +28,6 @@ extern int usb_wwan_suspend(struct usb_serial *serial, pm_message_t message);
 extern int usb_wwan_resume(struct usb_serial *serial);
 #endif
 
-/* per port private data */
 
 #define N_IN_URB 5
 #define N_OUT_URB 5
@@ -47,13 +43,13 @@ struct usb_wwan_intf_private {
 };
 
 struct usb_wwan_port_private {
-	/* Input endpoints and buffer for this port */
+	
 	struct urb *in_urbs[N_IN_URB];
 	u8 *in_buffer[N_IN_URB];
-	/* Output endpoints and buffer for this port */
+	
 	struct urb *out_urbs[N_OUT_URB];
 	u8 *out_buffer[N_OUT_URB];
-	unsigned long out_busy;	/* Bit vector of URBs in use */
+	unsigned long out_busy;	
 	int opened;
 	struct usb_anchor submitted;
 	struct usb_anchor delayed;
@@ -62,10 +58,10 @@ struct usb_wwan_port_private {
 	ssize_t n_read;
 	struct work_struct in_work;
 
-	/* Settings for the port */
-	int rts_state;		/* Handshaking pins (outputs) */
+	
+	int rts_state;		
 	int dtr_state;
-	int cts_state;		/* Handshaking pins (inputs) */
+	int cts_state;		
 	int dsr_state;
 	int dcd_state;
 	int ri_state;
@@ -73,4 +69,4 @@ struct usb_wwan_port_private {
 	unsigned long tx_start_time[N_OUT_URB];
 };
 
-#endif /* __LINUX_USB_USB_WWAN */
+#endif 

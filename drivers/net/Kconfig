@@ -350,4 +350,11 @@ source "drivers/net/hyperv/Kconfig"
 config HTC_NETWORK_MODIFY
 	tristate "Belong to HTC Netowrking modifications"
 
+config KINETO_GAN
+        tristate "Kineto GAN virtual network interface"
+        depends on ARM
+        default n
+        help
+          Virtual ethernet interface for Kineto GAN transport.
+
 endif # NETDEVICES

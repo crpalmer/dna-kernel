@@ -27,34 +27,20 @@
 #define __WLDEV_COMMON_H__
 
 #include <wlioctl.h>
-/*HTC_CSP_START*/
 #define DEF_COUNTRY_CODE	"XX"
-/*HTC_CPS_END*/
 
-//BRCM APSTA START
 typedef struct {
         int cfg;
         int val;
 } bss_setbuf_t;
-//BRCM APSTA END
 
-/* wl_dev_ioctl - get/set IOCTLs, will call net_device's do_ioctl (or
- *  netdev_ops->ndo_do_ioctl in new kernels)
- *  @dev: the net_device handle
- */
 s32 wldev_ioctl(
 	struct net_device *dev, u32 cmd, void *arg, u32 len, u32 set);
 
-/** Retrieve named IOVARs, this function calls wl_dev_ioctl with
- *  WLC_GET_VAR IOCTL code
- */
 s32 wldev_iovar_getbuf(
 	struct net_device *dev, s8 *iovar_name,
 	void *param, s32 paramlen, void *buf, s32 buflen, struct mutex* buf_sync);
 
-/** Set named IOVARs, this function calls wl_dev_ioctl with
- *  WLC_SET_VAR IOCTL code
- */
 s32 wldev_iovar_setbuf(
 	struct net_device *dev, s8 *iovar_name,
 	void *param, s32 paramlen, void *buf, s32 buflen, struct mutex* buf_sync);
@@ -65,24 +51,15 @@ s32 wldev_iovar_setint(
 s32 wldev_iovar_getint(
 	struct net_device *dev, s8 *iovar, s32 *pval);
 
-/** The following function can be implemented if there is a need for bsscfg
- *  indexed IOVARs
- */
 
 s32 wldev_mkiovar_bsscfg(
 	const s8 *iovar_name, s8 *param, s32 paramlen,
 	s8 *iovar_buf, s32 buflen, s32 bssidx);
 
-/** Retrieve named and bsscfg indexed IOVARs, this function calls wl_dev_ioctl with
- *  WLC_GET_VAR IOCTL code
- */
 s32 wldev_iovar_getbuf_bsscfg(
 	struct net_device *dev, s8 *iovar_name, void *param, s32 paramlen,
 	void *buf, s32 buflen, s32 bsscfg_idx, struct mutex* buf_sync);
 
-/** Set named and bsscfg indexed IOVARs, this function calls wl_dev_ioctl with
- *  WLC_SET_VAR IOCTL code
- */
 s32 wldev_iovar_setbuf_bsscfg(
 	struct net_device *dev, s8 *iovar_name, void *param, s32 paramlen,
 	void *buf, s32 buflen, s32 bsscfg_idx, struct mutex* buf_sync);
@@ -106,7 +83,6 @@ extern int net_os_set_suspend(struct net_device *dev, int val, int force);
 extern int wl_iw_parse_ssid_list_tlv(char** list_str, wlc_ssid_t* ssid,
 	int max, int *bytes_left);
 
-/* Get the link speed from dongle, speed is in kpbs */
 int wldev_get_link_speed(struct net_device *dev, int *plink_speed);
 
 int wldev_get_rssi(struct net_device *dev, int *prssi);
@@ -124,12 +100,11 @@ int wldev_get_ap_status(struct net_device *dev);
 int wldev_set_apsta(struct net_device *dev, bool enable);
 void wldev_restart_ap(struct net_device *dev);
 int wldev_set_scansuppress(struct net_device *dev,int enable);
+void wldev_set_scanabort(struct net_device *dev);
 #endif
 
-//BRCM WPSAP START
 #ifdef BRCM_WPSAP
 int wldev_set_ap_sta_registra_wsec(struct net_device *dev, char *command, int total_len);
 #endif
-//BRCM WPSAP END
 
-#endif /* __WLDEV_COMMON_H__ */
+#endif 

@@ -32,9 +32,6 @@ void show_meminfo(void)
 	unsigned long kgsl_alloc = kgsl_get_alloc_size(1);
 	unsigned long subtotal;
 
-	/*
-	 * display in kilobytes.
-	 */
 #define K(x) ((x) << (PAGE_SHIFT - 10))
 	si_meminfo(&i);
 	si_swapinfo(&i);
@@ -80,8 +77,8 @@ void show_meminfo(void)
 			K(global_page_state(NR_PAGETABLE)),
 			global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
 			(vmi.alloc >> 10),
-			(kgsl_alloc >> 10),
 			(ion_alloc >> 10),
+			(kgsl_alloc >> 10),
 			subtotal);
 }
 
@@ -96,9 +93,6 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 	int lru;
 	unsigned long kgsl_alloc = kgsl_get_alloc_size(0);
 
-/*
- * display in kilobytes.
- */
 #define K(x) ((x) << (PAGE_SHIFT - 10))
 	si_meminfo(&i);
 	si_swapinfo(&i);
@@ -116,9 +110,6 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 	for (lru = LRU_BASE; lru < NR_LRU_LISTS; lru++)
 		pages[lru] = global_page_state(NR_LRU_BASE + lru);
 
-	/*
-	 * Tagged format, for easy grepping and expansion.
-	 */
 	seq_printf(m,
 		"MemTotal:       %8lu kB\n"
 		"MemFree:        %8lu kB\n"
@@ -171,7 +162,7 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 		"VmallocVpage:   %8lu kB\n"
 		"VmallocChunk:   %8lu kB\n"
 		"KGSL_ALLOC:     %8lu kB\n"
-		"ION_ALLOC:     %8d kB\n"
+		"ION_ALLOC:      %8d kB\n"
 #ifdef CONFIG_MEMORY_FAILURE
 		"HardwareCorrupted: %5lu kB\n"
 #endif

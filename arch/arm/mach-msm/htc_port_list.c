@@ -289,10 +289,6 @@ static void remove_list_udp(int no)
 			break;
 		}
 	}
-	/*
-	if (!get_list)
-		PF_LOG_INFO("[Port list] UDP port[%d] failed to remove. Port number is not in list!\n", no);
-	*/
 }
 #endif
 
@@ -308,9 +304,6 @@ static int allocate_port_list(void)
 
 	port_list_phy_addr = MSM_SHARED_RAM_PHYS + ((uint32_t)port_list - (uint32_t)MSM_SHARED_RAM_BASE);
 	if (port_list == NULL) {
-		/*
-		PF_LOG_INFO("[Port list] Error: Cannot allocate port_list in SMEM_ID_VENDOR2\n");
-		*/
 		return -1;
 	} else {
 		PF_LOG_INFO("[Port list] Virtual Address of port_list: [%p]\n", port_list);
@@ -339,7 +332,7 @@ int add_or_remove_port(struct sock *sk, int add_or_remove)
 		return 0;
 	}
 
-	/* Check port list memory allocation */
+	
 	if (port_list == NULL) {
 		if(allocate_port_list()!=0) {
 			wake_unlock(&port_suspend_lock);
@@ -347,7 +340,7 @@ int add_or_remove_port(struct sock *sk, int add_or_remove)
 		}
 	}
 
-	/* if TCP packet and source IP != 127.0.0.1 */
+	
 	if (sk->sk_protocol == IPPROTO_TCP && src != 0x0100007F && srcp != 0) {
 		mutex_lock(&port_lock);
 		PF_LOG_INFO("[Port list] TCP port#: [%d]\n", srcp);
@@ -360,7 +353,7 @@ int add_or_remove_port(struct sock *sk, int add_or_remove)
 	}
 
 #ifdef PACKET_FILTER_UDP
-	/* UDP */
+	
 	if (sk->sk_protocol == IPPROTO_UDP && src != 0x0100007F && srcp != 0) {
 		mutex_lock(&port_lock);
 		port_updated = 0;
@@ -437,21 +430,21 @@ static int __init port_list_init(void)
 
 	PF_LOG_INFO("[Port list] init()\n");
 
-	/* Print log only when debug flag (6) to 0x4000000 */
+	
 	if (get_kernel_flag() & KERNEL_FLAG_RIL_DBG_MEMCPY)
 		ril_debug_flag = 1;
 
-	/* initial TCP port list linked-list struct */
+	
 	memset(&curr_port_list, 0, sizeof(curr_port_list));
 	INIT_LIST_HEAD(&curr_port_list.list);
 
 	#ifdef PACKET_FILTER_UDP
-	/* initial UDP port list linked-list struct */
+	
 	memset(&curr_port_list_udp, 0, sizeof(curr_port_list_udp));
 	INIT_LIST_HEAD(&curr_port_list_udp.list);
 	#endif
 
-	/* Check port list memory allocation */
+	
 	allocate_port_list();
 
 	ret = misc_register(&portlist_misc);

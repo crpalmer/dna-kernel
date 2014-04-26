@@ -17,7 +17,6 @@
 #define ADM_PATH_LIVE_REC 0x2
 #define ADM_PATH_NONLIVE_REC 0x3
 
-/* multiple copp per stream. */
 struct route_payload {
 	unsigned int copp_ids[AFE_MAX_PORTS];
 	unsigned short num_copps;
@@ -28,6 +27,9 @@ int adm_open(int port, int path, int rate, int mode, int topology);
 
 int adm_multi_ch_copp_open(int port, int path, int rate, int mode,
 				int topology);
+
+int adm_multi_ch_copp_open_v2(int port, int path, int rate, int mode,
+			int topology, uint16_t bit_width);
 
 int adm_memory_map_regions(uint32_t *buf_add, uint32_t mempool_id,
 				uint32_t *bufsz, uint32_t bufcnt);
@@ -52,4 +54,4 @@ int adm_get_copp_id(int port_id);
 int q6adm_enable_effect(int port_id, uint32_t module_id, uint32_t param_id,
 		uint32_t payload_size, void *payload);
 
-#endif /* __Q6_ADM_H__ */
+#endif 

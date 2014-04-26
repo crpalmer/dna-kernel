@@ -1,43 +1,39 @@
---Please follow below command to download the official android toolchain: (arm-eabi-4.6)
+defconfig file: apq8064_defconfig  (arm-eabi-4.6)
+
+Download:
+=========
+If you are not already using an AOSP toolchain (included in an AOSP build tree), download the corresponding official android toolchain for the arm-eabi specified above for this device:
         
-                git clone https://android.googlesource.com/platform/prebuilt
+git clone https://android.googlesource.com/platform/prebuilt  for 4.4.3
+git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6  for 4.6 
+(use darwin-x86 in place of linux-x86 for mac)
 
-                NOTE: the tool ¡¥git¡¦ will need to be installed first; for example, on Ubuntu, the installation command would be: apt-get install git
+Build the kernel:
+=================
+set the following environment variables:
 
---Modify the .bashrc to add the toolchain path, like bellowing example:
+export TOP= [where you installed the toolchain or top of android AOSP code base]
+export PATH=$TOP/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin:$PATH (use corresponding arm-eabi bin path)
+export ARCH=arm
+export SUBARCH=arm
+export CROSS_COMPILE=arm-eabi-
 
-								PATH=/usr/local/share/toolchain-eabi-4.6/bin:$PATH 
+make [the defconfig file for this device above]
+make clean  (for subsequent builds)
+make -j4    (in this example 4 is the number of processors of your build machine)
 
---Start 
-$make ARCH=arm CROSS_COMPILE=$TOP/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- apq8064_defconfig
-$make ARCH=arm CROSS_COMPILE=$TOP/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi- -j8
+Output Binary Files:
+====================
+After the build process is finished, there should be a file named "zImage" found in arch/arm/boot/
+If you are building a rom with this kernel ZImage, copy it into your build's output folder and rename it to "kernel".
 
-$TOP is an absolute path to android JB code base
+You will also need the following kernel modules. These will eventually be installed into /system/lib/modules on the device.
 
+kernel modules:
+*.ko
 
---Clean
-								$make clean
+If you have already built and installed a boot.img with root access you can also install the modules directly into the device using "adb remount" and "apb push [file] system/lib/modules/" for each file listed above. After installing files set permissions with "adb shell chmod 0644 system/lib/modules/*" and "adb reboot"
 
---Files path
-After build process is finished, there should a zImage under arch/arm/boot/
-l. fastboot flash zimage arch/arm/boot/zImage
-2. Update all kernel modules as follow
-	 adb remount
-   adb push ./drivers/input/evbug.ko system/lib/modules/
-   adb push ./drivers/crypto/msm/qcedev.ko system/lib/modules/
-   adb push ./drivers/crypto/msm/qcrypto.ko system/lib/modules/
-   adb push ./drivers/crypto/msm/qce40.ko system/lib/modules/
-   adb push ./drivers/misc/eeprom/eeprom_93cx6.ko system/lib/modules/
-   adb push ./drivers/spi/spidev.ko system/lib/modules/
-   adb push ./drivers/scsi/scsi_wait_scan.ko system/lib/modules/
-   adb push ./drivers/video/backlight/lcd.ko system/lib/modules/
-   adb push ./drivers/bluetooth/bluetooth-power.ko system/lib/modules/
-   adb push ./drivers/net/ethernet/micrel/ks8851.ko system/lib/modules/
-   adb push ./drivers/net/wireless/bcmdhd_4334/bcmdhd.ko system/lib/modules/
-   adb push ./drivers/media/video/gspca/gspca_main.ko system/lib/modules/
-   adb push ./crypto/ansi_cprng.ko system/lib/modules/
-   adb push ./arch/arm/mach-msm/msm-buspm-dev.ko system/lib/modules/
-   adb push ./arch/arm/mach-msm/reset_modem.ko system/lib/modules/
-   adb push ./block/test-iosched.ko system/lib/modules/
-   adb shell chmod 0644 system/lib/modules/*
-   adb reboot
+For additional information:
+=========================== 
+http://htcdev.com

@@ -33,12 +33,10 @@
 #include <mach/htc_charger.h>
 #include <mach/htc_battery_cell.h>
 
-//htc audio ++
 #undef pr_info
 #undef pr_err
 #define pr_info(fmt, ...) pr_aud_info(fmt, ##__VA_ARGS__)
 #define pr_err(fmt, ...) pr_aud_err(fmt, ##__VA_ARGS__)
-//htc audio --
 
 #define PM8921_AUDIO_DEV_NAME "pm8921-audio"
 

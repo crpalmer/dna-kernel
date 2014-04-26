@@ -306,6 +306,22 @@ config LEDS_PM8921
           To compile this driver as a module, choose M here: the module will
           be called leds-pmic8921.
 
+config LEDS_PM8038
+        tristate "LED Support for Qualcomm PMIC8038"
+        depends on MFD_PM8XXX
+        help
+          This option enables support for LEDs connected over PMIC8XXX
+          (Power Management IC) chip on Qualcomm reference boards,
+          for example SURF and FFAs.
+
+          To compile this driver as a module, choose M here: the module will
+          be called leds-pmic8038.
+
+config PM8038_LED_SYNC
+        tristate "Button Backlight LED Sync for Qualcomm PMIC8038"
+        depends on MFD_PM8XXX
+        help
+
 config LEDS_PCA9633
 	tristate "LED support for PCA9633 I2C chip"
 	depends on LEDS_CLASS
@@ -313,6 +329,13 @@ config LEDS_PCA9633
 	help
 	  This option enables support for LEDs connected to the PCA9633
 	  LED driver chip accessed via the I2C bus.
+
+config BACKLIGHT_WLED_CABC
+	bool "Select WLED CABC for PMIC backlight control"
+	depends on LEDS_PM8038
+	default n
+	help
+	  This option selects the WLED CABC path for PMIC backlight control.
 
 config LEDS_WM831X_STATUS
 	tristate "LED support for status LEDs on WM831x PMICs"
@@ -385,6 +408,13 @@ config LEDS_PMIC8058
 	  This option enables support for LEDs connected over PMIC8058
 	  (Power Management IC) chip on Qualcomm reference boards,
 	  for example SURF and FFAs.
+
+config LEDS_PM8058
+	tristate "LED Support for PM8058"
+	depends on PMIC8058_PWM
+	help
+	  This option enables support for LEDs connected to PM8058
+	  LED driver chips accessed via the SSBI bus and rpc.
 
 config LEDS_INTEL_SS4200
 	tristate "LED driver for Intel NAS SS4200 series"
@@ -575,6 +605,13 @@ config LEDS_TRIGGER_DEFAULT_ON
 
 config FLASHLIGHT_TPS61310
         tristate "TI TPS61310 flashlight"
+        help
+          Say Y here to enable the TI TPS61310 flashlight
+
+config FLASHLIGHT_1500mA
+	bool "FLASHLIGHT_1500mA"
+	depends on FLASHLIGHT_TPS61310
+	default n
         help
           Say Y here to enable the TI TPS61310 flashlight
 

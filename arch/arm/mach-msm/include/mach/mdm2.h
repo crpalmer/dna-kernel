@@ -24,6 +24,7 @@ struct mdm_vddmin_resource {
 struct mdm_platform_data {
 	char *mdm_version;
 	int ramdump_delay_ms;
+	int ps_hold_delay_ms;
 	int soft_reset_inverted;
 	int early_power_on;
 	int sfr_query;
@@ -31,6 +32,9 @@ struct mdm_platform_data {
 	struct mdm_vddmin_resource *vddmin_resource;
 	struct platform_device *peripheral_platform_device;
 	const unsigned int ramdump_timeout_ms;
+	int image_upgrade_supported;
+	struct gpiomux_setting *mdm2ap_status_gpio_run_cfg;
+	int send_shdn;
 };
 
 #endif

@@ -21,7 +21,6 @@
    SOFTWARE IS DISCLAIMED.
 */
 
-/* Bluetooth HCI Management interface */
 
 #include <linux/uaccess.h>
 #include <linux/interrupt.h>
@@ -360,7 +359,7 @@ static int set_powered(struct sock *sk, u16 index, unsigned char *data, u16 len)
 
 	cp = (void *) data;
 
-	BT_DBG("request for hci%u", index);
+	BT_INFO("DEBUG: %s: request for hci%u, cp->val : %d", __func__, index, cp->val);
 
 	if (len != sizeof(*cp))
 		return cmd_status(sk, index, MGMT_OP_SET_POWERED, EINVAL);
@@ -388,11 +387,13 @@ static int set_powered(struct sock *sk, u16 index, unsigned char *data, u16 len)
 		goto failed;
 	}
 
-	if (cp->val)
+	if (cp->val) {
+		BT_INFO("DEBUG: %s: power_on work getting queued",  __func__);
 		queue_work(hdev->workqueue, &hdev->power_on);
-	else
+	} else {
+		BT_INFO("DEBUG: %s: power_off work getting queued",  __func__);
 		queue_work(hdev->workqueue, &hdev->power_off);
-
+	}
 	err = 0;
 
 failed:
@@ -443,7 +444,7 @@ static int set_limited_discoverable(struct sock *sk, u16 index,
 	struct hci_cp_write_current_iac_lap dcp;
 	int update_cod;
 	int err = 0;
-	/* General Inquiry LAP: 0x9E8B33, Limited Inquiry LAP: 0x9E8B00 */
+	
 	u8 lap[] = { 0x33, 0x8b, 0x9e, 0x00, 0x8b, 0x9e };
 
 	cp = (void *) data;
@@ -568,7 +569,7 @@ static int set_discoverable(struct sock *sk, u16 index, unsigned char *data,
 
 	if (cp->val)
 		scan |= SCAN_INQUIRY;
-
+	BT_INFO("DEBUG:%s:  HCI_OP_WRITE_SCAN_ENABLE",  __func__);
 	err = hci_send_cmd(hdev, HCI_OP_WRITE_SCAN_ENABLE, 1, &scan);
 	if (err < 0)
 		mgmt_pending_remove(cmd);
@@ -628,7 +629,7 @@ static int set_connectable(struct sock *sk, u16 index, unsigned char *data,
 		scan = SCAN_PAGE;
 	else
 		scan = 0;
-
+	BT_INFO("DEBUG:%s:  HCI_OP_WRITE_SCAN_ENABLE",  __func__);
 	err = hci_send_cmd(hdev, HCI_OP_WRITE_SCAN_ENABLE, 1, &scan);
 	if (err < 0)
 		mgmt_pending_remove(cmd);
@@ -717,17 +718,17 @@ failed:
 	return err;
 }
 
-#define EIR_FLAGS		0x01 /* flags */
-#define EIR_UUID16_SOME		0x02 /* 16-bit UUID, more available */
-#define EIR_UUID16_ALL		0x03 /* 16-bit UUID, all listed */
-#define EIR_UUID32_SOME		0x04 /* 32-bit UUID, more available */
-#define EIR_UUID32_ALL		0x05 /* 32-bit UUID, all listed */
-#define EIR_UUID128_SOME	0x06 /* 128-bit UUID, more available */
-#define EIR_UUID128_ALL		0x07 /* 128-bit UUID, all listed */
-#define EIR_NAME_SHORT		0x08 /* shortened local name */
-#define EIR_NAME_COMPLETE	0x09 /* complete local name */
-#define EIR_TX_POWER		0x0A /* transmit power level */
-#define EIR_DEVICE_ID		0x10 /* device ID */
+#define EIR_FLAGS		0x01 
+#define EIR_UUID16_SOME		0x02 
+#define EIR_UUID16_ALL		0x03 
+#define EIR_UUID32_SOME		0x04 
+#define EIR_UUID32_ALL		0x05 
+#define EIR_UUID128_SOME	0x06 
+#define EIR_UUID128_ALL		0x07 
+#define EIR_NAME_SHORT		0x08 
+#define EIR_NAME_COMPLETE	0x09 
+#define EIR_TX_POWER		0x0A 
+#define EIR_DEVICE_ID		0x10 
 
 #define PNP_INFO_SVCLASS_ID		0x1200
 
@@ -767,14 +768,14 @@ static void create_eir(struct hci_dev *hdev, u8 *data)
 	name_len = strnlen(hdev->dev_name, HCI_MAX_EIR_LENGTH);
 
 	if (name_len > 0) {
-		/* EIR Data type */
+		
 		if (name_len > 48) {
 			name_len = 48;
 			ptr[1] = EIR_NAME_SHORT;
 		} else
 			ptr[1] = EIR_NAME_COMPLETE;
 
-		/* EIR Data length */
+		
 		ptr[0] = name_len + 1;
 
 		memcpy(ptr + 2, hdev->dev_name, name_len);
@@ -785,7 +786,7 @@ static void create_eir(struct hci_dev *hdev, u8 *data)
 
 	memset(uuid16_list, 0, sizeof(uuid16_list));
 
-	/* Group all UUID16 types */
+	
 	list_for_each(p, &hdev->uuids) {
 		struct bt_uuid *uuid = list_entry(p, struct bt_uuid, list);
 		u16 uuid16;
@@ -800,13 +801,13 @@ static void create_eir(struct hci_dev *hdev, u8 *data)
 		if (uuid16 == PNP_INFO_SVCLASS_ID)
 			continue;
 
-		/* Stop if not enough space to put next UUID */
+		
 		if (eir_len + 2 + sizeof(u16) > HCI_MAX_EIR_LENGTH) {
 			truncated = 1;
 			break;
 		}
 
-		/* Check for duplicates */
+		
 		for (i = 0; uuid16_list[i] != 0; i++)
 			if (uuid16_list[i] == uuid16)
 				break;
@@ -820,7 +821,7 @@ static void create_eir(struct hci_dev *hdev, u8 *data)
 	if (uuid16_list[0] != 0) {
 		u8 *length = ptr;
 
-		/* EIR Data type */
+		
 		ptr[1] = truncated ? EIR_UUID16_SOME : EIR_UUID16_ALL;
 
 		ptr += 2;
@@ -831,7 +832,7 @@ static void create_eir(struct hci_dev *hdev, u8 *data)
 			*ptr++ = (uuid16_list[i] & 0xff00) >> 8;
 		}
 
-		/* EIR Data length */
+		
 		*length = (i * sizeof(u16)) + 1;
 	}
 }
@@ -1163,7 +1164,7 @@ static int remove_key(struct sock *sk, u16 index, unsigned char *data, u16 len)
 		struct hci_cp_disconnect dc;
 
 		put_unaligned_le16(conn->handle, &dc.handle);
-		dc.reason = 0x13; /* Remote User Terminated Connection */
+		dc.reason = 0x13; 
 		err = hci_send_cmd(hdev, HCI_OP_DISCONNECT, 0, NULL);
 	}
 
@@ -1223,7 +1224,7 @@ static int disconnect(struct sock *sk, u16 index, unsigned char *data, u16 len)
 	}
 
 	put_unaligned_le16(conn->handle, &dc.handle);
-	dc.reason = 0x13; /* Remote User Terminated Connection */
+	dc.reason = 0x13; 
 
 	err = hci_send_cmd(hdev, HCI_OP_DISCONNECT, sizeof(dc), &dc);
 	if (err < 0)
@@ -1508,7 +1509,7 @@ static void pairing_complete(struct pending_cmd *cmd, u8 status)
 
 	cmd_complete(cmd->sk, cmd->index, MGMT_OP_PAIR_DEVICE, &rp, sizeof(rp));
 
-	/* So we don't get further callbacks for this connection */
+	
 	conn->connect_cfm_cb = NULL;
 	conn->security_cfm_cb = NULL;
 	conn->disconn_cfm_cb = NULL;
@@ -1630,7 +1631,7 @@ static int pair_device(struct sock *sk, u16 index, unsigned char *data, u16 len)
 		conn = hci_connect(hdev, LE_LINK, 0, &cp->bdaddr, sec_level,
 								auth_type);
 	} else {
-		/* ACL-SSP does not support io_cap 0x04 (KeyboadDisplay) */
+		
 		if (io_cap == 0x04)
 			io_cap = 0x01;
 		conn = hci_connect(hdev, ACL_LINK, 0, &cp->bdaddr, sec_level,
@@ -1918,10 +1919,10 @@ void mgmt_inquiry_complete_evt(u16 index, u8 status)
 						sizeof(le_cp), &le_cp);
 		if (err >= 0) {
 			mod_timer(&hdev->disco_le_timer, jiffies +
-			//	msecs_to_jiffies(hdev->disco_int_phase * 1000));
-                        //htc_bt ++
+			
+                        
                                 msecs_to_jiffies(1000));
-                        //htc_bt --
+                        
 			hdev->disco_state = SCAN_LE;
 		} else
 			hdev->disco_state = SCAN_IDLE;
@@ -1997,7 +1998,7 @@ void mgmt_disco_le_timeout(unsigned long data)
 			hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_ENABLE,
 					sizeof(le_cp), &le_cp);
 
-	/* re-start BR scan */
+	
 		if (hdev->disco_state != SCAN_IDLE) {
 			struct hci_cp_inquiry cp = {{0x33, 0x8b, 0x9e}, 4, 0};
 			hdev->disco_int_phase *= 2;
@@ -2038,23 +2039,21 @@ static int start_discovery(struct sock *sk, u16 index)
 		goto failed;
 	}
 
-	/* If LE Capable, we will alternate between BR/EDR and LE */
+	
 	if (lmp_le_capable(hdev)) {
 		struct hci_cp_le_set_scan_parameters le_cp;
 
-		/* Shorten BR scan params */
+		
 		cp.num_rsp = 1;
 		cp.length /= 2;
 
-		/* Setup LE scan params */
+		
 		memset(&le_cp, 0, sizeof(le_cp));
-		le_cp.type = 0x01;		/* Active scanning */
-		/* The recommended value for scan interval and window is
-		 * 11.25 msec. It is calculated by: time = n * 0.625 msec */
+		le_cp.type = 0x01;		
 		le_cp.interval = cpu_to_le16(0x0012);
 		le_cp.window = cpu_to_le16(0x0012);
-		le_cp.own_bdaddr_type = 0;	/* Public address */
-		le_cp.filter = 0;		/* Accept all adv packets */
+		le_cp.own_bdaddr_type = 0;	
+		le_cp.filter = 0;		
 
 		hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_PARAMETERS,
 						sizeof(le_cp), &le_cp);
@@ -2288,7 +2287,7 @@ int mgmt_control(struct sock *sk, struct msghdr *msg, size_t msglen)
 		goto done;
 	}
 
-	BT_DBG("got opcode %x", opcode);
+	BT_INFO("DEBUG:%s: got opcode %x",  __func__,opcode);
 	switch (opcode) {
 	case MGMT_OP_READ_VERSION:
 		err = read_version(sk);
@@ -2445,7 +2444,7 @@ int mgmt_powered(u16 index, u8 powered)
 	struct cmd_lookup match = { powered, NULL };
 	int ret;
 
-	BT_DBG("hci%u %d", index, powered);
+	BT_INFO("DEBUG: %s: hci%u %d",  __func__,index, powered);
 
 	mgmt_pending_foreach(MGMT_OP_SET_POWERED, index, mode_rsp, &match);
 
@@ -2859,17 +2858,17 @@ int mgmt_device_found(u16 index, bdaddr_t *bdaddr, u8 type, u8 le,
 	hdev->disco_int_count++;
 
 	if (hdev->disco_int_count >= hdev->disco_int_phase) {
-		/* Inquiry scan for General Discovery LAP */
+		
 		struct hci_cp_inquiry cp = {{0x33, 0x8b, 0x9e}, 4, 0};
 		struct hci_cp_le_set_scan_enable le_cp = {0, 0};
 
 		hdev->disco_int_phase *= 2;
 		hdev->disco_int_count = 0;
 		if (hdev->disco_state == SCAN_LE) {
-			/* cancel LE scan */
+			
 			hci_send_cmd(hdev, HCI_OP_LE_SET_SCAN_ENABLE,
 					sizeof(le_cp), &le_cp);
-			/* start BR scan */
+			
 			cp.num_rsp = (u8) hdev->disco_int_phase;
 			hci_send_cmd(hdev, HCI_OP_INQUIRY,
 					sizeof(cp), &cp);

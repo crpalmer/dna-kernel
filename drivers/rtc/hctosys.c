@@ -11,25 +11,8 @@
 
 #include <linux/rtc.h>
 
-/* IMPORTANT: the RTC only stores whole seconds. It is arbitrary
- * whether it stores the most close value or the value with partial
- * seconds truncated. However, it is important that we use it to store
- * the truncated value. This is because otherwise it is necessary,
- * in an rtc sync function, to read both xtime.tv_sec and
- * xtime.tv_nsec. On some processors (i.e. ARM), an atomic read
- * of >32bits is not possible. So storing the most close value would
- * slow down the sync API. So here we have the truncated value and
- * the best guess is to add 0.5s.
- */
 
 int rtc_hctosys_ret = -ENODEV;
-
-struct delayed_work rtc_hctosys_work;
-
-static void periodic_sync_time(struct work_struct *w);
-int init_periodic_sync_time(void);
-
-#define SYNC_TIME_PERIOD 3600000 /* 3600sec = 1 hours */
 
 int rtc_hctosys(void)
 {
@@ -83,23 +66,3 @@ err_open:
 }
 
 late_initcall(rtc_hctosys);
-
-/* Add by hTC */
-static void periodic_sync_time(struct work_struct *w)
-{
-	rtc_hctosys();
-	schedule_delayed_work(&rtc_hctosys_work,
-			round_jiffies_relative(msecs_to_jiffies
-			(SYNC_TIME_PERIOD)));
-}
-
-int init_periodic_sync_time(void)
-{
-	INIT_DELAYED_WORK(&rtc_hctosys_work, periodic_sync_time);
-	schedule_delayed_work(&rtc_hctosys_work,
-			round_jiffies_relative(msecs_to_jiffies
-			(SYNC_TIME_PERIOD)));
-	return 0;
-}
-late_initcall(init_periodic_sync_time);
-/* Add by hTC */

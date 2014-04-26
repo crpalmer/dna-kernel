@@ -6,6 +6,12 @@
 
 menu "Miscellaneous I2C Chip support"
 
+
+config INPUT_YAS_MAGNETOMETER
+        tristate "YAS Geomagnetic Sensor"
+        depends on I2C
+
+
 config SENSORS_AKM8975
         tristate "AKM8973 Compass Driver"
         depends on I2C
@@ -82,6 +88,19 @@ config SENSORS_BMA250
 	help
 	  BMA250 G-sensor Driver implemented by HTC.
 
+config SENSORS_BMA2X2
+	tristate "BMA255/BMA250E/BMA222E/BMA280 acceleration sensor support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Bosch Sensortec's
+	  acceleration sensors BMA255/BMA250E/BMA222E/BMA280.
+
+config SENSORS_BMG160
+	tristate "BMG160 Gyroscope Driver"
+	depends on I2C
+	help
+	 BMG160 Gyroscope Driver implemented by Bosch-Sensortec.
+
 config SENSORS_NFC_PN544
 	tristate "PN544 NFC sensor support"
 	depends on I2C=y
@@ -99,6 +118,19 @@ config INPUT_CAPELLA_CM3629
 	help
 	  Say Y here to enable the CM3629 Short Distance Proximity
 	  Sensor with Ambient Light Sensor.
+
+config WSENSOR_ENABLE
+        tristate "CM3629 proximity and light sensor"
+        help
+          Say Y here to enable the CM3629 Short Distance Proximity
+          Sensor with Ambient Light Sensor.
+
+config PSENSOR_KTHRESHOLD
+        tristate "CM3629 proximity and light sensor"
+        help
+          Say Y here to enable the CM3629 Proximity Sensor
+          set or get threshold value from emmc.
+
 
 config VP_A1026
 	tristate "A1026 Voice Processor Driver"
@@ -124,6 +156,12 @@ config AMP_TPA6185
 	depends on I2C=y
         help
           TI TPA6185 AMP Driver implemented by HTC.
+
+config AMP_RT5501
+        tristate "TI RT5501 AMP Driver"
+	depends on I2C=y
+        help
+          TI RT5501 AMP Driver implemented by HTC.
 
 config AMP_TFA9887
         tristate "NXP TFA9887 Speaker AMP Driver"
@@ -155,5 +193,11 @@ config AMP_TPA2051D3_ON_GPIO
 	default n
 	help
 	 TI TPA2051D3_ON_GPIO Speaker AMP Driver implemented by HTC.
+
+config CIR_ALWAYS_READY
+        bool "BMA250 CIR Always Ready"
+	default n
+	help
+	  Enable CIR Always Ready
 
 endmenu

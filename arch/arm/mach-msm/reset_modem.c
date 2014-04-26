@@ -10,9 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * MSM architecture driver to reset the modem
- */
 #include <linux/uaccess.h>
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -22,7 +19,6 @@
 #include "smd_private.h"
 
 #define DEBUG
-/* #undef DEBUG */
 #ifdef DEBUG
 #define D(x...) printk(x)
 #else
@@ -54,7 +50,7 @@ static ssize_t reset_modem_write(struct file *fp, const char __user *buf,
 
 	cmd[len] = 0;
 
-	/* lazy */
+	
 	if (cmd[len-1] == '\n') {
 		cmd[len-1] = 0;
 		len--;

@@ -15,6 +15,30 @@ config FB_MSM
 
 if FB_MSM
 
+config FB_MSM_RESOLUTION_OVERRIDE
+	bool "Support to fake different resolution for dst/src"
+	default n
+
+config FB_MSM_RESOLUTION_OVERRIDE_SRC_WIDTH
+	int "Override source width resolution"
+	depends on FB_MSM_RESOLUTION_OVERRIDE
+	default 1080
+
+config FB_MSM_RESOLUTION_OVERRIDE_SRC_HEIGHT
+	int "Override source height resolution"
+	depends on FB_MSM_RESOLUTION_OVERRIDE
+	default 1920
+
+config FB_MSM_RESOLUTION_OVERRIDE_DST_WIDTH
+	int "Override destination width resolution"
+	depends on FB_MSM_RESOLUTION_OVERRIDE
+	default 1080
+
+config FB_MSM_RESOLUTION_OVERRIDE_DST_HEIGHT
+	int "Override destination height resolution"
+	depends on FB_MSM_RESOLUTION_OVERRIDE
+	default 1920
+
 config FB_MSM_CABC
 	bool "Use CABC"
 	depends on FB_MSM
@@ -131,6 +155,16 @@ config FB_MSM_OVERLAY
 	bool "MDP4 overlay support"
 	default n
 
+config MSM_ACL_ENABLE
+	bool "ACL Service"
+	depends on FB_MSM
+	default n
+
+config MSM_CABC_VIDEO_ENHANCE
+	bool "Use different CABC setting for Video"
+	depends on FB_MSM
+	default n
+
 config MSM_AUTOBL_ENABLE
 	bool "ACL Service"
 	depends on FB_MSM
@@ -216,6 +250,11 @@ config FB_MSM_MIPI_DSI_ORISE
         bool
         select FB_MSM_MIPI_DSI
         default n
+
+config FB_MSM_MIPI_DSI_HIMAX
+	bool
+	select FB_MSM_MIPI_DSI
+	default n
 
 config FB_MSM_MIPI_DSI_NT35516
 	bool
@@ -357,6 +396,16 @@ config FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_DSI_ORISE
 	default n
 
+config FB_MSM_MIPI_HIMAX_VIDEO_720P_PT
+	bool
+	select FB_MSM_MIPI_DSI_HIMAX
+	default n
+
+config FB_MSM_MIPI_HIMAX_CMD_720P_PT
+	bool
+	select FB_MSM_MIPI_DSI_HIMAX
+	default n
+
 config FB_MSM_MIPI_RENESAS_VIDEO_FWVGA_PT
 	bool
 	select FB_MSM_MIPI_DSI_RENESAS
@@ -417,6 +466,7 @@ config FB_MSM_MIPI_SIMULATOR_VIDEO
 
 config FB_MSM_NO_MDP_PIPE_CTRL
 	depends on FB_MSM_OVERLAY
+	default y
 	bool "Do not use mdp_pipe_ctrl"
 	---help---
 	  Saying 'Y' here obsoletes the mdp_pipe_ctrl function,
@@ -562,6 +612,8 @@ config FB_MSM_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
+	select FB_MSM_MIPI_HIMAX_VIDEO_720P_PT
+	select FB_MSM_MIPI_HIMAX_CMD_720P_PT
 	select FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
 	select FB_MSM_MIPI_NT35516_CMD_QHD_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
@@ -624,6 +676,8 @@ config FB_MSM_LVDS_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_NT35510_CMD_WVGA_PT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
+	select FB_MSM_MIPI_HIMAX_VIDEO_720P_PT
+	select FB_MSM_MIPI_HIMAX_CMD_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	select FB_MSM_MIPI_CHIMEI_WXGA
 	select FB_MSM_MIPI_CHIMEI_WUXGA
@@ -687,6 +741,14 @@ config FB_MSM_MIPI_ORISE_VIDEO_720P_PT_PANEL
 config FB_MSM_MIPI_ORISE_CMD_720P_PT_PANEL
 	bool "MIPI ORISE CMD 720P PT Panel"
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
+
+config FB_MSM_MIPI_HIMAX_VIDEO_720P_PT_PANEL
+	bool "MIPI HIMAX VIDEO 720P PT Panel"
+	select FB_MSM_MIPI_HIMAX_VIDEO_720P_PT
+
+config FB_MSM_MIPI_HIMAX_CMD_720P_PT_PANEL
+	bool "MIPI HIMAX CMD 720P PT Panel"
+	select FB_MSM_MIPI_HIMAX_CMD_720P_PT
 
 config FB_MSM_MIPI_RENESAS_VIDEO_FWVGA_PT_PANEL
 	bool "MIPI Renesas Video FWVGA PT Panel"
@@ -963,6 +1025,26 @@ config MSM_ALT_DSI_ESCAPE_CLOCK
 	---help---
 	  Changing DSI escape clock source from PXO to byte clock to add
 	  more flexibility.
+
+config FB_MSM_ESD_WORKAROUND
+	bool "Panel ESD workaround"
+	default n
+	---help---
+	  Read panel power mode to determine if we need to recover display
+	  from ESD issue.
+
+config FB_MSM_CABC_LEVEL_CONTROL
+	bool "CABC LEVEL CONTROL"
+	default n
+	---help---
+	  Use attribute to switch CABC level.
+
+config FB_MSM_UNDERFLOW_WORKAROUND
+	bool "Display underflow workaround"
+	default y
+	---help---
+	  Force underflow color to black to avoid blue splash.
+	  Say Y here after CRC stage.
 
 if FB_MSM_MDSS
 	source "drivers/video/msm/mdss/Kconfig"

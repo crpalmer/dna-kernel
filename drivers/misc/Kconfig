@@ -662,6 +662,13 @@ config QFP_FUSE
 	  to the fuse block. Currently this is supported only
 	  on FSM targets.
 
+config CABLE_DETECT_8X60
+        boolean "Cable detect driver"
+        depends on ARCH_MSM8X60
+        default n
+        help
+          Detect usb, ac and other accessories.
+
 config CABLE_DETECT_8930
 	boolean "Cable detect driver"
 	depends on ARCH_MSM8930

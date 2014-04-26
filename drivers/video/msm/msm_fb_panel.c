@@ -31,7 +31,6 @@
 #include <linux/debugfs.h>
 
 #include "msm_fb_panel.h"
-#include <mach/msm_rtb_enable.h>
 
 int panel_next_on(struct platform_device *pdev)
 {

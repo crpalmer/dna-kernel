@@ -24,14 +24,15 @@ enum {
 	USB_FUNCTION_PROJECTOR,
 	USB_FUNCTION_FSYNC,
 	USB_FUNCTION_MTP,
-	USB_FUNCTION_MODEM, /* 8 */
+	USB_FUNCTION_MODEM, 
 	USB_FUNCTION_ECM,
 	USB_FUNCTION_ACM,
-	USB_FUNCTION_DIAG_MDM, /* 11 */
+	USB_FUNCTION_DIAG_MDM, 
 	USB_FUNCTION_RMNET,
 	USB_FUNCTION_ACCESSORY,
-	USB_FUNCTION_MODEM_MDM, /* 14 */
-	USB_FUNCTION_MTP36,
+	USB_FUNCTION_MODEM_MDM, 
+	USB_FUNCTION_NCM,
+	USB_FUNCTION_PROJECTOR2,
 	USB_FUNCTION_AUTOBOT = 30,
 	USB_FUNCTION_RNDIS_IPT = 31,
 };
@@ -75,6 +76,10 @@ static struct usb_string_node usb_string_array[] = {
 		.name = "cdc_ethernet",
 	},
 	{
+		.usb_function_flag = 1 << USB_FUNCTION_NCM,
+		.name = "cdc_network",
+	},
+	{
 		.usb_function_flag = 1 << USB_FUNCTION_ACM,
 		.name = "acm",
 	},
@@ -98,6 +103,10 @@ static struct usb_string_node usb_string_array[] = {
 		.usb_function_flag = 1 << USB_FUNCTION_MTP,
 		.name = "mtp",
 	},
+	{
+		.usb_function_flag = 1 << USB_FUNCTION_PROJECTOR2,
+		.name = "projector2",
+	},
 
 };
 
@@ -107,9 +116,9 @@ static int intrsharing;
 
 #define PID_RNDIS		0x0ffe
 #define PID_ECM			0x0ff8
+#define PID_NCM			0x0f93
 #define PID_ACM			0x0ff4
 
-/* for htc in-house device attribute, htc_usb_attr.c */
 void android_force_reset(void)
 {
 	if (_android_dev && _android_dev->cdev)
@@ -172,7 +181,7 @@ static int get_product_id(struct android_dev *dev, struct list_head *list)
 				return p->product_id;
 		}
 	}
-	/* use default product ID */
+	
 	return dev->pdata->product_id;
 }
 
@@ -270,6 +279,19 @@ int android_show_function(char *buf)
 	return length;
 }
 
+static bool is_mtp_enable(void)
+{
+	unsigned val;
+
+	mutex_lock(&function_bind_sem);
+	val = htc_usb_get_func_combine_value();
+	mutex_unlock(&function_bind_sem);
+
+	if (val & (1 << USB_FUNCTION_MTP))
+		return true;
+	else
+		return false;
+}
 
 int android_switch_function(unsigned func)
 {
@@ -284,12 +306,12 @@ int android_switch_function(unsigned func)
 	int product_id, vendor_id, autobot_mode = 0;
 	unsigned val, comm_class = 0;
 
-	/* framework may try to enable adb before android_usb_init_work is done.*/
+	
 	if (dev->enabled != true) {
 		pr_info("%s: USB driver is not initialize\n", __func__);
 		return 0;
 	}
-	/* recovery mode only accept UMS or ADB + UMS combination */
+	
 	if (board_mfg_mode() == 2) {
 		printk("[USB] recovery mode only accept UMS or ADB + UMS combination\n");
 		func &= (1 << USB_FUNCTION_UMS) | (1 << USB_FUNCTION_ADB);
@@ -342,6 +364,9 @@ int android_switch_function(unsigned func)
 		} else if ((func & (1 << USB_FUNCTION_ACM)) &&
 				!strcmp(f->name, "acm"))
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
+		else if ((func & (1 << USB_FUNCTION_NCM)) &&
+				!strcmp(f->name, "cdc_network"))
+			list_add_tail(&f->enabled_list, &dev->enabled_functions);
 		else if ((func & (1 << USB_FUNCTION_RNDIS)) &&
 				!strcmp(f->name, "rndis")) {
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
@@ -374,6 +399,9 @@ int android_switch_function(unsigned func)
 		else if ((func & (1 << USB_FUNCTION_PROJECTOR)) &&
 				!strcmp(f->name, "projector"))
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
+		else if ((func & (1 << USB_FUNCTION_PROJECTOR2)) &&
+				!strcmp(f->name, "projector2"))
+			list_add_tail(&f->enabled_list, &dev->enabled_functions);
 #ifdef CONFIG_USB_ANDROID_MDM9K_DIAG
 		else if ((func & (1 << USB_FUNCTION_DIAG_MDM)) &&
 				!strcmp(f->name, "diag_mdm")) {
@@ -397,7 +425,7 @@ int android_switch_function(unsigned func)
 #endif
 	}
 #ifdef CONFIG_SENSE_4_PLUS
-	/* exchange the order ADB & UMS inferface for sense 4+*/
+	
 	if (func == ((1 << USB_FUNCTION_UMS) | (1 << USB_FUNCTION_ADB))) {
 		if (fums)
 			list_add_tail(&fums->enabled_list, &dev->enabled_functions);
@@ -432,9 +460,6 @@ int android_switch_function(unsigned func)
 	dev->cdev->desc.idVendor = device_desc.idVendor;
 	dev->cdev->desc.idProduct = device_desc.idProduct;
 
-	/* We need to specify the COMM class in the device descriptor
-	 * if we are using RNDIS.
-	 */
 	if (product_id == PID_RNDIS || product_id == PID_ACM || comm_class)
 		dev->cdev->desc.bDeviceClass = USB_CLASS_COMM;
 	else
@@ -444,7 +469,7 @@ int android_switch_function(unsigned func)
 
 	usb_add_config(dev->cdev, &android_config_driver, android_bind_config);
 
-	/* reset usb controller/phy for USB stability */
+	
 	usb_gadget_request_reset(dev->cdev->gadget);
 
 	mdelay(100);
@@ -489,7 +514,7 @@ static int android_switch_setup(struct usb_gadget *gadget,
 #endif
 	struct usb_composite_dev *cdev = get_gadget_data(gadget);
 	struct usb_request *req = cdev->req;
-	/* struct android_dev *dev = _android_dev; */
+	
 
 	switch (c->bRequestType & USB_TYPE_MASK) {
 	case USB_TYPE_VENDOR:
@@ -581,14 +606,14 @@ void init_mfg_serialno(void)
 	use_mfg_serialno = (board_mfg_mode() == 1) ? 1 : 0;
 	strncpy(mfg_df_serialno, serialno, strlen(serialno));
 }
-
+static int usb_disable;
 static ssize_t show_usb_cable_connect(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	unsigned length;
 
 	length = sprintf(buf, "%d",
-			(usb_get_connect_type() == CONNECT_TYPE_USB)?1:0);
+			(usb_get_connect_type() == CONNECT_TYPE_USB) && !usb_disable ? 1 : 0);
 	return length;
 }
 
@@ -663,7 +688,7 @@ static ssize_t store_usb_serial_number(struct device *dev,
 			use_mfg_serialno = 0;
 			android_set_serialno(pdata->serial_number);
 		}
-		/* reset_device */
+		
 		android_force_reset();
 	}
 
@@ -677,9 +702,9 @@ static ssize_t show_dummy_usb_serial_number(struct device *dev,
 	struct android_usb_platform_data *pdata = dev->platform_data;
 
 	if (use_mfg_serialno)
-		length = sprintf(buf, "%s", mfg_df_serialno); /* dummy */
+		length = sprintf(buf, "%s", mfg_df_serialno); 
 	else
-		length = sprintf(buf, "%s", pdata->serial_number); /* Real */
+		length = sprintf(buf, "%s", pdata->serial_number); 
 	return length;
 }
 
@@ -690,16 +715,16 @@ static ssize_t store_dummy_usb_serial_number(struct device *dev,
 		strlen(buf):sizeof(mfg_df_serialno);
 	int loop_i;
 
-	/* avoid overflow, mfg_df_serialno[16] always is 0x0 */
+	
 	if (data_buff_size == 16)
 		data_buff_size--;
 
 	for (loop_i = 0; loop_i < data_buff_size; loop_i++)     {
-		if (buf[loop_i] >= 0x30 && buf[loop_i] <= 0x39) /* 0-9 */
+		if (buf[loop_i] >= 0x30 && buf[loop_i] <= 0x39) 
 			continue;
-		else if (buf[loop_i] >= 0x41 && buf[loop_i] <= 0x5A) /* A-Z */
+		else if (buf[loop_i] >= 0x41 && buf[loop_i] <= 0x5A) 
 			continue;
-		if (buf[loop_i] == 0x0A) /* Line Feed */
+		if (buf[loop_i] == 0x0A) 
 			continue;
 		else {
 			printk(KERN_INFO "%s(): get invaild char (0x%2.2X)\n",
@@ -712,7 +737,7 @@ static ssize_t store_dummy_usb_serial_number(struct device *dev,
 	memset(mfg_df_serialno, 0x0, sizeof(mfg_df_serialno));
 	strncpy(mfg_df_serialno, buf, data_buff_size);
 	android_set_serialno(mfg_df_serialno);
-	/*device_reset */
+	
 	android_force_reset();
 
 	return count;
@@ -749,6 +774,15 @@ static ssize_t store_usb_phy_setting(struct device *dev,
 	return otg_store_usb_phy_setting(buf, count);
 }
 
+static ssize_t show_usb_disable_setting(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	unsigned length;
+
+	length = sprintf(buf, "%d\n", usb_disable);
+	return length;
+}
+
 void msm_otg_set_disable_usb(int disable_usb);
 static ssize_t store_usb_disable_setting(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
@@ -762,7 +796,9 @@ static ssize_t store_usb_disable_setting(struct device *dev,
 		return count;
 	}
 	printk(KERN_INFO "USB_disable set %d\n", disable_usb_function);
+	usb_disable = disable_usb_function;
 	msm_otg_set_disable_usb(disable_usb_function);
+	printk(KERN_INFO "USB_disable --\n");
 
 	return count;
 }
@@ -823,7 +859,6 @@ static DEVICE_ATTR(host_mode, 0220,
 		NULL, store_usb_host_mode);
 #endif
 
-/* Check if USB function is available for user process */
 static ssize_t show_is_usb_denied(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -831,9 +866,6 @@ static ssize_t show_is_usb_denied(struct device *dev,
 	int deny = 0;
 
 	if (usb_autobot_mode()) {
-		/* In HTC mode, USB function change by
-		 * user space should be denied.
-		 */
 		deny = 1;;
 	}
 
@@ -842,7 +874,6 @@ static ssize_t show_is_usb_denied(struct device *dev,
 	return length;
 }
 
-/* show current os type for mac or non-mac */
 static ssize_t show_os_type(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -852,6 +883,17 @@ static ssize_t show_os_type(struct device *dev,
 	USB_INFO("%s: %s\n", __func__, buf);
 	return length;
 }
+
+static ssize_t show_ats(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	unsigned length;
+
+	length = sprintf(buf, "%d\n", board_get_usb_ats());
+	USB_INFO("%s: %s\n", __func__, buf);
+	return length;
+}
+
 static DEVICE_ATTR(usb_cable_connect, 0444, show_usb_cable_connect, NULL);
 static DEVICE_ATTR(usb_function_switch, 0664,
 		show_usb_function_switch, store_usb_function_switch);
@@ -866,16 +908,17 @@ static DEVICE_ATTR(usb_phy_setting, 0664,
 static DEVICE_ATTR(usb_perflock_setting, 0664,
 		show_usb_perflock_setting, store_usb_perflock_setting);
 static DEVICE_ATTR(usb_disable, 0664,
-		NULL, store_usb_disable_setting);
+		show_usb_disable_setting, store_usb_disable_setting);
 static DEVICE_ATTR(usb_denied, 0444, show_is_usb_denied, NULL);
 static DEVICE_ATTR(os_type, 0444, show_os_type, NULL);
+static DEVICE_ATTR(ats, 0444, show_ats, NULL);
 
 static struct attribute *android_htc_usb_attributes[] = {
 	&dev_attr_usb_cable_connect.attr,
 	&dev_attr_usb_function_switch.attr,
-	&dev_attr_USB_ID_status.attr, /* for MFG */
-	&dev_attr_usb_serial_number.attr, /* for MFG */
-	&dev_attr_dummy_usb_serial_number.attr, /* for MFG */
+	&dev_attr_USB_ID_status.attr, 
+	&dev_attr_usb_serial_number.attr, 
+	&dev_attr_dummy_usb_serial_number.attr, 
 	&dev_attr_usb_car_kit_enable.attr,
 	&dev_attr_usb_phy_setting.attr,
 	&dev_attr_usb_perflock_setting.attr,
@@ -885,6 +928,7 @@ static struct attribute *android_htc_usb_attributes[] = {
 	&dev_attr_usb_disable.attr,
 	&dev_attr_usb_denied.attr,
 	&dev_attr_os_type.attr,
+	&dev_attr_ats.attr,
 	NULL
 };
 
