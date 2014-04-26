@@ -20,6 +20,7 @@
 #include <linux/io.h>
 #include <mach/msm-krait-l2-accessors.h>
 #include <mach/msm_iomap.h>
+#include <mach/socinfo.h>
 #include <asm/cputype.h>
 #include "acpuclock.h"
 
@@ -31,6 +32,8 @@
 #define CESR_ICTE		(BIT(6) | BIT(7))
 #define CESR_TLBMH		BIT(16)
 #define CESR_I_MASK		0x000000CC
+
+#define CESR_VALID_MASK		0x000100FF
 
 #define CESR_PRINT_MASK		0x000000FF
 
@@ -60,6 +63,12 @@
 #define ERP_L1_ERR(a) panic(a)
 #else
 #define ERP_L1_ERR(a) do { } while (0)
+#endif
+
+#ifdef CONFIG_MSM_L1_RECOV_ERR_PANIC
+#define ERP_L1_RECOV_ERR(a) panic(a)
+#else
+#define ERP_L1_RECOV_ERR(a) do { } while (0)
 #endif
 
 #ifdef CONFIG_MSM_L2_ERP_PORT_PANIC
@@ -323,11 +332,26 @@ static irqreturn_t msm_l1_erp_irq(int irq, void *dev_id)
 	
 	write_cesr(cesr);
 
-	if (print_regs)
-		ERP_L1_ERR("L1 cache error detected");
+	if (print_regs) {
+		if ((cesr & (~CESR_I_MASK & CESR_VALID_MASK)) ||
+		    cpu_is_krait_v1() || cpu_is_krait_v2())
+			ERP_L1_ERR("L1 nonrecoverable cache error detected");
+		else
+			ERP_L1_RECOV_ERR("L1 recoverable error detected\n");
+	}
 
 	return IRQ_HANDLED;
 }
+
+
+#ifdef CONFIG_IGNORE_L2_FALSE_ALRAM
+	#define DUMP_L2_ERP_MIN_INTERVAL  (HZ / 2) 
+
+	static unsigned long last_trigger_jiffies = 0; 
+	int l2_erp_print=0;
+#else
+	int l2_erp_print=1;
+#endif
 
 static irqreturn_t msm_l2_erp_irq(int irq, void *dev_id)
 {
@@ -347,7 +371,16 @@ static irqreturn_t msm_l2_erp_irq(int irq, void *dev_id)
 	l2ear0 = get_l2_indirect_reg(L2EAR0_IND_ADDR);
 	l2ear1 = get_l2_indirect_reg(L2EAR1_IND_ADDR);
 
-	print_alert = print_access_errors() || (l2esr & L2ESR_ACCESS_ERR_MASK);
+#ifdef CONFIG_IGNORE_L2_FALSE_ALRAM
+	if((last_trigger_jiffies == 0) || time_is_after_jiffies(last_trigger_jiffies + DUMP_L2_ERP_MIN_INTERVAL) )
+		l2_erp_print = 0;
+	else
+		l2_erp_print = 1;
+
+	last_trigger_jiffies = jiffies;
+#endif
+
+	print_alert = (l2_erp_print && print_access_errors()) || (l2esr & L2ESR_ACCESS_ERR_MASK);
 
 	if (print_alert) {
 		pr_alert("L2 Error detected!\n");

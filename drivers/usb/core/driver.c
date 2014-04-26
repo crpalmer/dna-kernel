@@ -468,7 +468,8 @@ int usb_match_one_id(struct usb_interface *interface,
 			!(id->match_flags & USB_DEVICE_ID_MATCH_VENDOR) &&
 			(id->match_flags & (USB_DEVICE_ID_MATCH_INT_CLASS |
 				USB_DEVICE_ID_MATCH_INT_SUBCLASS |
-				USB_DEVICE_ID_MATCH_INT_PROTOCOL)))
+				USB_DEVICE_ID_MATCH_INT_PROTOCOL |
+				USB_DEVICE_ID_MATCH_INT_NUMBER)))
 		return 0;
 
 	if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_CLASS) &&
@@ -481,6 +482,10 @@ int usb_match_one_id(struct usb_interface *interface,
 
 	if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_PROTOCOL) &&
 	    (id->bInterfaceProtocol != intf->desc.bInterfaceProtocol))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_NUMBER) &&
+	    (id->bInterfaceNumber != intf->desc.bInterfaceNumber))
 		return 0;
 
 	return 1;
@@ -964,6 +969,12 @@ static int usb_suspend_both(struct usb_device *udev, pm_message_t msg)
 
 		if (udev->parent && !PMSG_IS_AUTO(msg))
 			status = 0;
+		if (status == -EPROTO) {
+			int r = 0;
+			dev_info(&udev->dev, "%s:  status=[%d], call usb_resume_device+\n", __func__, status);
+			r = usb_resume_device(udev, msg);
+			dev_info(&udev->dev, "%s:  usb_resume_device-, r=[%d]\n", __func__, r);
+		}
 	}
 
 	

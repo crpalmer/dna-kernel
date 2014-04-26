@@ -297,6 +297,8 @@
 #define         GDPO2ADD0               0x0176
 #define         GDPO2ADD1               0x0177
 #define         GPOSCOEF                0x0178
+#define         WG_HCHR                 0x017A
+#define         WG_LSEL                 0x017B
 #define         GPINMON1                0x0180
 #define         GPINMON2                0x0181
 #define         GPINMON3                0x0182

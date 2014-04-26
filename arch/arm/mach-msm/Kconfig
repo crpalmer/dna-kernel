@@ -146,6 +146,7 @@ config ARCH_MSM8960
 	select MSM_RUN_QUEUE_STATS
 	select ARM_HAS_SG_CHAIN
 	select MSM_KRAIT_WFE_FIXUP
+	select MSM_IOMMU_GPU_SYNC
 
 config ARCH_MSM8930
 	bool "MSM8930"
@@ -651,6 +652,10 @@ config PERFLOCK
         depends on ARCH_APQ8064 || ARCH_MSM8960 || ARCH_MSM8X60 || ARCH_QSD8X50 || ARCH_MSM7X30 || ARCH_MSM7X00A || ARCH_MSM7227 || ARCH_MSM7225
         default n
         bool "HTC Performance Lock"
+
+config DEBUG_KSWAPD
+        default n
+        bool "HTC Debug Kswapd busy"
 
 config PERFLOCK_FIX_UP
         depends on CPU_FREQ
@@ -1297,6 +1302,18 @@ config HTC_ONMODE_CHARGING
 	help
 		support on mode charing icon
 
+config DUTY_CYCLE_LIMIT
+	bool "Duty cycle limit charging support"
+	default n
+	help
+		support on duty cycle limit charging
+
+config BUILD_EDIAG
+        bool "Build in embedded diag fixes"
+        default n
+        help
+          For embedded diag we need to do some additional fixes.
+
 config HTC_FD_MONITOR
 	bool "fd operation monitor mechanism"
 	default n
@@ -1600,12 +1617,6 @@ config MSM_SMD_DEBUG
 	  Support for debugging the SMD for communication
 	  between the ARM9 and ARM11
 
-config MSM_SEND_SIGNAL_DEBUG
-        bool "MSM send_signal debug support"
-        help
-          This option enables kernel debug log and dump_stack
-          if any processes send signal to assinged processes
-
 config MSM_SDIO_AL
 	depends on ((ARCH_MSM7X30 || MACH_MSM8X60_FUSN_FFA || MACH_TYPE_MSM8X60_FUSION) && HAS_WAKELOCK)
 	default y
@@ -1766,6 +1777,26 @@ config MSM_IPC_ROUTER_SMD_XPRT
 	bool "MSM SMD XPRT Layer"
 	help
 	  SMD Transport Layer for IPC Router
+
+config MSM_IPC_ROUTER_HSIC_XPRT
+	depends on USB_QCOM_IPC_BRIDGE
+	depends on MSM_IPC_ROUTER
+	bool "MSM HSIC XPRT Layer"
+	help
+	  HSIC Transport Layer that enables off-chip communication of
+	  IPC Router. When the HSIC endpoint becomes available, this layer
+	  registers the transport with IPC Router and enable message
+	  exchange.
+
+config MSM_IPC_ROUTER_SECURITY
+	depends on MSM_IPC_ROUTER
+	bool "MSM IPC Router Security support"
+	help
+	  This feature of IPC Router will enforce security rules
+	  configured by a security script from the user-space. IPC Router
+	  once configured with the security rules will ensure that the
+	  sender of the message to a service belongs to the relevant
+	  Linux group as configured by the security script.
 
 config MSM_ONCRPCROUTER_DEBUG
 	depends on MSM_ONCRPCROUTER
@@ -2593,6 +2624,18 @@ config MSM8930_ONLY
 		help
 		 Help to separate MSM8930 code from other ARCH
 
+config AUDIO_LOW_LATENCY
+		default n
+		bool "For AUDIO_LOW_LATENCY only"
+		help
+		 Help to separate the AUDIO_LOW_LATENCY from other board config
+
+config AUDIO_24BIT
+		default n
+		bool "For AUDIO_24BIT only"
+		help
+		 Help to separate the AUDIO_24BIT from other board config
+
 config MSM_QDSP6_APR
 	bool "Audio QDSP6 APR support"
 	depends on MSM_SMD
@@ -2701,6 +2744,7 @@ config MSM_OCMEM
 
 config MSM_RTB
 	bool "Register tracing"
+	depends on (!METRICO_TP || METRICO_TP!=y)
 	help
 	  Add support for logging different events to a small uncached
 	  region. This is designed to aid in debugging reset cases where the
@@ -2746,6 +2790,21 @@ config MSM_L1_ERR_PANIC
 	  instability is suspected.
 
 	  For production builds, you should probably say 'N' here.
+
+config MSM_L1_RECOV_ERR_PANIC
+	bool "Panic on recoverable L1 cache errors"
+	depends on MSM_CACHE_ERP && MSM_L1_ERR_PANIC
+	help
+	  Certain CPU designs may be able to automatically recover from certain
+	  kinds of L1 cache errors, even though the L1 cache itself may not
+	  support error correction. These errors should not result in any kind
+	  of corruption, but their presence is nevertheless an indication of
+	  poor system health. To cause the kernel to panic whenever a
+	  recoverable L1 cache error is detected, say 'Y' here. This may be
+	  useful as a debugging technique if general system instability is
+	  suspected.
+
+	  For production builds, you should definitely say 'N' here.
 
 config MSM_L1_ERR_LOG
 	bool "Log CPU ERP events to system memory"
@@ -2805,6 +2864,14 @@ config MSM_L2_ERP_2BIT_PANIC
 	  For production builds, it may be acceptable to say 'N' here, since
 	  an uncorrectable error might not necessarily cause further problems.
 
+config IGNORE_L2_FALSE_ALRAM
+	bool "Ignore harmless L2 port error"
+	depends on MSM_CACHE_ERP
+	default y
+	help
+	  L2 cache will sometimes generate port error which is consider harmless.
+	  Ignore the error if trigger rate is low.
+
 config MSM_DCVS
 	bool "Use MSM DCVS for CPU/GPU Frequency control"
 	depends on MSM_SCM
@@ -2830,6 +2897,13 @@ config ACPU_CUSTOM_FREQ_SUPPORT
 	help
 	  Adds support for custom frequency table adjustments.
 
+config ACPU_SPEED_BIN_FREQ_SUPPORT
+	bool "Custom speed bin frequency setting"
+	default n
+	depends on ACPU_CUSTOM_FREQ_SUPPORT
+	help
+	  Add support for adjusting ACPU frequency table according to ACPU speed bin.
+
 config ACPU_MAX_FREQ
 	int "Maximum supported frequency"
 	depends on ACPU_CUSTOM_FREQ_SUPPORT
@@ -2854,6 +2928,12 @@ config MSM_HSIC_SYSMON
 	  Add support for bridging with the system monitor interface of MDM
 	  over HSIC. This driver allows the local system monitor to
 	  communicate with the remote system monitor interface.
+
+config MSM_HSIC_SYSMON_TTY_DEV
+	tristate "MSM HSIC system monitor TTY device"
+	depends on USB && MSM_HSIC_SYSMON
+	help
+	 Add support for using SYSMON interface for specific purpose
 
 config MSM_HSIC_SYSMON_TEST
 	tristate "MSM HSIC system monitor bridge test"
@@ -3094,5 +3174,16 @@ config MSM_CPU_PWRCTL
 	  stand alone power collapse operation. Selecting this option
 	  ensures that they are always off.
 
+config QUALCOMM_WLAN_PXO
+	default n
+	bool "Use PXO for WLAN clock source"
+	help
+	  Use PXO for clock source of WLAN chip
+
+config IOEXTENDER
+        default n
+        bool "Enable IOEXTENDER feature"
+	help
+	 To support IOEXTENDER feature
 endif
 

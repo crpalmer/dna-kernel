@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -470,6 +470,9 @@ static int msm_voice_tty_mode_put(struct snd_kcontrol *kcontrol,
 	voc_set_tty_mode(voc_get_session_id(VOICE_SESSION_NAME), tty_mode);
 
 	voc_set_tty_mode(voc_get_session_id(VOICE2_SESSION_NAME), tty_mode);
+
+	voc_set_tty_mode(voc_get_session_id(VOLTE_SESSION_NAME), tty_mode);
+
 	return 0;
 }
 static int msm_voice_widevoice_put(struct snd_kcontrol *kcontrol,

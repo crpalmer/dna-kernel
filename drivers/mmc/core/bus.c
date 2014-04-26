@@ -26,6 +26,7 @@
 #include "bus.h"
 
 #define to_mmc_driver(d)	container_of(d, struct mmc_driver, drv)
+extern struct workqueue_struct *stats_workqueue;
 
 static ssize_t mmc_type_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
@@ -269,6 +270,11 @@ int mmc_add_card(struct mmc_card *card)
 	switch (card->type) {
 	case MMC_TYPE_MMC:
 		type = "MMC";
+		if (stats_workqueue && !card->host->perf_enable) {
+			card->host->perf_enable = true;
+			queue_delayed_work(stats_workqueue, &card->host->stats_work,
+					msecs_to_jiffies(MMC_STATS_INTERVAL));
+		}
 		break;
 	case MMC_TYPE_SD:
 		type = "SD";
@@ -318,6 +324,8 @@ int mmc_add_card(struct mmc_card *card)
 			uhs_bus_speed_mode, type, card->rca);
 	}
 
+	mmc_card_set_present(card);
+
 #ifdef CONFIG_DEBUG_FS
 	mmc_add_card_debugfs(card);
 #endif
@@ -325,8 +333,6 @@ int mmc_add_card(struct mmc_card *card)
 	ret = device_add(&card->dev);
 	if (ret)
 		return ret;
-
-	mmc_card_set_present(card);
 
 	return 0;
 }

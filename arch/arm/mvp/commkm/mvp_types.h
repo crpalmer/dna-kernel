@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Guest Communications
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -57,19 +57,21 @@ typedef uint32 MPN;
 typedef uint64 cycle_t;
 
 typedef struct {
-   uint16 off;
-   uint16 len;
+	uint16 off;
+	uint16 len;
 } PageSeg;
 
 
 #if defined(__GNUC__)
-# define PRINTF_DECL(fmtPos, varPos) __attribute__((__format__(__printf__, fmtPos, varPos)))
+# define PRINTF_DECL(fmtPos, varPos) \
+	__attribute__((__format__(__printf__, fmtPos, varPos)))
 #else
 # define PRINTF_DECL(fmtPos, varPos)
 #endif
 
 #if defined(__GNUC__)
-# define SCANF_DECL(fmtPos, varPos) __attribute__((__format__(__scanf__, fmtPos, varPos)))
+# define SCANF_DECL(fmtPos, varPos) \
+	__attribute__((__format__(__scanf__, fmtPos, varPos)))
 #else
 # define SCANF_DECL(fmtPos, varPos)
 #endif

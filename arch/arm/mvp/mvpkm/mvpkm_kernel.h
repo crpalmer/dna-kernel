@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -39,34 +39,41 @@
 
 
 struct MvpkmVM {
-   struct kobject      kobj;            
-   struct kset        *devicesKSet;     
-   struct kset        *miscKSet;        
-   _Bool               haveKObj;        
-   struct rb_root      lockedRoot;      
-   struct rw_semaphore lockedSem;       
-   AtmUInt32           usedPages;       
-   _Bool               isMonitorInited; 
-   WorldSwitchPage    *wsp;             
-   wait_queue_head_t   wfiWaitQ;        
-   struct rw_semaphore wspSem;          
-   MonTimer            monTimer;        
-   MPN                 stubPageMPN;     
-   struct vm_struct   *wspHkvaArea;     
-   HKVA                wspHKVADummyPage;
+	struct kobject      kobj;        
+	struct kset        *devicesKSet; 
+	struct kset        *miscKSet;    
+	_Bool               haveKObj;    
+	struct rb_root      lockedRoot;  
+	struct rw_semaphore lockedSem;   
+	AtmUInt32           usedPages;   
+	_Bool               isMonitorInited; 
+	WorldSwitchPage    *wsp;             
+	wait_queue_head_t   wfiWaitQ;        
+
+	struct rw_semaphore wspSem;
+
+	
+	struct MonTimer     monTimer;
+
+	
+	MPN                 stubPageMPN;
+
+	struct vm_struct   *wspHkvaArea;  
+	HKVA                wspHKVADummyPage; 
 #ifdef CONFIG_HAS_WAKELOCK
-   struct wake_lock    wakeLock;        
+	struct wake_lock    wakeLock;        
 #endif
-   struct rw_semaphore monThreadTaskSem;
-   struct task_struct *monThreadTask;
-   struct timer_list   balloonWDTimer;  
-   _Bool               balloonWDEnabled;
-   _Bool               watchdogTriggered;
+
+	
+	struct rw_semaphore monThreadTaskSem;
+
+	struct task_struct *monThreadTask;
+	struct timer_list   balloonWDTimer;  
+	_Bool               balloonWDEnabled;
+	_Bool               watchdogTriggered;
 };
 
-typedef struct MvpkmVM MvpkmVM;
-
-void Mvpkm_WakeGuest(MvpkmVM *vm, int why);
+void Mvpkm_WakeGuest(struct MvpkmVM *vm, int why);
 struct kset *Mvpkm_FindVMNamedKSet(int vmID, const char *name);
 
 extern struct cpumask inMonitor;

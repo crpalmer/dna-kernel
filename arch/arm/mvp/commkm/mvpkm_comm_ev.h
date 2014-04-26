@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Guest Communications
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -22,23 +22,21 @@
 #ifndef _MVPKM_COMM_EV_H
 #define _MVPKM_COMM_EV_H
 
-extern int (*CommTranspEvProcess)(CommTranspID* id, CommTranspIOEvent event);
+extern int (*CommTranspEvProcess)(CommTranspID *id, CommTranspIOEvent event);
 
 
 static inline void
-Mvpkm_CommEvSignal(CommTranspID *id, CommTranspIOEvent event)
+Mvpkm_CommEvSignal(CommTranspID *id,
+		   CommTranspIOEvent event)
 {
-   if (CommTranspEvProcess) {
-      CommTranspEvProcess(id, event);
-   }
+	if (CommTranspEvProcess)
+		CommTranspEvProcess(id, event);
 }
 
 void
 Mvpkm_CommEvRegisterProcessCB(int (*commProcessFunc)(CommTranspID*,
-                                                     CommTranspIOEvent));
+						     CommTranspIOEvent));
 void Mvpkm_CommEvUnregisterProcessCB(void);
-
-
 
 #endif
 

@@ -443,7 +443,10 @@ static int rawchip_update_aec_awb_params(struct rawchip_ctrl *raw_dev, void __us
 	CDBG("%s rg_ratio=%d bg_ratio=%d\n", __func__,
 		update_aec_awb_params->awb_params.rg_ratio, update_aec_awb_params->awb_params.bg_ratio);
 
-	Yushan_Update_AEC_AWB_Params(update_aec_awb_params);
+	if (update_aec_awb_params->init == TRUE)
+	  Yushan_Set_AEC_AWB_Init_Setting(update_aec_awb_params);
+	else
+	  Yushan_Update_AEC_AWB_Params(update_aec_awb_params);
 
 	kfree(update_aec_awb_params);
 	return 0;
@@ -540,9 +543,9 @@ int rawchip_power_up(const struct msm_camera_rawchip_info *pdata)
 	}
 
 #ifdef CONFIG_RAWCHIP_MCLK
-	rc = msm_camio_clk_enable(CAMIO_CAM_RAWCHIP_MCLK_CLK);
+	rc = msm_camio_clk_enable(0,CAMIO_CAM_RAWCHIP_MCLK_CLK);
 #else
-	rc = msm_camio_clk_enable(CAMIO_CAM_MCLK_CLK);
+	rc = msm_camio_clk_enable(0,CAMIO_CAM_MCLK_CLK);
 #endif
 
 	if (rc < 0) {
@@ -567,9 +570,9 @@ int rawchip_power_up(const struct msm_camera_rawchip_info *pdata)
 
 enable_reset_failed:
 #ifdef CONFIG_RAWCHIP_MCLK
-	rc = msm_camio_clk_disable(CAMIO_CAM_RAWCHIP_MCLK_CLK);
+	rc = msm_camio_clk_disable(0,CAMIO_CAM_RAWCHIP_MCLK_CLK);
 #else
-	rc = msm_camio_clk_disable(CAMIO_CAM_MCLK_CLK);
+	rc = msm_camio_clk_disable(0,CAMIO_CAM_MCLK_CLK);
 #endif
 
 enable_mclk_failed:
@@ -595,9 +598,9 @@ int rawchip_power_down(const struct msm_camera_rawchip_info *pdata)
 	mdelay(1);
 
 #ifdef CONFIG_RAWCHIP_MCLK
-	rc = msm_camio_clk_disable(CAMIO_CAM_RAWCHIP_MCLK_CLK);
+	rc = msm_camio_clk_disable(0,CAMIO_CAM_RAWCHIP_MCLK_CLK);
 #else
-	rc = msm_camio_clk_disable(CAMIO_CAM_MCLK_CLK);
+	rc = msm_camio_clk_disable(0,CAMIO_CAM_MCLK_CLK);
 #endif
 
 	if (rc < 0)

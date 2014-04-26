@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -48,7 +48,11 @@ struct snd_msm {
 };
 
 #define PLAYBACK_NUM_PERIODS	8
-#define PLAYBACK_PERIOD_SIZE	2048
+#if defined(CONFIG_AUDIO_24BIT)
+#define PLAYBACK_PERIOD_SIZE	4096
+#else
+#define PLAYBACK_PERIOD_SIZE    2048
+#endif
 #define CAPTURE_NUM_PERIODS	16
 #define CAPTURE_PERIOD_SIZE	320
 
@@ -179,7 +183,7 @@ static void event_handler(uint32_t opcode,
 
 		
 		if (in_frame_info[token][0]) {
-			prtd->pcm_irq_pos += in_frame_info[token][0];
+			prtd->pcm_irq_pos += prtd->pcm_count;
 			pr_debug("pcm_irq_pos=%d\n", prtd->pcm_irq_pos);
 			if (atomic_read(&prtd->start))
 				snd_pcm_period_elapsed(substream);
@@ -417,6 +421,9 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 		kfree(prtd);
 		return -ENOMEM;
 	}
+	
+	prtd->audio_client->perf_mode = false;
+	
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		runtime->hw = msm_pcm_hardware_playback;
 	}
@@ -736,6 +743,7 @@ static int msm_pcm_hw_params(struct snd_pcm_substream *substream,
 			prtd->audio_client->session);
 		prtd->session_id = prtd->audio_client->session;
 		msm_pcm_routing_reg_phy_stream(soc_prtd->dai_link->be_id,
+		prtd->audio_client->perf_mode,
 			prtd->session_id, substream->stream);
 		prtd->cmd_ack = 1;
 	}
@@ -761,6 +769,9 @@ static int msm_pcm_hw_params(struct snd_pcm_substream *substream,
 		event.event_func = msm_pcm_route_event_handler;
 		event.priv_data = (void*) prtd;
 		msm_pcm_routing_reg_phy_stream_v2(soc_prtd->dai_link->be_id,
+				
+						prtd->audio_client->perf_mode,
+				
 						  prtd->session_id,
 						  substream->stream, event);
 	}

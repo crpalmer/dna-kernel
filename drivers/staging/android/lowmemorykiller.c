@@ -39,6 +39,7 @@
 #include <linux/notifier.h>
 #include <linux/mutex.h>
 #include <linux/delay.h>
+#include <linux/swap.h>
 
 #ifdef CONFIG_HIGHMEM
 	#define _ZONE ZONE_HIGHMEM
@@ -77,7 +78,9 @@ static size_t minfree_tmp[6] = {0, 0, 0, 0, 0, 0};
 
 static unsigned long lowmem_deathpending_timeout;
 static unsigned long lowmem_fork_boost_timeout;
-static uint32_t lowmem_fork_boost = 1;
+static uint32_t lowmem_fork_boost = 0;
+static uint32_t lowmem_sleep_ms = 1;
+static uint32_t lowmem_only_kswapd_sleep = 1;
 
 #define lowmem_print(level, x...)			\
 	do {						\
@@ -160,7 +163,9 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 
 	if (nr_to_scan > 0) {
 		if (!mutex_trylock(&scan_mutex)) {
-			msleep_interruptible(1);
+			if (!(lowmem_only_kswapd_sleep && !current_is_kswapd())) {
+				msleep_interruptible(lowmem_sleep_ms);
+			}
 			return 0;
 		}
 	}
@@ -230,9 +235,13 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 
 		if (time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			if (test_task_flag(tsk, TIF_MEMDIE)) {
+				lowmem_print(2, "skipping , waiting for process %d (%s) dead\n",
+				tsk->pid, tsk->comm);
 				rcu_read_unlock();
 				
-				msleep_interruptible(20);
+				if (!(lowmem_only_kswapd_sleep && !current_is_kswapd())) {
+					msleep_interruptible(lowmem_sleep_ms);
+				}
 				mutex_unlock(&scan_mutex);
 				return 0;
 			}
@@ -284,7 +293,9 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		rem -= selected_tasksize;
 		rcu_read_unlock();
 		
-		msleep_interruptible(20);
+		if (!(lowmem_only_kswapd_sleep && !current_is_kswapd())) {
+			msleep_interruptible(lowmem_sleep_ms);
+		}
 	}
 	else
 		rcu_read_unlock();

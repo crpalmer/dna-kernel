@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Guest Communications
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -28,14 +28,15 @@
 #define INCLUDE_ALLOW_MODULE
 #include "include_check.h"
 
-#define MVP_COMM_EV_SIGNATURE       0x4d4d4f43                   
-#define MVP_COMM_EV_SIGNAL          (MVP_OBJECT_CUSTOM_BASE + 0) 
-#define MVP_COMM_EV_READ_EVENT_DATA (MVP_OBJECT_CUSTOM_BASE + 1) 
-#define MVP_COMM_EV_LAST            (MVP_OBJECT_CUSTOM_BASE + 2) 
+#define MVP_COMM_EV_SIGNATURE 0x4d4d4f43                   
+#define MVP_COMM_EV_SIGNAL    (MVP_OBJECT_CUSTOM_BASE + 0) 
+#define MVP_COMM_EV_READ_EVENT_DATA \
+	(MVP_OBJECT_CUSTOM_BASE + 1) 
+#define MVP_COMM_EV_LAST (MVP_OBJECT_CUSTOM_BASE + 2) 
 
 typedef struct CommEvent {
-   CommTranspID id;
-   CommTranspIOEvent event;
+	CommTranspID id;
+	CommTranspIOEvent event;
 } CommEvent;
 
 #endif

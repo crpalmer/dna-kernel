@@ -46,6 +46,7 @@ struct adm_ctl {
 	atomic_t copp_stat[AFE_MAX_PORTS];
 	wait_queue_head_t wait;
 	int  ec_ref_rx;
+	int  prev_index;
 };
 
 static struct acdb_cal_block mem_addr_audproc[MAX_AUDPROC_TYPES];
@@ -302,6 +303,9 @@ static int32_t adm_callback(struct apr_client_data *data, void *priv)
 		switch (data->opcode) {
 		case ADM_CMDRSP_COPP_OPEN:
 		case ADM_CMDRSP_MULTI_CHANNEL_COPP_OPEN:
+		
+		case ADM_CMDRSP_MULTI_CHANNEL_COPP_OPEN_V3:
+		
 		case ADM_CMDRSP_MULTI_CHANNEL_COPP_OPEN_V2: {
 			struct adm_copp_open_respond *open = data->payload;
 			if (open->copp_id == INVALID_COPP_ID) {
@@ -465,6 +469,8 @@ static void send_adm_cal(int port_id, int path)
 	int			result = 0;
 	s32			acdb_path;
 	struct acdb_cal_block	aud_cal;
+	int flag = 0;
+	int index = afe_get_port_index(port_id);
 
 	pr_debug("%s\n", __func__);
 
@@ -493,13 +499,16 @@ static void send_adm_cal(int port_id, int path)
 		else
 			mem_addr_audproc[acdb_path] = aud_cal;
 	}
-
-	if (!send_adm_cal_block(port_id, &aud_cal))
-		pr_debug("%s: Audproc cal sent for port id: %d, path %d\n",
-			__func__, port_id, acdb_path);
-	else
-		pr_debug("%s: Audproc cal not sent for port id: %d, path %d\n",
-			__func__, port_id, acdb_path);
+	if (this_adm.prev_index != index) {
+		if (!send_adm_cal_block(port_id, &aud_cal))
+			pr_debug("%s: Audproc cal sent for port id: %d, path %d\n",
+				__func__, port_id, acdb_path);
+		else
+			pr_debug("%s: Audproc cal not sent for port id: %d, path %d\n",
+				__func__, port_id, acdb_path);
+		this_adm.prev_index = index;
+		flag = 1;
+	}
 
 	pr_debug("%s: Sending audvol cal\n", __func__);
 	get_audvol_cal(acdb_path, &aud_cal);
@@ -522,13 +531,15 @@ static void send_adm_cal(int port_id, int path)
 		else
 			mem_addr_audvol[acdb_path] = aud_cal;
 	}
+	if ((this_adm.prev_index == index) && (flag == 1)) {
+		if (!send_adm_cal_block(port_id, &aud_cal))
+			pr_debug("%s: Audvol cal sent for port id: %d, path %d\n",
+				__func__, port_id, acdb_path);
+		else
+			pr_debug("%s: Audvol cal not sent for port id: %d, path %d\n",
+				__func__, port_id, acdb_path);
+	}
 
-	if (!send_adm_cal_block(port_id, &aud_cal))
-		pr_debug("%s: Audvol cal sent for port id: %d, path %d\n",
-			__func__, port_id, acdb_path);
-	else
-		pr_debug("%s: Audvol cal not sent for port id: %d, path %d\n",
-			__func__, port_id, acdb_path);
 }
 
 int adm_connect_afe_port(int mode, int session_id, int port_id)
@@ -785,7 +796,7 @@ fail_cmd:
 
 
 int adm_multi_ch_copp_open(int port_id, int path, int rate, int channel_mode,
-				int topology)
+int topology, int perfmode)
 {
 	struct adm_multi_ch_copp_open_command open;
 	int ret = 0;
@@ -823,8 +834,17 @@ int adm_multi_ch_copp_open(int port_id, int path, int rate, int channel_mode,
 
 		open.hdr.pkt_size =
 			sizeof(struct adm_multi_ch_copp_open_command);
-		open.hdr.opcode = ADM_CMD_MULTI_CHANNEL_COPP_OPEN;
-		open.reserved = 0;
+		
+		if (perfmode) {
+			pr_debug("%s Performance mode", __func__);
+			open.hdr.opcode = ADM_CMD_MULTI_CHANNEL_COPP_OPEN_V3;
+			open.flags = ADM_MULTI_CH_COPP_OPEN_PERF_MODE_BIT;
+			open.reserved = PCM_BITS_PER_SAMPLE;
+		} else {
+			open.hdr.opcode = ADM_CMD_MULTI_CHANNEL_COPP_OPEN;
+			open.reserved = 0;
+		}
+		
 		memset(open.dev_channel_mapping, 0, 8);
 
 		if (channel_mode == 1)	{
@@ -934,7 +954,7 @@ fail_cmd:
 
 
 int adm_multi_ch_copp_open_v2(int port_id, int path, int rate, int channel_mode,
-				int topology, uint16_t bit_width)
+				int topology, uint16_t bit_width, int perfmode)
 {
 	struct adm_multi_ch_copp_open_command_v2 open;
 	int ret = 0;
@@ -973,7 +993,15 @@ int adm_multi_ch_copp_open_v2(int port_id, int path, int rate, int channel_mode,
 		open.hdr.pkt_size =
 			sizeof(struct adm_multi_ch_copp_open_command_v2);
 
-		open.hdr.opcode = ADM_CMD_MULTI_CHANNEL_COPP_OPEN_V2;
+		
+		if (perfmode) {
+			pr_debug("%s Performance mode", __func__);
+			open.hdr.opcode = ADM_CMD_MULTI_CHANNEL_COPP_OPEN_V3;
+			open.flags = ADM_MULTI_CH_COPP_OPEN_PERF_MODE_BIT;
+		} else {
+			open.hdr.opcode = ADM_CMD_MULTI_CHANNEL_COPP_OPEN_V2;
+		}
+		
 		pr_debug("%s Performance mode", __func__);
 
 		memset(open.dev_channel_mapping, 0, 8);
@@ -1376,7 +1404,7 @@ int adm_close(int port_id)
 
 		atomic_set(&this_adm.copp_id[index], RESET_COPP_ID);
 		atomic_set(&this_adm.copp_stat[index], 0);
-
+		this_adm.prev_index = 0xffff;
 
 		pr_debug("%s:coppid %d portid=%d index=%d coppcnt=%d\n",
 				__func__,
@@ -1414,7 +1442,7 @@ static int __init adm_init(void)
 	int i = 0;
 	init_waitqueue_head(&this_adm.wait);
 	this_adm.apr = NULL;
-
+	this_adm.prev_index = 0xffff;
 	for (i = 0; i < AFE_MAX_PORTS; i++) {
 		atomic_set(&this_adm.copp_id[i], RESET_COPP_ID);
 		atomic_set(&this_adm.copp_cnt[i], 0);

@@ -108,6 +108,10 @@
 #define HWIO_RIVA_PLL_MODE_OUTM(m,v) \
         out_dword_masked_ns(HWIO_RIVA_PLL_MODE_ADDR,m,v,HWIO_RIVA_PLL_MODE_IN)
 
+#define APQ8064_HW_VER_1_0   0x1
+#define APQ8064_HW_VER_2_0   0x2
+#define HW_VER_ID_VIRT      (MSM_TLMM_BASE + 0x00002054)
+
 #define TRUE 1
 #define FALSE 0
 
@@ -128,6 +132,7 @@ enum
   CLOCK_SOURCE_PLL13  
 };
 
+#ifdef CONFIG_QUALCOMM_WLAN_PXO
 static bool Clock_WaitForPLLActive (u32 nPLL)
 {
   u32 nLoops = 100;
@@ -165,6 +170,7 @@ static bool Clock_WaitForPLLActive (u32 nPLL)
   return FALSE;
 
 } 
+#endif
 
 static bool cxo_is_needed(struct riva_data *drv)
 {
@@ -214,17 +220,28 @@ static int pil_riva_init_image(struct pil_desc *pil, const u8 *metadata,
 static int pil_riva_reset(struct pil_desc *pil)
 {
 	u32 reg, sel;
-	u32 nLoopCount = 5;
 	struct riva_data *drv = dev_get_drvdata(pil->dev);
 	void __iomem *base = drv->base;
 	unsigned long start_addr = drv->start_addr;
 	bool use_cxo = cxo_is_needed(drv);
+#ifdef CONFIG_QUALCOMM_WLAN_PXO
+	u32 nLoopCount = 25;
+	u32 nRetryCount = 5;
+	u32 hw_ver_id;
+	hw_ver_id = (readl(HW_VER_ID_VIRT)& 0xf0000000) >> 28;
+
+	printk("[WLAN][SSR] Get hw_ver_id = %#x\n", hw_ver_id);
+#endif
 
 	
 	reg = readl_relaxed(base + RIVA_PMU_A2XB_CFG);
 	reg |= RIVA_PMU_A2XB_CFG_EN;
 	writel_relaxed(reg, base + RIVA_PMU_A2XB_CFG);
 
+#ifdef CONFIG_QUALCOMM_WLAN_PXO
+	while (nRetryCount > 0)
+	{
+#endif
 	
 	reg = readl_relaxed(RIVA_PLL_MODE);
 	reg &= ~(PLL_MODE_BYPASSNL | PLL_MODE_OUTCTRL | PLL_MODE_RESET_N);
@@ -260,26 +277,46 @@ static int pil_riva_reset(struct pil_desc *pil)
 	usleep_range(50, 100);
 
 	
-	printk("[WLAN][SSR] Wait for PLL warm-up\n");
-	while(nLoopCount > 0) 
-	{
-		udelay(CLOCK_PLL_WARMUP_TIME_US);
-		if(in_dword_masked(HWIO_PLL_LOCK_DET_STATUS_ADDR, 0xffffffff) & (1 << 13))
-		{break;}
-		nLoopCount--;
+#ifdef CONFIG_QUALCOMM_WLAN_PXO
+	if (hw_ver_id >= APQ8064_HW_VER_1_0) {
+		printk("[WLAN][SSR] Wait for PLL warm-up\n");
+		
+		while(nLoopCount > 0) 
+		{
+			udelay(CLOCK_PLL_WARMUP_TIME_US);
+			if(in_dword_masked(HWIO_PLL_LOCK_DET_STATUS_ADDR, 0xffffffff) & (1 << 13))
+			{break;}
+			nLoopCount--;
+		}
+
+		if(nLoopCount == 0)
+		{
+			
+			
+			printk("[WLAN][SSR] PLL lock detection failed!, retry %d\n", (5-nRetryCount));
+                        nRetryCount--;
+			nLoopCount = 25;
+			continue;
+		}
+		printk("[WLAN][SSR] Check PLL lock detection passed\n");
+
+		HWIO_RIVA_PLL_MODE_OUTM(0x1, (u32)(1) << (0x0)); 
+
+		if (Clock_WaitForPLLActive(CLOCK_SOURCE_PLL13) == FALSE)
+		
+		{
+			nRetryCount--;
+			nLoopCount = 25;
+			continue;
+		}
+		printk("[WLAN][SSR] Wait for PLL Active ...OK!\n");
+		break;
 	}
-
-	if(nLoopCount == 0)
-	{return -1;}
-	printk("[WLAN][SSR] Check PLL lock detection passed\n");
-
-	HWIO_RIVA_PLL_MODE_OUTM(0x1, (u32)(1) << (0x0)); 
-
-	if (Clock_WaitForPLLActive(CLOCK_SOURCE_PLL13) == FALSE)
-	{return -1;}
-	printk("[WLAN][SSR] Wait for PLL Active ...OK!\n");
+#endif
 	
-
+#ifdef CONFIG_QUALCOMM_WLAN_PXO
+	}
+#endif
 
 	
 	sel = readl_relaxed(base + RIVA_PMU_ROOT_CLK_SEL);
@@ -321,11 +358,14 @@ static int pil_riva_reset(struct pil_desc *pil)
 	writel_relaxed(reg, base + RIVA_PMU_OVRD_VAL);
 
 	
-	printk("[WLAN][SSR] Use PXO for RIVA\n");
-
-	HWIO_RIVA_RESET_OUTM((0x2),(u32)(1) << (0x1)); 
-	HWIO_RIVA_XO_SRC_CLK_CTL_OUTM((0x00000004), (u32)(1) << (0x2)); 
-	HWIO_RIVA_RESET_OUTM((0x2),(u32)(0) << (0x1)); 
+#ifdef CONFIG_QUALCOMM_WLAN_PXO
+	if (hw_ver_id >= APQ8064_HW_VER_2_0) {
+		printk("[WLAN][SSR] Use PXO for RIVA\n");
+		HWIO_RIVA_RESET_OUTM((0x2),(u32)(1) << (0x1)); 
+		HWIO_RIVA_XO_SRC_CLK_CTL_OUTM((0x00000004), (u32)(1) << (0x2)); 
+		HWIO_RIVA_RESET_OUTM((0x2),(u32)(0) << (0x1)); 
+	}
+#endif
 	
 
 	
@@ -337,17 +377,6 @@ static int pil_riva_reset(struct pil_desc *pil)
 
 static int pil_riva_shutdown(struct pil_desc *pil)
 {
-	struct riva_data *drv = dev_get_drvdata(pil->dev);
-	u32 reg;
-
-	
-	reg = readl_relaxed(drv->base + RIVA_PMU_OVRD_VAL);
-	reg &= ~(RIVA_PMU_OVRD_VAL_CCPU_RESET | RIVA_PMU_OVRD_VAL_CCPU_CLK);
-	writel_relaxed(reg, drv->base + RIVA_PMU_OVRD_VAL);
-	reg = readl_relaxed(drv->base + RIVA_PMU_OVRD_EN);
-	reg |= RIVA_PMU_OVRD_EN_CCPU_RESET | RIVA_PMU_OVRD_EN_CCPU_CLK;
-	writel_relaxed(reg, drv->base + RIVA_PMU_OVRD_EN);
-	mb();
 
 	
 	writel_relaxed(1, RIVA_RESET);

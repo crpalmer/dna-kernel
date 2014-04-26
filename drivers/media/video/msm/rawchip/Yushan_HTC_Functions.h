@@ -161,6 +161,7 @@ typedef struct {
   int update;
   rawchip_aec_params_t aec_params;
   rawchip_awb_params_t awb_params;
+  int init;
 } rawchip_update_aec_awb_params_t;
 
 typedef struct {
@@ -204,6 +205,7 @@ bool_t Yushan_Dxo_Dop_Af_Run(Yushan_AF_ROI_t	*sYushanAfRoi, uint32_t *pAfStatsGr
 int Yushan_get_AFSU(rawchip_af_stats* af_stats);
 
 int Yushan_Update_AEC_AWB_Params(rawchip_update_aec_awb_params_t *update_aec_awb_params);
+int Yushan_Set_AEC_AWB_Init_Setting(rawchip_update_aec_awb_params_t *update_aec_awb_params);
 int Yushan_Update_AF_Params(rawchip_update_af_params_t *update_af_params);
 int Yushan_Update_3A_Params(rawchip_newframe_ack_enable_t enable_newframe_ack);
 

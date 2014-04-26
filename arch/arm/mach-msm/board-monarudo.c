@@ -228,6 +228,8 @@ enum {
 int set_two_phase_freq(int cpufreq);
 #endif
 
+int set_input_event_min_freq_by_cpu(int cpu_nr, int cpufreq);
+
 #ifdef CONFIG_KERNEL_PMEM_EBI_REGION
 static unsigned pmem_kernel_ebi1_size = MSM_PMEM_KERNEL_EBI1_SIZE;
 static int __init pmem_kernel_ebi1_size_setup(char *p)
@@ -313,6 +315,8 @@ static struct platform_device monarudo_cpu_usage_stats_device = {
 	.name = "monarudo_cpu_usage_stats",
 	.id = -1,
 };
+
+extern int pm_monitor_enabled;  
 
 struct fmem_platform_data apq8064_fmem_pdata = {
 };
@@ -1580,6 +1584,96 @@ out:
 	return 0;
 }
 
+static int dlxwl_usb_product_id_match_array[] = {
+	0x0ff8, 0x0e44, 
+	0x0fa4, 0x0e9f, 
+	0x0fa5, 0x0ea0, 
+	0x0f29, 0x079e, 
+	0x0f2a, 0x079f, 
+	0x0f91, 0x0ebd, 
+	0x0f64, 0x07a0, 
+	0x0f63, 0x07a1, 
+	-1,
+};
+
+static int dlxwl_usb_product_id_rndis[] = {
+	0x073c, 
+	0x0742, 
+	0x073d, 
+	0x0743, 
+	0x0740, 
+	0x0746, 
+	0x0741, 
+	0x0747, 
+	0x0794, 
+	0x0798, 
+	0x0795, 
+	0x0799, 
+	0x0796, 
+	0x079a, 
+	0x0797, 
+	0x079b, 
+};
+
+
+static int dlxwl_usb_product_id_match(int product_id, int intrsharing)
+{
+	int *pid_array = dlxwl_usb_product_id_match_array;
+	int *rndis_array = dlxwl_usb_product_id_rndis;
+	int category = 0;
+
+	if (!pid_array)
+		return product_id;
+
+	
+	if (board_mfg_mode())
+		return product_id;
+
+	while (pid_array[0] >= 0) {
+		if (product_id == pid_array[0])
+			return pid_array[1];
+		pid_array += 2;
+	}
+
+	switch (product_id) {
+		case 0x0fb4: 
+			category = 0;
+			break;
+		case 0x0fb5: 
+			category = 1;
+			break;
+		case 0x0f8e: 
+			category = 2;
+			break;
+		case 0x0f8f: 
+			category = 3;
+			break;
+		case 0x0f5f: 
+			category = 4;
+			break;
+		case 0x0f60: 
+			category = 5;
+			break;
+		case 0x0f38: 
+			category = 6;
+			break;
+		case 0x0f3d: 
+			category = 7;
+			break;
+		default:
+			category = -1;
+			break;
+	}
+
+	if (category != -1) {
+		if (intrsharing)
+			return rndis_array[category * 2];
+		else
+			return rndis_array[category * 2 + 1];
+	}
+	return product_id;
+}
+
 static struct android_usb_platform_data android_usb_pdata = {
 	.vendor_id	= 0x0BB4,
 	.product_id	= 0x0dff,
@@ -1594,8 +1688,9 @@ static struct android_usb_platform_data android_usb_pdata = {
 	.usb_id_pin_gpio = USB1_HS_ID_GPIO_XA_XB,
 	.usb_rmnet_interface = "HSIC:HSIC",
 	.usb_diag_interface = "diag,diag_mdm",
-	.fserial_init_string = "HSIC:modem,tty,tty:autobot,tty:serial,tty:autobot",
+	.fserial_init_string = "HSIC:modem,tty,tty:autobot,tty:serial,tty:autobot,tty:acm",
 	.serial_number = "000000000000",
+	.match = dlxwl_usb_product_id_match,
 	.nluns		= 1,
 	.vzw_unmount_cdrom = 1,
 };
@@ -4822,10 +4917,20 @@ static void __init monarudo_common_init(void)
 
 	monarudo_init_keypad();
 
-	if (get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) {
+	if ((get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) ||
+		(!(get_kernel_flag() & KERNEL_FLAG_TEST_PWR_SUPPLY) && (!get_tamper_sf()))) {
 		htc_monitor_init();
 		htc_pm_monitor_init();
+		pm_monitor_enabled = 1;
 	}
+	
+	else
+		pm_monitor_enabled = 0;
+
+	
+	htc_top_monitor_init();
+	htc_kernel_top_monitor_init	();
+	
 
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
 	pm_qos_add_request(&pm_qos_req_dma, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
@@ -4875,6 +4980,10 @@ static void __init monarudo_cdp_init(void)
 	if(!cpu_is_krait_v1())
 		set_two_phase_freq(1134000);
 #endif
+	set_input_event_min_freq_by_cpu(1, 1134000);
+	set_input_event_min_freq_by_cpu(2, 1026000);
+	set_input_event_min_freq_by_cpu(3, 810000);
+	set_input_event_min_freq_by_cpu(4, 810000);
 
 	
 	

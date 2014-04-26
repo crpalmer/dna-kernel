@@ -123,7 +123,6 @@ struct msm_otg_platform_data {
 	int ldo_power_collapse;
 };
 
-
 #define TA_WAIT_VRISE	100	
 #define TA_WAIT_VFALL	500	
 
@@ -194,7 +193,7 @@ struct msm_otg {
 	struct delayed_work pmic_id_status_work;
 	enum usb_chg_state chg_state;
 	enum usb_chg_type chg_type;
-	u8 dcd_retries;
+	unsigned dcd_time;
 	struct wake_lock wlock, usb_otg_wlock;
 	struct wake_lock cable_detect_wlock;
 	struct notifier_block usbdev_nb;

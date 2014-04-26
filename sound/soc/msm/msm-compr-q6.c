@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -613,7 +613,7 @@ static int msm_compr_open(struct snd_pcm_substream *substream)
 		kfree(prtd);
 		return -ENOMEM;
 	}
-
+	prtd->audio_client->perf_mode = false;
 	pr_info("[%p] %s: session ID %d\n", prtd, __func__, prtd->audio_client->session);
 
 	prtd->session_id = prtd->audio_client->session;
@@ -886,7 +886,9 @@ static int msm_compr_hw_params(struct snd_pcm_substream *substream,
 			}
 			msm_pcm_routing_reg_phy_stream(
 				soc_prtd->dai_link->be_id,
-				prtd->session_id, substream->stream);
+				prtd->audio_client->perf_mode,
+				prtd->session_id,
+				substream->stream);
 
 			break;
 		}
@@ -997,11 +999,10 @@ static int msm_compr_ioctl(struct snd_pcm_substream *substream,
 		
 
 		memset(&tstamp, 0x0, sizeof(struct snd_compr_tstamp));
-		timestamp = q6asm_get_session_time(prtd->audio_client);
-		if (timestamp < 0) {
-			pr_err("[%p] %s: Get Session Time return value =%lld\n",
-				prtd, __func__, timestamp);
-			return -EAGAIN;
+		rc = q6asm_get_session_time(prtd->audio_client, &timestamp);
+		if (rc < 0) {
+			pr_err("[%p] %s: fail to get session tstamp\n", prtd, __func__);
+			return rc;
 		}
 		temp = (timestamp * 2 * runtime->channels);
 		temp = temp * (runtime->rate/1000);
@@ -1105,7 +1106,7 @@ static int msm_compr_ioctl(struct snd_pcm_substream *substream,
 				}
 				rc = wait_event_timeout(the_locks.flush_wait,
 					prtd->cmd_ack, 5 * HZ);
-				if (rc < 0)
+				if (!rc)
 					pr_err("[%p] Flush cmd timeout\n", prtd);
 				atomic_set(&prtd->pending_buffer, 1);
 			

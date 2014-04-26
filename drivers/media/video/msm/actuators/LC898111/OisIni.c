@@ -464,12 +464,8 @@ void	IniSrv( void )
   #define	YSTEPDN			0xBD4CCCCD		
 #endif
 
-#define		LMT1MODE
-
 void	IniGyr( void )
 {
-	UnFltVal		UnGyr12Mda, UnGyr12Hia, UnGyr12Mdb, UnGyr12Hib ;
-	UnFltVal		UnGyr34Mda, UnGyr34Hia, UnGyr34Mdb, UnGyr34Hib ;
 	
 	
 	ClrGyr( 0x00 , CLR_GYR_ALL_RAM );
@@ -498,35 +494,27 @@ void	IniGyr( void )
 										
 
 	
-	RegWriteA( GDWNSMP1 , 0x01 );		
+	RegWriteA( GDWNSMP1 , 0x00 );		
 	RegWriteA( GDWNSMP2 , 0x00 );		
 	RegWriteA( GDWNSMP3 , 0x00 );		
 	
 	
-	RegWriteA( GEXPLMTH , 0x8A );		
+	RegWriteA( GEXPLMTH , 0x80 );		
 	RegWriteA( GEXPLMTL , 0x5A );		
 	
 	
-#ifdef	LMT1MODE
-	
 	RamWrite32A( gxlmt1L, 0x00000000 ) ;	
-	RamWrite32A( gxlmt1H, 0x3DCCCCCD ) ;	
+	RamWrite32A( gxlmt1H, GYRO_LMT1H ) ;	
 	RamWrite32A( gylmt1L, 0x00000000 ) ;	
-	RamWrite32A( gylmt1H, 0x3DCCCCCD ) ;	
-#else
-	RamWrite32A( gxlmt1L, 0x00000000 ) ;	
-	RamWrite32A( gxlmt1H, 0x3F800000 ) ;	
-	RamWrite32A( gylmt1L, 0x00000000 ) ;	
-	RamWrite32A( gylmt1H, 0x3F800000 ) ;	
-#endif
+	RamWrite32A( gylmt1H, GYRO_LMT1H ) ;	
 	RamWrite32A( gxlmt2L, 0x00000000 ) ;	
 	RamWrite32A( gxlmt2H, 0x3F800000 ) ;	
 	RamWrite32A( gylmt2L, 0x00000000 ) ;	
 	RamWrite32A( gylmt2H, 0x3F800000 ) ;	
-	RamWrite32A( gxlmt4SL, 0x3FD1EB85 ) ;	
-	RamWrite32A( gxlmt4SH, 0x3FD1EB85 ) ;	
-	RamWrite32A( gylmt4SL, 0x3FD1EB85 ) ;	
-	RamWrite32A( gylmt4SH, 0x3FD1EB85 ) ;	
+	RamWrite32A( gxlmt4SL, GYRO_LMT4L ) ;	
+	RamWrite32A( gxlmt4SH, GYRO_LMT4H ) ;	
+	RamWrite32A( gylmt4SL, GYRO_LMT4L ) ;	
+	RamWrite32A( gylmt4SH, GYRO_LMT4H ) ;	
 
 	
 	RamWrite32A( gxlmt3H0, 0x3F000000 ) ;	
@@ -579,38 +567,29 @@ void	IniGyr( void )
 	RegWriteA( GPANADDA, 		0x14 );		
 	RegWriteA( GPANADDB, 		0x0E );		
 	
-	UnGyr12Mda.SfFltVal	= GYRA12_MID ;
-	UnGyr12Hia.SfFltVal	= GYRA12_HGH ;
-	UnGyr12Mdb.SfFltVal	= GYRB12_MID ;
-	UnGyr12Hib.SfFltVal	= GYRB12_HGH ;
-	UnGyr34Mda.SfFltVal	= GYRA34_MID ;
-	UnGyr34Hia.SfFltVal	= GYRA34_HGH ;
-	UnGyr34Mdb.SfFltVal	= GYRB34_MID ;
-	UnGyr34Hib.SfFltVal	= GYRB34_HGH ;
-	
 	 
 	RamWrite32A( SttxHis, 	0x00000000 );			
 	RamWrite32A( SttyHis, 	0x00000000 );			
 	RamWrite32A( SttxaL, 	0x00000000 );			
 	RamWrite32A( SttxbL, 	0x00000000 );			
-	RamWrite32A( Sttx12aM, 	UnGyr12Mda.UlLngVal );	
-	RamWrite32A( Sttx12aH, 	UnGyr12Hia.UlLngVal );	
-	RamWrite32A( Sttx12bM, 	UnGyr12Mdb.UlLngVal );	
-	RamWrite32A( Sttx12bH, 	UnGyr12Hib.UlLngVal );	
-	RamWrite32A( Sttx34aM, 	UnGyr34Mda.UlLngVal );	
-	RamWrite32A( Sttx34aH, 	UnGyr34Hia.UlLngVal );	
-	RamWrite32A( Sttx34bM, 	UnGyr34Mdb.UlLngVal );	
-	RamWrite32A( Sttx34bH, 	UnGyr34Hib.UlLngVal );	
+	RamWrite32A( Sttx12aM, 	GYRA12_MID );	
+	RamWrite32A( Sttx12aH, 	GYRA12_HGH );	
+	RamWrite32A( Sttx12bM, 	GYRB12_MID );	
+	RamWrite32A( Sttx12bH, 	GYRB12_HGH );	
+	RamWrite32A( Sttx34aM, 	GYRA34_MID );	
+	RamWrite32A( Sttx34aH, 	GYRA34_HGH );	
+	RamWrite32A( Sttx34bM, 	GYRB34_MID );	
+	RamWrite32A( Sttx34bH, 	GYRB34_HGH );	
 	RamWrite32A( SttyaL, 	0x00000000 );			
 	RamWrite32A( SttybL, 	0x00000000 );			
-	RamWrite32A( Stty12aM, 	UnGyr12Mda.UlLngVal );	
-	RamWrite32A( Stty12aH, 	UnGyr12Hia.UlLngVal );	
-	RamWrite32A( Stty12bM, 	UnGyr12Mdb.UlLngVal );	
-	RamWrite32A( Stty12bH, 	UnGyr12Hib.UlLngVal );	
-	RamWrite32A( Stty34aM, 	UnGyr34Mda.UlLngVal );	
-	RamWrite32A( Stty34aH, 	UnGyr34Hia.UlLngVal );	
-	RamWrite32A( Stty34bM, 	UnGyr34Mdb.UlLngVal );	
-	RamWrite32A( Stty34bH, 	UnGyr34Hib.UlLngVal );	
+	RamWrite32A( Stty12aM, 	GYRA12_MID );	
+	RamWrite32A( Stty12aH, 	GYRA12_HGH );	
+	RamWrite32A( Stty12bM, 	GYRB12_MID );	
+	RamWrite32A( Stty12bH, 	GYRB12_HGH );	
+	RamWrite32A( Stty34aM, 	GYRA34_MID );	
+	RamWrite32A( Stty34aH, 	GYRA34_HGH );	
+	RamWrite32A( Stty34bM, 	GYRB34_MID );	
+	RamWrite32A( Stty34bH, 	GYRB34_HGH );	
 	
 	
 	RegWriteA( GPANLEVABS, 		0x00 );		
@@ -637,17 +616,17 @@ void	IniGyr( void )
 	RegWriteA( GPANSTT31JUG0, 	0x00 );		
 	RegWriteA( GPANSTT31JUG1, 	0x00 );		
 	
-	RegWriteA( GPANSTT41JUG0, 	0x77 );		
-	RegWriteA( GPANSTT41JUG1, 	0x07 );		
+	RegWriteA( GPANSTT41JUG0, 	0x13 );		
+	RegWriteA( GPANSTT41JUG1, 	0x00 );		
 	
 	RegWriteA( GPANSTT12JUG0, 	0x00 );		
-	RegWriteA( GPANSTT12JUG1, 	0x00 );		
+	RegWriteA( GPANSTT12JUG1, 	0x07 );		
 	
 	RegWriteA( GPANSTT13JUG0, 	0x00 );		
-	RegWriteA( GPANSTT13JUG1, 	0x07 );		
+	RegWriteA( GPANSTT13JUG1, 	0x00 );		
 	
-	RegWriteA( GPANSTT23JUG0, 	0x00 );		
-	RegWriteA( GPANSTT23JUG1, 	0x00 );		
+	RegWriteA( GPANSTT23JUG0, 	0x11 );		
+	RegWriteA( GPANSTT23JUG1, 	0x01 );		
 	
 	RegWriteA( GPANSTT43JUG0, 	0x00 );		
 	RegWriteA( GPANSTT43JUG1, 	0x00 );		
@@ -665,26 +644,29 @@ void	IniGyr( void )
 	RegWriteA( GPANSTT1LEVTMR, 	0x00 );		
 	RegWriteA( GPANSTT2LEVTMR, 	0x00 );		
 	RegWriteA( GPANSTT3LEVTMR, 	0x00 );		
-	RegWriteA( GPANSTT4LEVTMR, 	0x00 );		
+	RegWriteA( GPANSTT4LEVTMR, 	0x03 );		
 	
 	
-	RegWriteA( GPANTRSON0, 		0x07 );		
 #ifdef	LMT1MODE
+	RegWriteA( GPANTRSON0, 		0x07 );		
 	RegWriteA( GPANTRSON1, 		0x1E );		
 #else
+	RegWriteA( GPANTRSON0, 		0x01 );		
 	RegWriteA( GPANTRSON1, 		0x1C );		
 #endif
 	
 	
 	RegWriteA( GPANSTTSETGYRO, 	0x00 );		
+#ifdef	LMT1MODE
 	RegWriteA( GPANSTTSETGAIN, 	0x00 );		
 	RegWriteA( GPANSTTSETISTP, 	0x00 );		
-#ifdef	LMT1MODE
-	RegWriteA( GPANSTTSETI1FTR,	0x10 );		
+	RegWriteA( GPANSTTSETI1FTR,	0x58 );		
 	RegWriteA( GPANSTTSETI2FTR,	0x00 );		
 #else
-	RegWriteA( GPANSTTSETI1FTR,	0x10 );		
-	RegWriteA( GPANSTTSETI2FTR,	0x10 );		
+	RegWriteA( GPANSTTSETGAIN, 	0x10 );		
+	RegWriteA( GPANSTTSETISTP, 	0x00 );		
+	RegWriteA( GPANSTTSETI1FTR,	0x90 );		
+	RegWriteA( GPANSTTSETI2FTR,	0x90 );		
 #endif
 	RegWriteA( GPANSTTSETL2FTR, 0x00 );		
 	RegWriteA( GPANSTTSETL3FTR,	0x00 );		
@@ -702,7 +684,7 @@ void	IniGyr( void )
 	
 	RegWriteA( GPANSTT2TMR0,	0x01 );		
 	RegWriteA( GPANSTT2TMR1,	0x00 );		
-	RegWriteA( GPANSTT4TMR0,	0x01 );		
+	RegWriteA( GPANSTT4TMR0,	0x02 );		
 	RegWriteA( GPANSTT4TMR1,	0x00 );		
 	
 	RegWriteA( GPANSTTXXXTH,	0x00 );		
@@ -749,7 +731,8 @@ void	IniGyr( void )
 void	IniHfl( void )
 {
 	unsigned short	UsAryId ;
-
+	
+	
 	
 	UsAryId	= 0 ;
 	while( CsHalReg[ UsAryId ].UsRegAdd != 0xFFFF )
@@ -773,7 +756,7 @@ void	IniHfl( void )
 void	IniGfl( void )
 {
  	unsigned short	UsAryId ;
-
+	
 	
 	UsAryId	= 0 ;
 	while( CsGyrFil[ UsAryId ].UsRamAdd != 0xFFFF )
@@ -955,6 +938,9 @@ void	IniAdj( void )
 	RegWriteA( LYEQEN 	, 0x45 );			
 	
 	SetPanTiltMode( OFF ) ;					
+#ifdef H1COEF_CHANGER
+	SetH1cMod( ACTMODE ) ;					
+#endif
 	
 	DrvSw( ON ) ;							
 }
@@ -1127,20 +1113,49 @@ void	AutoGainControlSw( unsigned char UcModeSw )
 void	ClrGyr( unsigned char UcClrFil , unsigned char UcClrMod )
 {
 	unsigned char	UcRamClr;
+	unsigned char	UcClrBit;
 
-	
-	RegWriteA( GRAMDLYMOD	, UcClrFil ) ;	
-											
-											
+	while(1){
+		if( UcClrMod == CLR_GYR_DLY_RAM )
+		{
+			if( UcClrFil & 0x10 ){
+				UcClrBit = 0x10 ;
+			}else if( UcClrFil & 0x08 ){
+				UcClrBit = 0x08 ;
+			}else if( UcClrFil & 0x04 ){
+				UcClrBit = 0x04 ;
+			}else if( UcClrFil & 0x02 ){
+				UcClrBit = 0x02 ;
+			}else if( UcClrFil & 0x01 ){
+				UcClrBit = 0x01 ;
+			}else{
+				UcClrBit = 0x00 ;
+			}
+				
+			UcClrFil &= ~UcClrBit ;
 
-	
-	RegWriteA( GRAMINITON	, UcClrMod ) ;	
-	
-	
-	do{
-		RegReadA( GRAMINITON, &UcRamClr );
-		UcRamClr &= 0x03;
-	}while( UcRamClr != 0x00 );
+		}else{
+			UcClrBit = 0x00 ;
+		}
+		
+		
+		RegWriteA( GRAMDLYMOD	, UcClrBit ) ;	
+												
+												
+
+		
+		RegWriteA( GRAMINITON	, UcClrMod ) ;	
+		
+		
+		do{
+			RegReadA( GRAMINITON, &UcRamClr );
+			UcRamClr &= 0x03;
+		}while( UcRamClr != 0x00 );
+
+		if(( UcClrMod != CLR_GYR_DLY_RAM ) || ( UcClrFil == 0x00 )){
+			break ;
+		}
+	}
 }
 
 

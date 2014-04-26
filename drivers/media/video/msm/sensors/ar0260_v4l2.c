@@ -1476,15 +1476,17 @@ int32_t ar0260_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 
 	if (!sdata->use_rawchip && (sdata->htc_image != HTC_CAMERA_IMAGE_YUSHANII_BOARD)) {
-		rc = msm_camio_clk_enable(CAMIO_CAM_MCLK_CLK);
+		rc = msm_camio_clk_enable(sdata,CAMIO_CAM_MCLK_CLK);
 		if (rc < 0) {
 			return rc;
 		}
 	}
 
 #ifdef CONFIG_RAWCHIPII
-	Ilp0100_enableIlp0100SensorClock(SENSOR_1);
-	mdelay(35);	
+    if (sdata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
+    	Ilp0100_enableIlp0100SensorClock(SENSOR_1);
+        mdelay(35);	
+	}
 #endif
 
 #if 0	
@@ -1553,7 +1555,7 @@ int32_t ar0260_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 #endif
 
 	if (!sdata->use_rawchip && (sdata->htc_image != HTC_CAMERA_IMAGE_YUSHANII_BOARD)) {
-		msm_camio_clk_disable(CAMIO_CAM_MCLK_CLK);
+		msm_camio_clk_disable(sdata,CAMIO_CAM_MCLK_CLK);
 	}
 	rc = sdata->camera_power_off();
 	if (rc < 0) {

@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Guest Communications
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -36,8 +36,8 @@
 #define PF_MKSCK  PF_DECnet
 
 struct sockaddr_mk {
-   sa_family_t   mk_family;
-   Mksck_Address mk_addr;
+	sa_family_t   mk_family;
+	Mksck_Address mk_addr;
 };
 
 #endif

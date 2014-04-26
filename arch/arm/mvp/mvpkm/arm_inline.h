@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -39,53 +39,53 @@
 static inline _Bool
 ARM_InterruptsEnabled(void)
 {
-   return !(ARM_ReadCPSR() & ARM_PSR_I);
+	return !(ARM_ReadCPSR() & ARM_PSR_I);
 }
 
 static inline MA
 ARM_ReadTTBase0(void)
 {
-   MA ttbase;
+	MA ttbase;
 
-   ARM_MRC_CP15(TTBASE0_POINTER, ttbase);
+	ARM_MRC_CP15(TTBASE0_POINTER, ttbase);
 
-   return ttbase & ARM_CP15_TTBASE_MASK;
+	return ttbase & ARM_CP15_TTBASE_MASK;
 }
 
 static inline uint32
 ARM_ReadVFPSystemRegister(uint8 specReg)
 {
-   uint32 value = 0;
+	uint32 value = 0;
 
 
-   switch (specReg) {
-      case ARM_VFP_SYSTEM_REG_FPSID:
-         ARM_MRC_CP10(VFP_FPSID, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_MVFR0:
-         ARM_MRC_CP10(VFP_MVFR0, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_MVFR1:
-         ARM_MRC_CP10(VFP_MVFR1, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_FPEXC:
-         ARM_MRC_CP10(VFP_FPEXC, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_FPSCR:
-         ARM_MRC_CP10(VFP_FPSCR, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_FPINST:
-         ARM_MRC_CP10(VFP_FPINST, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_FPINST2:
-         ARM_MRC_CP10(VFP_FPINST2, value);
-         break;
-      default:
-         NOT_IMPLEMENTED_JIRA(1849);
-         break;
-   }
+	switch (specReg) {
+	case ARM_VFP_SYSTEM_REG_FPSID:
+		ARM_MRC_CP10(VFP_FPSID, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_MVFR0:
+		ARM_MRC_CP10(VFP_MVFR0, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_MVFR1:
+		ARM_MRC_CP10(VFP_MVFR1, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_FPEXC:
+		ARM_MRC_CP10(VFP_FPEXC, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_FPSCR:
+		ARM_MRC_CP10(VFP_FPSCR, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_FPINST:
+		ARM_MRC_CP10(VFP_FPINST, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_FPINST2:
+		ARM_MRC_CP10(VFP_FPINST2, value);
+		break;
+	default:
+		NOT_IMPLEMENTED_JIRA(1849);
+		break;
+	}
 
-   return value;
+	return value;
 }
 
 /**
@@ -95,26 +95,27 @@ ARM_ReadVFPSystemRegister(uint8 specReg)
  * @param value desired value to be written to the System Register
  */
 static inline void
-ARM_WriteVFPSystemRegister(uint8 specReg, uint32 value)
+ARM_WriteVFPSystemRegister(uint8 specReg,
+			   uint32 value)
 {
 
-   switch (specReg) {
-      case ARM_VFP_SYSTEM_REG_FPEXC:
-         ARM_MCR_CP10(VFP_FPEXC, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_FPSCR:
-         ARM_MCR_CP10(VFP_FPSCR, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_FPINST:
-         ARM_MCR_CP10(VFP_FPINST, value);
-         break;
-      case ARM_VFP_SYSTEM_REG_FPINST2:
-         ARM_MCR_CP10(VFP_FPINST2, value);
-         break;
-      default:
-         NOT_IMPLEMENTED_JIRA(1849);
-         break;
-   }
+	switch (specReg) {
+	case ARM_VFP_SYSTEM_REG_FPEXC:
+		ARM_MCR_CP10(VFP_FPEXC, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_FPSCR:
+		ARM_MCR_CP10(VFP_FPSCR, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_FPINST:
+		ARM_MCR_CP10(VFP_FPINST, value);
+		break;
+	case ARM_VFP_SYSTEM_REG_FPINST2:
+		ARM_MCR_CP10(VFP_FPINST2, value);
+		break;
+	default:
+		NOT_IMPLEMENTED_JIRA(1849);
+		break;
+	}
 }
 
 #endif 

@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -35,8 +35,8 @@
 #define MKSCK_TGID2VMID(tgid)  (((((tgid)<<1)^((tgid)>>15))&0xfffe)|1)
 #define MKSCKPAGE_TOTAL        8 
 #define MKSCKPAGE_SIZE         (PAGE_SIZE * MKSCKPAGE_TOTAL)
-#define MKSCK_SOCKETS_PER_PAGE ((MKSCKPAGE_SIZE-offsetof(MksckPage, sockets[0])) / \
-                                sizeof(Mksck))
+#define MKSCK_SOCKETS_PER_PAGE \
+	((MKSCKPAGE_SIZE-offsetof(MksckPage, sockets[0])) / sizeof(Mksck))
 
 #define MKSCK_ALIGNMENT        8 
 #define MKSCK_ALIGN(x)         MVP_ALIGN(x, MKSCK_ALIGNMENT)
@@ -48,8 +48,8 @@
 
 #define MKSCK_FINDSENDROOM_FULL 0xFFFFFFFFU
 
-#define MKSCK_SHUT_WR          (1 << 0)   
-#define MKSCK_SHUT_RD          (1 << 1)   
+#define MKSCK_SHUT_WR          (1 << 0)  
+#define MKSCK_SHUT_RD          (1 << 1)  
 
 typedef struct Mksck Mksck;
 typedef struct Mksck_Datagram Mksck_Datagram;
@@ -62,69 +62,70 @@ typedef struct MksckPage MksckPage;
 #include "arm_inline.h"
 
 struct Mksck_Datagram {
-   Mksck_Address fromAddr;   
-   uint32        len   : 16; 
-   uint32        pad   : 3;  
-                             
-   uint32        pages : 13; 
-   uint8         data[1]     
-         __attribute__((aligned(MKSCK_ALIGNMENT)));
+	Mksck_Address fromAddr;   
+	uint32        len:16;     
+	uint32        pad:3;      
+				  
+	uint32        pages:13;   
+	uint8         data[1]     
+		__attribute__((aligned(MKSCK_ALIGNMENT)));
 };
 
 struct Mksck {
-   AtmUInt32 refCount;         
-                               
-                               
-   Mksck_Address addr;         
-                               
-                               
-   Mksck_Address peerAddr;     
-                               
-   struct Mksck *peer;         
-                               
-                               
-                               
-   uint32 index;               
+	AtmUInt32 refCount;	
+				
+				
+	Mksck_Address addr;	
+				
+				
+	Mksck_Address peerAddr;	
+				
+	struct Mksck *peer;	
+				
+				
+				
+	uint32 index;		
 
-                               
-                               
-                               
-                               
+				
+				
+				
+				
 
-   uint32 write;               
-                               
-   uint32 read;                
-                               
-   uint32 wrap;                
-                               
-   uint32 shutDown;            
-   uint32 foundEmpty;          
-   uint32 foundFull;           
-   Mutex mutex;                
-   MVA rcvCBEntryMVA;          
-   MVA rcvCBParamMVA;          
-   uint8 buff[MKSCK_BUFSIZE]   
-         __attribute__((aligned(MKSCK_ALIGNMENT)));
+	uint32 write;		
+				
+	uint32 read;		
+				
+	uint32 wrap;		
+				
+	uint32 shutDown;	
+	uint32 foundEmpty;	
+	uint32 foundFull;	
+	Mutex mutex;		
+	MVA rcvCBEntryMVA;	
+	MVA rcvCBParamMVA;	
+	uint8 buff[MKSCK_BUFSIZE] 
+		__attribute__((aligned(MKSCK_ALIGNMENT)));
 };
 
 
 struct MksckPage {
-   _Bool isGuest;         
-   uint32 tgid;           
-                          
-   volatile HKVA vmHKVA;  
-   AtmUInt32 refCount;    
-                          
-                          
-                          
-   uint32 wakeHostRecv;   
-                          
-   AtmUInt32 wakeVMMRecv; 
-   Mutex mutex;           
-   Mksck_VmId vmId;       
-   Mksck_Port portStore;  
-   uint32 numAllocSocks;  
-   Mksck sockets[1];      
+	_Bool isGuest;		
+	uint32 tgid;		
+				
+	volatile HKVA vmHKVA;	
+	AtmUInt32 refCount;	
+				
+				
+				
+				
+	uint32 wakeHostRecv;	
+				
+	AtmUInt32 wakeVMMRecv;	
+	Mutex mutex;		
+	Mksck_VmId vmId;	
+	Mksck_Port portStore;	
+	uint32 numAllocSocks;	
+	Mksck sockets[1];	
 };
 
 MksckPage *MksckPage_GetFromVmId(Mksck_VmId vmId);
@@ -144,7 +145,7 @@ void       Mksck_DisconnectPeer(Mksck *mksck);
 static inline MksckPage *
 Mksck_ToSharedPage(Mksck *mksck)
 {
-   return (MksckPage*)((char*)(mksck - mksck->index)
-                       - offsetof(MksckPage, sockets));
+	return (MksckPage *)((char *)(mksck - mksck->index) -
+			     offsetof(MksckPage, sockets));
 }
 #endif

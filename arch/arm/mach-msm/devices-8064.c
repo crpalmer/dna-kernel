@@ -452,6 +452,48 @@ struct platform_device apq8064_device_qup_i2c_gsbi4 = {
 	.resource	= resources_qup_i2c_gsbi4,
 };
 
+static struct resource resources_qup_spi_gsbi1[] = {
+	{
+		.name   = "spi_base",
+		.start  = MSM_GSBI1_QUP_PHYS,
+		.end    = MSM_GSBI1_QUP_PHYS + SZ_4K - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.name   = "gsbi_base",
+		.start  = MSM_GSBI1_PHYS,
+		.end    = MSM_GSBI1_PHYS + 4 - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.name   = "spi_irq_in",
+		.start  = APQ8064_GSBI1_QUP_IRQ,
+		.end    = APQ8064_GSBI1_QUP_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
+#ifdef CONFIG_FPR_SPI_DMA_GSBI1
+    {
+        .name = "spidm_channels",
+        .start = 2,
+        .end   = 3,
+        .flags = IORESOURCE_DMA,
+    },
+    {
+        .name = "spidm_crci",
+        .start = 12,
+        .end = 13,
+        .flags = IORESOURCE_DMA,
+    },
+#endif
+};
+
+struct platform_device apq8064_device_qup_spi_gsbi1 = {
+	.name		= "spi_qsd",
+	.id		= 1,
+	.num_resources	= ARRAY_SIZE(resources_qup_spi_gsbi1),
+	.resource	= resources_qup_spi_gsbi1,
+};
+
 static struct resource resources_qup_spi_gsbi5[] = {
 	{
 		.name   = "spi_base",
@@ -471,6 +513,20 @@ static struct resource resources_qup_spi_gsbi5[] = {
 		.end    = GSBI5_QUP_IRQ,
 		.flags  = IORESOURCE_IRQ,
 	},
+#ifdef CONFIG_FPR_SPI_DMA_GSBI5
+    {
+        .name = "spidm_channels",
+        .start = 6,
+        .end   = 7,
+        .flags = IORESOURCE_DMA,
+    },
+    {
+        .name = "spidm_crci",
+        .start = 9,
+        .end = 10,
+        .flags = IORESOURCE_DMA,
+    },
+#endif
 };
 
 struct platform_device apq8064_device_qup_spi_gsbi5 = {
@@ -717,6 +773,11 @@ struct platform_device apq_multi_ch_pcm = {
 	.id     = -1,
 };
 
+struct platform_device apq_lowlatency_pcm = {
+   .name   = "msm-lowlatency-pcm-dsp",
+   .id     = -1,
+};
+
 struct platform_device apq_pcm_hostless = {
 	.name	= "msm-pcm-hostless",
 	.id	= -1,
@@ -938,12 +999,6 @@ static struct resource resources_hsic_host[] = {
 		.start	= 47,
 		.end	= 47,
 		.name	= "wakeup",
-		.flags	= IORESOURCE_IO,
-	},
-	{
-		.start	= MDM2AP_ERRFATAL,
-		.end	= MDM2AP_ERRFATAL,
-		.name	= "MDM2AP_ERRFATAL",
 		.flags	= IORESOURCE_IO,
 	},
 	{

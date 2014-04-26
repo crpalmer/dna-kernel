@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -39,30 +39,30 @@
 #define MONITOR_VA_LEN         0x03000000
 
 #define MONITOR_VA_WORLDSWITCH \
-   ((MVA)(MONITOR_VA_START + 3 * PAGE_SIZE))
+	((MVA)(MONITOR_VA_START + 3 * PAGE_SIZE))
 
 #define MONITOR_VA_WORLDSWITCH_CODE \
-   (MONITOR_VA_WORLDSWITCH + PAGE_SIZE)
+	(MONITOR_VA_WORLDSWITCH + PAGE_SIZE)
 
 #define MONITOR_VA_UART \
-   (MONITOR_VA_WORLDSWITCH_CODE + PAGE_SIZE)
+	(MONITOR_VA_WORLDSWITCH_CODE + PAGE_SIZE)
 
 typedef enum {
-   MEMREGION_MAINMEM = 1,
-   MEMREGION_MODULE = 2,
-   MEMREGION_WSP = 3,
-   MEMREGION_MONITOR_MISC = 4,
-   MEMREGION_DEFAULT = 0
+	MEMREGION_MAINMEM = 1,
+	MEMREGION_MODULE = 2,
+	MEMREGION_WSP = 3,
+	MEMREGION_MONITOR_MISC = 4,
+	MEMREGION_DEFAULT = 0
 } PACKED PhysMem_RegionType;
 
-typedef struct MonVA { 
-   MA  l2BaseMA;       
-   MVA excVec;         
+typedef struct MonVA {		
+	MA  l2BaseMA;		
+	MVA excVec;		
 } MonVA;
 
 typedef enum {
-   MVA_MEMORY = 0,
-   MVA_DEVICE = 1
+	MVA_MEMORY = 0,
+	MVA_DEVICE = 1
 } MVAType;
 
 #define MONITOR_TYPE_LPV        0

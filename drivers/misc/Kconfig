@@ -724,6 +724,11 @@ config RESET_BY_CABLE_IN
         boolean "DEVICE RESET BY CABLE IN"
         default n
 
+config USB_OTG_HOST_CHG
+		boolean "Host mode supports charging"
+		depends on USB_OTG_HOST
+		default n
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
@@ -733,4 +738,5 @@ source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/mpu3050/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
+source "drivers/misc/fpr/Kconfig"
 endmenu

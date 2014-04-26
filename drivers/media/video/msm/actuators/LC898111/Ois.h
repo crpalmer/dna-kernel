@@ -1,6 +1,4 @@
-#define	FW_VER			0x0003
-
-
+#define	FW_VER			0x0007
 #define StAdjPar StAdjPar_lc898111
 #define UsStpSiz UsStpSiz_lc898111
 
@@ -11,7 +9,6 @@
 #define RamRead32A RamRead32A_lc898111
 #define RamWrite32A RamWrite32A_lc898111
 #define WitTim WitTim_lc898111
-
 
 #ifdef	OISINI
 	#define	OISINI__
@@ -49,8 +46,11 @@
 
 
 #define		TESTPNTL				
-
 #define		NEUTRAL_CENTER
+#define		H1COEF_CHANGER			
+#define		OIS05DEG				
+
+
 
 #define		EXE_END		0x02		
 #define		EXE_HXADJ	0x06		
@@ -127,17 +127,44 @@ OISINI__	unsigned char	UcStbySt ;
 #define		LXGAIN_LOP		0x3000
 #define		LYGAIN_LOP		0x3000
 
-#define		GYRA12_HGH		1.64F
-#define		GYRA12_MID		1.63F
-#define		GYRA34_HGH		1.60F
-#define		GYRA34_MID		1.0F
-#define		GYRB12_HGH		0.1F
-#define		GYRB12_MID		0.02F
-#define		GYRB34_HGH		0.02F
-#define		GYRB34_MID		0.0005F
+#ifdef OIS05DEG
+ #define		GYRO_LMT4L		0x3F99999A		
+ #define		GYRO_LMT4H		0x3F99999A		
 
-#define		H1Z3_SETVAL		0.0004F
+ #define		GYRA12_HGH		0x3F8CCCCD		
+ #define		GYRA12_MID		0x3F000000		
+ #define		GYRA34_HGH		0x3F8CCCCD		
+#endif
 
+#ifdef OIS06DEG
+ #define		GYRO_LMT4L		0x3FB33333		
+ #define		GYRO_LMT4H		0x3FB33333		
+
+ #define		GYRA12_HGH		0x3FA66666		
+ #define		GYRA12_MID		0x3F000000		
+ #define		GYRA34_HGH		0x3FA66666		
+#endif
+
+#ifdef OIS07DEG
+ #define		GYRO_LMT4L		0x3FD1EB85		
+ #define		GYRO_LMT4H		0x3FD1EB85		
+
+ #define		GYRA12_HGH		0x3FC51EB8		
+ #define		GYRA12_MID		0x3F000000		
+ #define		GYRA34_HGH		0x3FC51EB8		
+#endif
+
+ #define		GYRA34_MID		0x3DCCCCCD		
+ #define		GYRB12_HGH		0x3DF5C28F		
+ #define		GYRB12_MID		0x3CA3D70A		
+ #define		GYRB34_HGH		0x3CA3D70A		
+ #define		GYRB34_MID		0x3A03126F		
+
+#ifdef	LMT1MODE
+ #define		GYRO_LMT1H		0x3DCCCCCD		
+#else
+ #define		GYRO_LMT1H		0x3F800000		
+#endif 
 
 #ifdef I2CE2PROM									
  #define	E2POFST				0x0000				
@@ -303,6 +330,9 @@ OISCMD__	unsigned char	UcOscAdjFlg ;
   #define	MEASSTR		0x01
   #define	MEASCNT		0x08
   #define	MEASFIX		0x80
+#ifdef H1COEF_CHANGER
+ OISCMD__	unsigned char	UcH1LvlMod ;		
+#endif
 
 OISINI__	unsigned short	UsCntXof ;				
 OISINI__	unsigned short	UsCntYof ;				
@@ -338,7 +368,12 @@ OISINI__ void	AutoGainControlSw( unsigned char ) ;
 OISINI__ void	DrvSw( unsigned char UcDrvSw ) ;						
 
 OISCMD__ void			SrvCon( unsigned char, unsigned char ) ;					
-OISCMD__ unsigned short	TneRun( void ) ;											
+
+
+#ifdef		MODULE_CALIBRATION		
+ OISCMD__ unsigned short	TneRun( void ) ;											
+#endif
+
 OISCMD__ unsigned char	RtnCen( unsigned char ) ;									
 OISCMD__ void			OisEna( void ) ;											
 OISCMD__ void			TimPro( void ) ;											
@@ -348,10 +383,12 @@ OISCMD__ void			SetSinWavePara( unsigned char , unsigned char ) ;
 	#define		XHALWAVE	1
 	#define		YHALWAVE	2
 	#define		CIRCWAVE	255
-OISCMD__ unsigned char	TneGvc( void ) ;											
-#ifdef	NEUTRAL_CENTER											
-OISCMD__ unsigned char	TneHvc( void ) ;											
-#endif	
+#ifdef		MODULE_CALIBRATION		
+ OISCMD__ unsigned char	TneGvc( void ) ;											
+ #ifdef	NEUTRAL_CENTER											
+  OISCMD__ unsigned char	TneHvc( void ) ;											
+ #endif	
+#endif
 
 #ifdef USE_EXE2PROM
 OISCMD__ void			E2pRed( unsigned short, unsigned char, unsigned char * ) ;	
@@ -359,23 +396,33 @@ OISCMD__ void			E2pWrt( unsigned short, unsigned char, unsigned char * ) ;
 #endif
 OISCMD__ void			SetZsp( unsigned char ) ;									
 OISCMD__ void			OptCen( unsigned char, unsigned short, unsigned short ) ;	
-OISCMD__ unsigned char	LopGan( unsigned char ) ;									
+
+#ifdef		MODULE_CALIBRATION		
+ OISCMD__ unsigned char	LopGan( unsigned char ) ;									
+#endif
+
 #ifdef STANDBY_MODE
  OISCMD__ void			SetStandby( unsigned char ) ;								
 #endif
-OISCMD__ unsigned short	OscAdj( void ) ;											
 
-#ifdef	HALLADJ_HW
- OISCMD__ unsigned char	LoopGainAdj(   unsigned char );
- OISCMD__ unsigned char	BiasOffsetAdj( unsigned char , unsigned char );
+#ifdef		MODULE_CALIBRATION		
+ OISCMD__ unsigned short	OscAdj( void ) ;											
+
+ #ifdef	HALLADJ_HW
+  OISCMD__ unsigned char	LoopGainAdj(   unsigned char );
+  OISCMD__ unsigned char	BiasOffsetAdj( unsigned char , unsigned char );
+ #endif
 #endif
+
 OISCMD__ void			GyrGan( unsigned char , unsigned long , unsigned long ) ;	
 OISCMD__ void			SetPanTiltMode( unsigned char ) ;							
-#ifndef	HALLADJ_HW
+#ifdef		MODULE_CALIBRATION		
+ #ifndef	HALLADJ_HW
  OISCMD__ unsigned long	TnePtp( unsigned char, unsigned char ) ;					
  OISCMD__ unsigned char	TneCen( unsigned char, UnDwdVal ) ;							
  #define		PTP_BEFORE		0
  #define		PTP_AFTER		1
+ #endif
 #endif
 #ifdef GAIN_CONT
  unsigned char	TriSts( void ) ;													
@@ -384,3 +431,21 @@ OISCMD__  unsigned char	DrvPwmSw( unsigned char ) ;
 	#define		Mlnp		0					
 	#define		Mpwm		1					
 OISCMD__ void			SetGcf( unsigned char ) ;									
+#ifdef H1COEF_CHANGER
+ OISCMD__ void			SetH1cMod( unsigned char ) ;								
+ #define		S2MODE		0x40
+ #define		ACTMODE		0x80
+ #define		MAXLMT		0x3FD1Eb85				
+ #ifdef OIS05DEG
+  #define		MINLMT		0x3F8CCCCD				
+ #endif
+ #ifdef OIS06DEG
+  #define		MINLMT		0x3FA66666				
+ #endif
+ #ifdef OIS07DEG
+  #define		MINLMT		0x3FB33333				
+ #endif
+ #define		CHGCOEF		0xB92FA5DE
+ #define		S2COEF		0x3F800000				
+#endif
+unsigned short	RdFwVr( void ) ;													

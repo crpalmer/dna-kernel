@@ -704,6 +704,9 @@ void htc_kernel_top(void)
 	struct task_cputime cputime;
 	int dump_top_stack = 0;
 	int pid_cnt = 0;    
+#ifdef CONFIG_DEBUG_KSWAPD
+	struct task_struct *kswapd_t = NULL;
+#endif
 
 	if (task_ptr_array == NULL ||
 			curr_proc_delta == NULL ||
@@ -745,23 +748,42 @@ void htc_kernel_top(void)
 	io_time = (unsigned long)(new_cpu_stat.cpustat[CPUTIME_IOWAIT] - old_cpu_stat.cpustat[CPUTIME_IOWAIT]);
 	irq_time = (unsigned long)((new_cpu_stat.cpustat[CPUTIME_IRQ] + new_cpu_stat.cpustat[CPUTIME_SOFTIRQ])
 			- (old_cpu_stat.cpustat[CPUTIME_IRQ] + old_cpu_stat.cpustat[CPUTIME_SOFTIRQ]));
-	idle_time = (unsigned long)
-	((new_cpu_stat.cpustat[CPUTIME_IDLE] + new_cpu_stat.cpustat[CPUTIME_STEAL] + new_cpu_stat.cpustat[CPUTIME_GUEST])
-	 - (old_cpu_stat.cpustat[CPUTIME_IDLE] + old_cpu_stat.cpustat[CPUTIME_STEAL] + old_cpu_stat.cpustat[CPUTIME_GUEST]));
+
+
+    
+
+    idle_time = (unsigned long)((new_cpu_stat.cpustat[CPUTIME_IDLE] > old_cpu_stat.cpustat[CPUTIME_IDLE]) 
+            ? new_cpu_stat.cpustat[CPUTIME_IDLE] - old_cpu_stat.cpustat[CPUTIME_IDLE] : 0);
+    idle_time += (unsigned long)((new_cpu_stat.cpustat[CPUTIME_STEAL] + new_cpu_stat.cpustat[CPUTIME_GUEST]) 
+                - (old_cpu_stat.cpustat[CPUTIME_STEAL] + old_cpu_stat.cpustat[CPUTIME_GUEST]));
+    
+
 	delta_time = user_time + system_time + io_time + irq_time + idle_time;
 
 	if ((full_loading_counter >= 9) && (full_loading_counter % 3 == 0))
 		 dump_top_stack = 1;
 
 	
-	printk("[K] CPU Usage\t\tPID\t\tName\n");
+	printk(KERN_INFO "[K] CPU Usage\t\tPID\t\tName\n");
 	for (i = 0 ; i < NUM_BUSY_THREAD_CHECK ; i++) {
-		printk("[K] %8lu%%\t\t%d\t\t%s\t\t%d\n",
+		printk(KERN_INFO "[K] %8lu%%\t\t%d\t\t%s\t\t%d\n",
 				curr_proc_delta[top_loading[i]] * 100 / delta_time,
 				top_loading[i],
 				task_ptr_array[top_loading[i]]->comm,
 				curr_proc_delta[top_loading[i]]);
+#ifdef CONFIG_DEBUG_KSWAPD
+		if (task_ptr_array[top_loading[i]] && task_ptr_array[top_loading[i]]->flags & PF_KSWAPD)
+			kswapd_t = task_ptr_array[top_loading[i]];
+#endif
 	}
+
+#ifdef CONFIG_DEBUG_KSWAPD
+	if (kswapd_t) {
+		printk("\n[K][DEBUG] ###pid:%d name:%s state:%lu ppid:%d stime:%lu utime:%lu\n",
+				kswapd_t->pid, kswapd_t->comm, kswapd_t->state, kswapd_t->real_parent->pid, kswapd_t->stime, kswapd_t->utime);
+		show_stack(kswapd_t, NULL);
+	}
+#endif
 
 	
 	if (dump_top_stack) {
@@ -843,9 +865,15 @@ void htc_kernel_top_accumulation(void)
 	io_time = (unsigned long)(new_cpu_stat_accu.cpustat[CPUTIME_IOWAIT] - old_cpu_stat_accu.cpustat[CPUTIME_IOWAIT]);
 	irq_time = (unsigned long)((new_cpu_stat_accu.cpustat[CPUTIME_IRQ] + new_cpu_stat_accu.cpustat[CPUTIME_SOFTIRQ])
 			- (old_cpu_stat_accu.cpustat[CPUTIME_IRQ] + old_cpu_stat_accu.cpustat[CPUTIME_SOFTIRQ]));
-	idle_time = (unsigned long)
-	((new_cpu_stat_accu.cpustat[CPUTIME_IDLE] + new_cpu_stat_accu.cpustat[CPUTIME_STEAL] + new_cpu_stat_accu.cpustat[CPUTIME_GUEST])
-	 - (old_cpu_stat_accu.cpustat[CPUTIME_IDLE] + old_cpu_stat_accu.cpustat[CPUTIME_STEAL] + old_cpu_stat_accu.cpustat[CPUTIME_GUEST]));
+
+    
+
+    idle_time = (unsigned long)((new_cpu_stat_accu.cpustat[CPUTIME_IDLE] > old_cpu_stat_accu.cpustat[CPUTIME_IDLE]) 
+            ? new_cpu_stat_accu.cpustat[CPUTIME_IDLE] - old_cpu_stat_accu.cpustat[CPUTIME_IDLE] : 0);
+    idle_time += (unsigned long)((new_cpu_stat_accu.cpustat[CPUTIME_STEAL] + new_cpu_stat_accu.cpustat[CPUTIME_GUEST]) 
+                - (old_cpu_stat_accu.cpustat[CPUTIME_STEAL] + old_cpu_stat_accu.cpustat[CPUTIME_GUEST]));
+    
+
 	delta_time = user_time + system_time + io_time + irq_time + idle_time;
 
 	if ((full_loading_counter >= 9) && (full_loading_counter % 3 == 0))

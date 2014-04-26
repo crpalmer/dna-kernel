@@ -51,16 +51,28 @@ enum {
 	OVER_VCHG,
 	BATT_STATE,
 	OVERLOAD,
+	PJ_EXIST,
+	PJ_STATUS,
+	PJ_LEVEL,
+	BATT_CABLEIN,
 };
 
 enum htc_batt_rt_attr {
 	HTC_BATT_RT_VOLTAGE = 0,
 	HTC_BATT_RT_CURRENT,
 	HTC_BATT_RT_TEMPERATURE,
+	HTC_PJ_RT_EXISTS,
+	HTC_PJ_RT_VOLTAGE,
 };
 
 struct battery_info_reply {
 	u32 batt_vol;
+	u32 pj_vol;
+	u32 pj_src;
+	u32 pj_chg_status;
+	u32 pj_full;
+	s32 pj_level;
+	s32 pj_level_pre;
 	u32 batt_id;
 	s32 batt_temp;
 	s32 batt_current;

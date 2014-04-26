@@ -896,13 +896,15 @@ static struct msm_sensor_id_info_t imx175_id_info = {
 	.sensor_id_reg_addr = 0x0,
 	.sensor_id = 0x0175,
 };
+#define SENSOR_REGISTER_MAX_LINECOUNT 0xffff
+#define SENSOR_VERT_OFFSET 4
 
 static struct msm_sensor_exp_gain_info_t imx175_exp_gain_info = {
 	.coarse_int_time_addr = 0x202,
 	.global_gain_addr = 0x204,
-	.vert_offset = 4,
+	.vert_offset = SENSOR_VERT_OFFSET,
 	.min_vert = 4,  
-	.sensor_max_linecount = 65531,  
+	.sensor_max_linecount = SENSOR_REGISTER_MAX_LINECOUNT-SENSOR_VERT_OFFSET,  
 };
 
 #if 0
@@ -1291,7 +1293,7 @@ int32_t imx175_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 
 	if (!sdata->use_rawchip) {
-		rc = msm_camio_clk_enable(CAMIO_CAM_MCLK_CLK);
+		rc = msm_camio_clk_enable(sdata,CAMIO_CAM_MCLK_CLK);
 		if (rc < 0) {
 			pr_info("%s: msm_camio_sensor_clk_on failed:%d\n",
 			 __func__, rc);
@@ -1320,7 +1322,7 @@ enable_sensor_power_up_failed:
 	else
 		sdata->camera_power_off();
 enable_power_on_failed:
-	msm_camio_clk_disable(CAMIO_CAM_MCLK_CLK);
+	msm_camio_clk_disable(sdata,CAMIO_CAM_MCLK_CLK);
 enable_mclk_failed:
 	return rc;
 }
@@ -1352,7 +1354,7 @@ int32_t imx175_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_info("%s: msm_sensor_power_down failed\n", __func__);
 
 	if (!sdata->use_rawchip) {
-		msm_camio_clk_disable(CAMIO_CAM_MCLK_CLK);
+		msm_camio_clk_disable(sdata,CAMIO_CAM_MCLK_CLK);
 		if (rc < 0)
 			pr_info("%s: msm_camio_sensor_clk_off failed:%d\n",
 				 __func__, rc);

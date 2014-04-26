@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -218,18 +218,21 @@
 #define ARM_CP15_FSR_STATUS_SYNC_EXT_ABORT        0x8
 #define ARM_CP15_FSR_STATUS_ASYNC_EXT_ABORT      0x16
 
-#define ARM_CP15_FSR(fs,domain,write) \
-   (((fs) << ARM_CP15_FSR_STATUS_POS) | \
-    ((domain) << ARM_CP15_FSR_DOMAIN_POS) |  \
-    ((write) ? (1 << ARM_CP15_FSR_WR_POS) : 0))
+#define ARM_CP15_FSR(fs, domain, write)			\
+	(((fs) << ARM_CP15_FSR_STATUS_POS) |		\
+	 ((domain) << ARM_CP15_FSR_DOMAIN_POS) |	\
+	 ((write) ? (1 << ARM_CP15_FSR_WR_POS) : 0))
 
-#define ARM_CP15_FSR_STATUS(r) \
-   (MVP_EXTRACT_FIELD((r), ARM_CP15_FSR_STATUS_POS, ARM_CP15_FSR_STATUS_LEN) | \
-    (MVP_BIT((r), ARM_CP15_FSR_STATUS_POS2) << ARM_CP15_FSR_STATUS_LEN))
+#define ARM_CP15_FSR_STATUS(r)					\
+	(MVP_EXTRACT_FIELD((r), ARM_CP15_FSR_STATUS_POS,	\
+			   ARM_CP15_FSR_STATUS_LEN) |		\
+	 (MVP_BIT((r), ARM_CP15_FSR_STATUS_POS2) << ARM_CP15_FSR_STATUS_LEN))
+
 #define ARM_CP15_FSR_DOMAIN(r) \
-   MVP_EXTRACT_FIELD((r), ARM_CP15_FSR_DOMAIN_POS, ARM_CP15_FSR_DOMAIN_LEN)
+	MVP_EXTRACT_FIELD((r), ARM_CP15_FSR_DOMAIN_POS, ARM_CP15_FSR_DOMAIN_LEN)
+
 #define ARM_CP15_FSR_WR(r) \
-   MVP_BIT((r), ARM_CP15_FSR_WR_POS)
+	MVP_BIT((r), ARM_CP15_FSR_WR_POS)
 
 #define ARM_CP15_MAIN_ID_NOREVISION_MASK 0xFF0FFFF0
 
@@ -239,9 +242,9 @@
 #define CPACR_ASEDIS              (1 << 31)
 #define CPACR_D32DIS              (1 << 30)
 #define CPACR_CP10_MASK           (0x3 << (10*2))
-#define CPACR_CP10_CP11_MASK      ( (0x3 << (10*2)) | (0x3 << (11*2)) )
-#define CPACR_CP10_CP11_PRIV_ONLY ( (0x1 << (10*2)) | (0x1 << (11*2)) )
-                                     
+#define CPACR_CP10_CP11_MASK      ((0x3 << (10*2)) | (0x3 << (11*2)))
+#define CPACR_CP10_CP11_PRIV_ONLY ((0x1 << (10*2)) | (0x1 << (11*2)))
+				
 
 #define ARM_VFP_SYSTEM_REG_FPSID    0x0
 #define ARM_VFP_SYSTEM_REG_FPSCR    0x1
@@ -256,7 +259,8 @@
 #define ARM_VFP_SYSTEM_REG_FPEXC_FP2V (1 << 28)
 
 #define ARM_VFP_SYSTEM_REG_MVFR0_A_SIMD_BIT  (0)
-#define ARM_VFP_SYSTEM_REG_MVFR0_A_SIMD_MASK (0xf << ARM_VFP_SYSTEM_REG_MVFR0_A_SIMD_BIT)
+#define ARM_VFP_SYSTEM_REG_MVFR0_A_SIMD_MASK \
+	(0xf << ARM_VFP_SYSTEM_REG_MVFR0_A_SIMD_BIT)
 
 #define ARM_CP15_MPIDR_MP          (0x1 << 31)
 #define ARM_CP15_MPIDR_U           (0x1 << 30)

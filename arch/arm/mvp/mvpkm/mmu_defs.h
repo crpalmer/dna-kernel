@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -71,15 +71,18 @@
 #define ARM_L2PT_COARSE_INDX(addr) MVP_EXTRACT_FIELD((addr), 12, 8)
 
 #define ARM_L1D_PTR_INDX(l1dp) MVP_BITS((uint32)(l1dp), 2, ARM_L1PT_ORDER - 1)
-#define ARM_L2D_PTR_INDX(l2dp) MVP_BITS((uint32)(l2dp), 2, ARM_L2PT_COARSE_ORDER - 1)
+#define ARM_L2D_PTR_INDX(l2dp)	\
+	MVP_BITS((uint32)(l2dp), 2, ARM_L2PT_COARSE_ORDER - 1)
 
 #define ARM_L1D_BASE_ADDR(base) ((base) << ARM_L1PT_ORDER)
 #define ARM_L1D_ADDR_BASE(addr) ((addr) >> ARM_L1PT_ORDER)
 
 #define ARM_SUPER_SECTION_INDEX(addr) MVP_EXTRACT_FIELD((addr), 20, 4)
 
-#define ARM_L1D_SUPERSECTION_BASE_ADDR(base) ((base) << ARM_L1D_SUPERSECTION_ORDER)
-#define ARM_L1D_SUPERSECTION_ADDR_BASE(addr) ((addr) >> ARM_L1D_SUPERSECTION_ORDER)
+#define ARM_L1D_SUPERSECTION_BASE_ADDR(base)	\
+	((base) << ARM_L1D_SUPERSECTION_ORDER)
+#define ARM_L1D_SUPERSECTION_ADDR_BASE(addr)	\
+	((addr) >> ARM_L1D_SUPERSECTION_ORDER)
 #define ARM_L1D_SECTION_BASE_ADDR(base) ((base) << ARM_L1D_SECTION_ORDER)
 #define ARM_L1D_SECTION_ADDR_BASE(addr) ((addr) >> ARM_L1D_SECTION_ORDER)
 #define ARM_L1D_COARSE_BASE_ADDR(base)  ((base) << ARM_L2PT_COARSE_ORDER)
@@ -131,8 +134,8 @@
 #define ARM_DOMAIN_RESERVED    2
 #define ARM_DOMAIN_MANAGER     3
 
-#define ARM_DOMAIN_INDEX(dacr,dom)    MVP_EXTRACT_FIELD((dacr), 2*(dom), 2)
-#define ARM_DOMAIN_ACCESS(dom,access) ((access) << (2*(dom)))
+#define ARM_DOMAIN_INDEX(dacr, dom)    MVP_EXTRACT_FIELD((dacr), 2*(dom), 2)
+#define ARM_DOMAIN_ACCESS(dom, access) ((access) << (2*(dom)))
 
 #define ARM_CACHE_LEVELS_MAX    8
 #define ARM_CACHE_LINE_SIZE_MAX 2048

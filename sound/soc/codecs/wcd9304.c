@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1157,6 +1157,7 @@ static int sitar_codec_enable_lineout(struct snd_soc_dapm_widget *w,
 	switch (w->shift) {
 	case 0:
 		lineout_gain_reg = SITAR_A_RX_LINE_1_GAIN;
+		usleep_range(100000, 100000);
 		break;
 	case 1:
 		lineout_gain_reg = SITAR_A_RX_LINE_2_GAIN;

@@ -295,10 +295,4 @@ config EXFAT_VERSION
 	string "Tuxera EXFAT version"
 	depends on EXFAT_FS
 	default "target/htc.d/htc"
-
-config FSYNC_DEBUG
-	string "Debug EXT4 fsync"
-	depends on EXT4_FS
-	default n
-
 endmenu

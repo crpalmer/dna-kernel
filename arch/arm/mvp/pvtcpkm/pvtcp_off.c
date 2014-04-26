@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP PVTCP Server
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -48,8 +48,8 @@ PvtcpBufAlloc(unsigned int size,
       unsigned int i;
       struct kvec *vec;
 
-      buf = CommOS_Kmalloc((sizeof *buf - sizeof buf->data) +
-                           (sizeof *vec * nmbFrags));
+      buf = CommOS_Kmalloc((sizeof(*buf) - sizeof(buf->data)) +
+                           (sizeof(*vec) * nmbFrags));
       if (buf) {
          CommOS_ListInit(&buf->link);
          buf->len = (unsigned short)nmbFrags;
@@ -69,7 +69,7 @@ PvtcpBufAlloc(unsigned int size,
             }
             if (copy(channel, vec[i].iov_base, vec[i].iov_len, 1) !=
                 vec[i].iov_len) {
-               CommOS_Log(("%s: Failed to copy from channel!\n", __FUNCTION__));
+               CommOS_Log(("%s: Failed to copy from channel!\n", __func__));
                i++;
                goto undo;
             }
@@ -86,7 +86,7 @@ undo:
          res = NULL;
       }
    } else {
-      buf = CommOS_Kmalloc(size + sizeof *buf - sizeof buf->data);
+      buf = CommOS_Kmalloc(size + sizeof(*buf) - sizeof(buf->data));
       if (buf) {
          CommOS_ListInit(&buf->link);
          buf->len = (unsigned short)size;
@@ -94,7 +94,7 @@ undo:
          res = PvtcpOffBufFromInternal(buf);
          if (copy(channel, res, size, 1) != size) {
             CommOS_Kfree(buf);
-            CommOS_Log(("%s: Failed to copy from channel!\n", __FUNCTION__));
+            CommOS_Log(("%s: Failed to copy from channel!\n", __func__));
             res = NULL;
          }
       }

@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP PVTCP Server
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -32,8 +32,8 @@ extern int  (*commOSModInit)(void *args);
 extern void (*commOSModExit)(void);
 
 #define COMM_OS_MOD_INIT(init, exit)        \
-   int (*commOSModInit)(void *args) = init; \
-   void (*commOSModExit)(void) = exit
+	int (*commOSModInit)(void *args) = init; \
+	void (*commOSModExit)(void) = exit
 
 
 
@@ -52,10 +52,10 @@ void CommOS_FlushAIOWork(CommOSWork *work);
 
 int
 CommOS_StartIO(const char *dispatchTaskName,
-               CommOSDispatchFunc dispatchHandler,
-               unsigned int interval,
-               unsigned int maxCycles,
-               const char *aioTaskName);
+	       CommOSDispatchFunc dispatchHandler,
+	       unsigned int interval,
+	       unsigned int maxCycles,
+	       const char *aioTaskName);
 
 
 #endif  

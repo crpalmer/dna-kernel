@@ -30,7 +30,7 @@ If you are building a rom with this kernel ZImage, copy it into your build's out
 You will also need the following kernel modules. These will eventually be installed into /system/lib/modules on the device.
 
 kernel modules:
-*.ko
+./driver/*.ko
 
 If you have already built and installed a boot.img with root access you can also install the modules directly into the device using "adb remount" and "apb push [file] system/lib/modules/" for each file listed above. After installing files set permissions with "adb shell chmod 0644 system/lib/modules/*" and "adb reboot"
 

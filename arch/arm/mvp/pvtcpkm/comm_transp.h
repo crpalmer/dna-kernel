@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP PVTCP Server
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -35,25 +35,25 @@
 
 
 typedef struct CommTranspID {
-   union {
-      unsigned char d8[8];
-      unsigned int d32[2];
-      unsigned long long d64;
-   };
+	union {
+		unsigned char d8[8];
+		unsigned int d32[2];
+		unsigned long long d64;
+	};
 } CommTranspID;
 
 
 
 typedef enum CommTranspInitMode {
-   COMM_TRANSP_INIT_CREATE = 0x0,
-   COMM_TRANSP_INIT_ATTACH = 0x1
+	COMM_TRANSP_INIT_CREATE = 0x0,
+	COMM_TRANSP_INIT_ATTACH = 0x1
 } CommTranspInitMode;
 
 typedef struct CommTranspInitArgs {
-   unsigned int capacity;      
-   unsigned int type;          
-   CommTranspID id;            
-   CommTranspInitMode mode;    
+	unsigned int capacity;      
+	unsigned int type;          
+	CommTranspID id;            
+	CommTranspInitMode mode;    
 } CommTranspInitArgs;
 
 
@@ -61,13 +61,13 @@ typedef struct CommTranspInitArgs {
 static inline unsigned int
 CommTransp_GetType(const char *str)
 {
-   unsigned int hash = 5381;
-   int c;
+	unsigned int hash = 5381;
+	int c;
 
-   while ((c = *str++)) {
-      hash = ((hash << 5) + hash) + c; 
-   }
-   return hash;
+	while ((c = *str++))
+		hash = ((hash << 5) + hash) + c; 
+
+	return hash;
 }
 
 #endif 

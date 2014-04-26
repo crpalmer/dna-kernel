@@ -7,23 +7,28 @@
 
 
 void			MesFil( unsigned char ) ;					
-#ifndef	HALLADJ_HW
- void			LopIni( unsigned char ) ;					
-#endif
-void			LopPar( unsigned char ) ;					
-#ifndef	HALLADJ_HW
- void			LopSin( unsigned char, unsigned char ) ;	
- unsigned char	LopAdj( unsigned char ) ;					
- void			LopMes( void ) ;							
-#endif
-#ifndef	HALLADJ_HW
-unsigned long	GinMes( unsigned char ) ;					
+#ifdef		MODULE_CALIBRATION		
+ #ifndef	HALLADJ_HW
+  void			LopIni( unsigned char ) ;					
+ #endif
+ void			LopPar( unsigned char ) ;					
+ #ifndef	HALLADJ_HW
+  void			LopSin( unsigned char, unsigned char ) ;	
+  unsigned char	LopAdj( unsigned char ) ;					
+  void			LopMes( void ) ;							
+ #endif
+ #ifndef	HALLADJ_HW
+ unsigned long	GinMes( unsigned char ) ;					
+ #endif
 #endif
 void			GyrCon( unsigned char ) ;					
 short			GenMes( unsigned short, unsigned char ) ;	
-#ifndef	HALLADJ_HW
- unsigned long	TneOff( UnDwdVal, unsigned char ) ;			
- unsigned long	TneBia( UnDwdVal, unsigned char ) ;			
+
+#ifdef		MODULE_CALIBRATION		
+ #ifndef	HALLADJ_HW
+  unsigned long	TneOff( UnDwdVal, unsigned char ) ;			
+  unsigned long	TneBia( UnDwdVal, unsigned char ) ;			
+ #endif
 #endif
 #ifdef USE_EXE2PROM
 void			AdjSav( unsigned char ) ;					
@@ -107,30 +112,31 @@ const unsigned long	ClDiCof[ COEFTBL ]	= {
 	} ;
 
 
-#ifdef	HALLADJ_HW
-#else
+#ifdef		MODULE_CALIBRATION		
+ #ifdef	HALLADJ_HW
+ #else
  #define	INITBIASVAL		0xA000
-#endif
+ #endif
 unsigned short	TneRun( void )
 {
 	unsigned char	UcHlySts, UcHlxSts, UcAtxSts, UcAtySts ;
 	unsigned short	UsFinSts , UsOscSts ; 								
-#ifndef	HALLADJ_HW
+ #ifndef	HALLADJ_HW
 	UnDwdVal		StTneVal ;
-#endif
-#ifdef USE_EXE2PROM
+ #endif
+ #ifdef USE_EXE2PROM
 	unsigned short	UsDatBk ;
-#endif
+ #endif
 
 	
 	 UsOscSts	= OscAdj() ;
-#ifdef USE_EXE2PROM
+ #ifdef USE_EXE2PROM
 	UsDatBk = (unsigned short)StAdjPar.UcOscVal ;
 	E2pWrt( OSC_CLK_VAL,	2, ( unsigned char * )&UsDatBk ) ;
-#endif
+ #endif
 
 
-#ifdef	HALLADJ_HW
+ #ifdef	HALLADJ_HW
 	UcHlySts = BiasOffsetAdj( Y_DIR , 0 ) ;
 	WitTim( TNE ) ;
 	UcHlxSts = BiasOffsetAdj( X_DIR , 0 ) ;
@@ -138,7 +144,7 @@ unsigned short	TneRun( void )
 	UcHlySts = BiasOffsetAdj( Y_DIR , 1 ) ;
 	WitTim( TNE ) ;
 	UcHlxSts = BiasOffsetAdj( X_DIR , 1 ) ;
-#else
+ #else
 	SrvCon( X_DIR, ON ) ;
 	SrvCon( Y_DIR, OFF ) ;
 	WitTim( TNE ) ;
@@ -191,17 +197,17 @@ unsigned short	TneRun( void )
 
 	}
 	
- #ifdef	NEUTRAL_CENTER
+  #ifdef	NEUTRAL_CENTER
 	TneHvc();
- #else	
+  #else	
 
 	
 	
 	SrvCon( X_DIR, ON ) ;
 	SrvCon( Y_DIR, ON ) ;
- #endif	
+  #endif	
 	
-#endif
+ #endif
 	WitTim( TNE ) ;
 
 	RamWriteA( ADHXOFF, StAdjPar.StHalAdj.UsHlxCna	) ;	 	
@@ -214,47 +220,47 @@ unsigned short	TneRun( void )
 	RamReadA( ADHXOFF, &StAdjPar.StHalAdj.UsAdxOff ) ;		
 	RamReadA( ADHYOFF, &StAdjPar.StHalAdj.UsAdyOff ) ;		
 
-#ifdef USE_EXE2PROM
+ #ifdef USE_EXE2PROM
 	AdjSav( Y_DIR ) ;
 	AdjSav( X_DIR ) ;
-#endif
+ #endif
 	
 	WitTim( TNE ) ;
 
 	
 	UcAtxSts	= LopGan( X_DIR ) ;
-#ifdef USE_EXE2PROM
+ #ifdef USE_EXE2PROM
 	E2pWrt( LOOP_GAIN_STATUS_X,	2, ( unsigned char * )&StAdjPar.StLopGan.UsLxgSts ) ;
 	E2pWrt( LOOP_GAIN_X,		2, ( unsigned char * )&StAdjPar.StLopGan.UsLxgVal ) ;
-#endif
+ #endif
 
 	
 	UcAtySts	= LopGan( Y_DIR ) ;
-#ifdef USE_EXE2PROM
+ #ifdef USE_EXE2PROM
 	E2pWrt( LOOP_GAIN_STATUS_Y,	2, ( unsigned char * )&StAdjPar.StLopGan.UsLygSts ) ;
 	E2pWrt( LOOP_GAIN_Y,		2, ( unsigned char * )&StAdjPar.StLopGan.UsLygVal ) ;
-#endif
+ #endif
 
 	TneGvc() ;
-#ifdef USE_EXE2PROM
+ #ifdef USE_EXE2PROM
 	E2pWrt( GYRO_OFFSET_STATUS_X,	2, ( unsigned char * )&StAdjPar.StGvcOff.UsGxoSts ) ;
 	E2pWrt( GYRO_AD_OFFSET_X,	2, ( unsigned char * )&StAdjPar.StGvcOff.UsGxoVal ) ;
 	E2pWrt( GYRO_OFFSET_STATUS_Y,	2, ( unsigned char * )&StAdjPar.StGvcOff.UsGyoSts ) ;
 	E2pWrt( GYRO_AD_OFFSET_Y,	2, ( unsigned char * )&StAdjPar.StGvcOff.UsGyoVal ) ;
-#endif
+ #endif
 
 
 	UsFinSts	= (unsigned short)( UcHlxSts - EXE_END ) + (unsigned short)( UcHlySts - EXE_END ) + (unsigned short)( UcAtxSts - EXE_END ) + (unsigned short)( UcAtySts - EXE_END ) + ( UsOscSts - (unsigned short)EXE_END ) + (unsigned short)EXE_END ;
-#ifdef USE_EXE2PROM
+ #ifdef USE_EXE2PROM
 	
 	E2pWrt( ADJ_COMP_FLAG,	2, ( unsigned char * )&UsFinSts ) ;
-#endif
+ #endif
 
 	return( UsFinSts ) ;
 }
 
 
-#ifndef	HALLADJ_HW
+ #ifndef	HALLADJ_HW
 
  #define		HALL_H_VAL	0x7FFF
  
@@ -319,17 +325,17 @@ unsigned long	TnePtp ( unsigned char	UcDirSel, unsigned char	UcBfrAft )
 		}
 	} else {
 		if( UcDirSel == X_DIR ){
-#ifdef	NEUTRAL_CENTER
-#else	
+ #ifdef	NEUTRAL_CENTER
+ #else	
 			StAdjPar.StHalAdj.UsHlxCna	= ( ( signed short )StTneVal.StDwdVal.UsHigVal + ( signed short )StTneVal.StDwdVal.UsLowVal ) / 2 ;
-#endif	
+ #endif	
 			StAdjPar.StHalAdj.UsHlxMxa	= StTneVal.StDwdVal.UsHigVal ;
 			StAdjPar.StHalAdj.UsHlxMna	= StTneVal.StDwdVal.UsLowVal ;
 		} else {
-#ifdef	NEUTRAL_CENTER
-#else	
+ #ifdef	NEUTRAL_CENTER
+ #else	
 			StAdjPar.StHalAdj.UsHlyCna	= ( ( signed short )StTneVal.StDwdVal.UsHigVal + ( signed short )StTneVal.StDwdVal.UsLowVal ) / 2 ;
-#endif	
+ #endif	
 			StAdjPar.StHalAdj.UsHlyMxa	= StTneVal.StDwdVal.UsHigVal ;
 			StAdjPar.StHalAdj.UsHlyMna	= StTneVal.StDwdVal.UsLowVal ;
 		}
@@ -553,8 +559,8 @@ unsigned long	TneOff( UnDwdVal	StTneVal, unsigned char	UcTneAxs )
 	return( StTneVal.UlDwdVal ) ;
 }
 
+ #endif
 #endif
-
 void	MesFil( unsigned char	UcMesMod )
 {
 	if( !UcMesMod ) {								
@@ -701,13 +707,14 @@ void	SrvCon( unsigned char	UcDirSel, unsigned char	UcSwcCon )
 
 
 
+#ifdef		MODULE_CALIBRATION		
 unsigned char	LopGan( unsigned char	UcDirSel )
 {
 	unsigned char	UcLpAdjSts ;
 	
-#ifdef	HALLADJ_HW
+ #ifdef	HALLADJ_HW
 	UcLpAdjSts	= LoopGainAdj( UcDirSel ) ;
-#else
+ #else
 	MesFil( LOOPGAIN ) ;
 
 	
@@ -722,7 +729,7 @@ unsigned char	LopGan( unsigned char	UcDirSel )
 
 	
 	UcLpAdjSts	= LopAdj( UcDirSel ) ;
-#endif
+ #endif
 	
 
 	if( !UcLpAdjSts ) {
@@ -738,7 +745,7 @@ unsigned char	LopGan( unsigned char	UcDirSel )
 
 
 
-#ifndef	HALLADJ_HW
+ #ifndef	HALLADJ_HW
 void	LopIni( unsigned char	UcDirSel )
 {
 	
@@ -748,7 +755,7 @@ void	LopIni( unsigned char	UcDirSel )
 	LopSin( UcDirSel, ON ) ;
 
 }
-#endif
+ #endif
 
 
 void	LopPar( unsigned char	UcDirSel )
@@ -766,7 +773,7 @@ void	LopPar( unsigned char	UcDirSel )
 
 
 
-#ifndef	HALLADJ_HW
+ #ifndef	HALLADJ_HW
 void	LopSin( unsigned char	UcDirSel, unsigned char	UcSonOff )
 {
 	if( UcSonOff ) {
@@ -942,7 +949,7 @@ unsigned long	GinMes( unsigned char	UcXg1Xg2 )
 	return( UlMesVal ) ;
 }
 
-#endif
+ #endif
 
 
 #define	LIMITH		0x0FA0
@@ -1005,7 +1012,7 @@ unsigned char	TneGvc( void )
 		
 }
 
-
+#endif
 
 unsigned char	RtnCen( unsigned char	UcCmdPar )
 {
@@ -1096,6 +1103,9 @@ void	S2cPro( unsigned char uc_mode )
 {
 	if( uc_mode == 1 )
 	{
+#ifdef H1COEF_CHANGER
+		SetH1cMod( S2MODE ) ;							
+#endif
 		RegWriteA( G2NDCEFON0, 0x04 ) ;											
 		
 		RegWriteA( GSHTON, 0x11 ) ;												
@@ -1106,6 +1116,9 @@ void	S2cPro( unsigned char uc_mode )
 		
 		RegWriteA( GSHTON, 0x00 ) ;												
 		RegWriteA( G2NDCEFON0, 0x00 ) ;											
+#ifdef H1COEF_CHANGER
+		SetH1cMod( UcH1LvlMod ) ;							
+#endif
 
 	}
 	
@@ -1616,6 +1629,7 @@ void	OptCen( unsigned char UcOptmode , unsigned short UsOptXval , unsigned short
 }
 
 
+#ifdef		MODULE_CALIBRATION		
 #define	RRATETABLE	8
 #define	CRATETABLE	16
 const signed char	ScRselRate[ RRATETABLE ]	= {
@@ -1858,7 +1872,8 @@ unsigned short	OscAdj( void )
 
 	return( UsResult );
 }
-
+#endif
+	
 #ifdef HALLADJ_HW
 void SetSineWave( unsigned char UcJikuSel , unsigned char UcMeasMode )
 {
@@ -2275,7 +2290,8 @@ unsigned char	DrvPwmSw( unsigned char UcSelPwmMod )
 	return( UcSelPwmMod << 4 ) ;
 }
 
-#ifdef	NEUTRAL_CENTER
+#ifdef		MODULE_CALIBRATION		
+ #ifdef	NEUTRAL_CENTER
 unsigned char	TneHvc( void )
 {
 	unsigned char	UcRsltSts;
@@ -2326,7 +2342,8 @@ unsigned char	TneHvc( void )
 	
 	return( UcRsltSts );
 }
-#endif	
+ #endif	
+#endif
 	
 void	SetGcf( unsigned char	UcSetNum )
 {
@@ -2343,5 +2360,71 @@ void	SetGcf( unsigned char	UcSetNum )
 	RamWrite32A( gxh1c, UlGyrCof ) ;		
 	RamWrite32A( gyh1c, UlGyrCof ) ;		
 
+#ifdef H1COEF_CHANGER
+		SetH1cMod( UcSetNum ) ;							
+#endif
 
+}
+
+#ifdef H1COEF_CHANGER
+void	SetH1cMod( unsigned char	UcSetNum )
+{
+	unsigned long	UlGyrCof ;
+
+	
+	switch( UcSetNum ){
+	case ( ACTMODE ):				
+		
+		
+		UlGyrCof	= ClDiCof[ 0 ] ;
+			
+		UcH1LvlMod = 0 ;
+		
+		
+		RamWrite32A( gxl2a_2, MINLMT ) ;		
+		RamWrite32A( gxl2b_2, MAXLMT ) ;		
+
+		RamWrite32A( gyl2a_2, MINLMT ) ;		
+		RamWrite32A( gyl2b_2, MAXLMT ) ;		
+
+		RamWrite32A( gxh1c_2, UlGyrCof ) ;		
+		RamWrite32A( gxl2c_2, CHGCOEF ) ;		
+
+		RamWrite32A( gyh1c_2, UlGyrCof ) ;		
+		RamWrite32A( gyl2c_2, CHGCOEF ) ;		
+		
+		RegWriteA( WG_LSEL,	0x51 );				
+		RegWriteA( WG_HCHR,	0x04 );				
+		break ;
+		
+	case( S2MODE ):				
+		RegWriteA( WG_LSEL,	0x00 );				
+		RegWriteA( WG_HCHR,	0x00 );				
+
+		RamWrite32A( gxh1c_2, S2COEF ) ;		
+		RamWrite32A( gyh1c_2, S2COEF ) ;		
+		break ;
+		
+	default :
+		
+		if(UcSetNum > (COEFTBL - 1))
+			UcSetNum = (COEFTBL -1) ;			
+
+		UlGyrCof	= ClDiCof[ UcSetNum ] ;
+
+		UcH1LvlMod = UcSetNum ;
+			
+		RamWrite32A( gxh1c_2, UlGyrCof ) ;		
+		RamWrite32A( gyh1c_2, UlGyrCof ) ;		
+		
+		RegWriteA( WG_LSEL,	0x51 );				
+		RegWriteA( WG_HCHR,	0x04 );				
+		break ;
+	}
+}
+#endif
+
+unsigned short	RdFwVr( void )
+{
+	return( FW_VER ) ;
 }

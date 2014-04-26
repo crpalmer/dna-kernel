@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -36,9 +36,9 @@
 
 #define MKSCK_XFER_MAX        1024
 
-#define MKSCK_ADDR_UNDEF      (uint32)0xffffffff
+#define MKSCK_ADDR_UNDEF      ((uint32)0xffffffff)
 
-#define MKSCK_PORT_UNDEF            (uint16)0xffff
+#define MKSCK_PORT_UNDEF            ((uint16)0xffff)
 #define MKSCK_PORT_MASTER           (MKSCK_PORT_UNDEF-1)
 #define MKSCK_PORT_HOST_FB          (MKSCK_PORT_UNDEF-2)
 #define MKSCK_PORT_BALLOON          (MKSCK_PORT_UNDEF-3)
@@ -56,30 +56,32 @@ typedef uint16 Mksck_Port;
 typedef VmId   Mksck_VmId;
 
 typedef struct {
-   uint32 mpn   : 20; 
-   uint32 order : 12; 
+	uint32 mpn:20;   
+	uint32 order:12; 
 } Mksck_PageDesc;
 
-#define MKSCK_DESC_TYPE(type,pages) \
-   struct { \
-      type umsg; \
-      Mksck_PageDesc page[pages]; \
-   }
+#define MKSCK_DESC_TYPE(type, pages) \
+	struct { \
+		type umsg; \
+		Mksck_PageDesc page[pages]; \
+	}
 
 typedef union {
-   uint32        addr; 
-   struct {            
-      Mksck_Port port; 
-      Mksck_VmId vmId; 
-   };
+	uint32 addr;		 
+	struct {		 
+		Mksck_Port port; 
+		Mksck_VmId vmId; 
+	};
 } Mksck_Address;
 
 static inline uint32
-Mksck_AddrInit(Mksck_VmId vmId, Mksck_Port port)
+Mksck_AddrInit(Mksck_VmId vmId,
+	       Mksck_Port port)
 {
-   Mksck_Address aa;
-   aa.vmId = vmId;
-   aa.port = port;
-   return aa.addr;
+	Mksck_Address aa;
+
+	aa.vmId = vmId;
+	aa.port = port;
+	return aa.addr;
 }
 #endif

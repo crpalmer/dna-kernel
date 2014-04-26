@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -33,65 +33,69 @@
 static uint32
 GetCpuFrequency(unsigned int cpu)
 {
-   unsigned int counterKHZ;
+	unsigned int counterKHZ;
 
 #ifdef CONFIG_CPU_FREQ
-   counterKHZ = cpufreq_quick_get(cpu);
+	counterKHZ = cpufreq_quick_get(cpu);
 #elif defined(MVP_HOST_BOARD_ve)
-   KNOWN_BUG(MVP-143);
-   counterKHZ = 125e3;
+	KNOWN_BUG(MVP-143);
+	counterKHZ = 125e3;
 
-   printk_once(KERN_INFO "mvpkm: CPU_FREQ not available, forcing TSC to %d kHz\n", counterKHZ);
+	printk_once(KERN_INFO "mvpkm: CPU_FREQ not available, " \
+		    "forcing TSC to %d kHz\n", counterKHZ);
 #elif defined(MVP_HOST_BOARD_panda)
-   counterKHZ = 1e6;
+	counterKHZ = 1e6;
 #else
 #error "host TSC frequency unknown."
 #endif
 
-   return counterKHZ;
+	return counterKHZ;
 }
 
 static void
-TscToRate64(uint32 cpuFreq, struct TscToRate64Cb *ttr)
+TscToRate64(uint32 cpuFreq,
+	    struct TscToRate64Cb *ttr)
 {
-   uint32 shift;
-   uint64 mult;
+	uint32 shift;
+	uint64 mult;
 
 
-   
-   cpuFreq *= 1000;
+	 
+	 cpuFreq *= 1000;
 
-   
-   shift = 31 + CLZ(MVP_TIMER_RATE64) - CLZ(cpuFreq);
-   mult = MVP_TIMER_RATE64;
-   mult <<= shift;
-   do_div(mult, cpuFreq);
+	 
+	shift = 31 + CLZ(MVP_TIMER_RATE64) - CLZ(cpuFreq);
+	mult = MVP_TIMER_RATE64;
+	mult <<= shift;
+	do_div(mult, cpuFreq);
 
-   
-   ASSERT(mult < (1ULL<<32));
+	
+	ASSERT(mult < (1ULL<<32));
 
-   
-   ttr->mult = mult;
-   ttr->shift = shift;
+	
+	ttr->mult = mult;
+	ttr->shift = shift;
 }
 
 int
-CpuFreqUpdate(unsigned int *freq, struct TscToRate64Cb *ttr)
+CpuFreqUpdate(unsigned int *freq,
+	      struct TscToRate64Cb *ttr)
 {
-   unsigned int cur = GetCpuFrequency(smp_processor_id());
-   int ret = (cur != *freq);
+	unsigned int cur = GetCpuFrequency(smp_processor_id());
+	int ret = (cur != *freq);
 
-   if (ret) {
-      if (cur) {
-         TscToRate64(cur, ttr);
-      } else {
-         ttr->mult = 1;
-         ttr->shift = 64;
-      }
-      *freq = cur;
-   }
+	if (ret) {
+		if (cur) {
+			TscToRate64(cur, ttr);
+		} else {
 
-   return ret;
+			ttr->mult = 1;
+			ttr->shift = 64;
+		}
+		*freq = cur;
+	}
+
+	return ret;
 }
 
 static void
@@ -101,38 +105,38 @@ CpuFreqNop(void *info)
 
 static int
 CpuFreqNotifier(struct notifier_block *nb,
-                unsigned long val,
-                void *data)
+		unsigned long val,
+		void *data)
 {
-   struct cpufreq_freqs *freq = data;
+	struct cpufreq_freqs *freq = data;
 
-   if (freq->old != freq->new &&
-       val == CPUFREQ_POSTCHANGE &&
-       cpumask_test_cpu(freq->cpu, &inMonitor)) {
-      smp_call_function_single(freq->cpu, CpuFreqNop, NULL, false);
-   }
 
-   return NOTIFY_OK;
+	if (freq->old != freq->new &&
+	    val == CPUFREQ_POSTCHANGE &&
+	    cpumask_test_cpu(freq->cpu, &inMonitor))
+		smp_call_function_single(freq->cpu, CpuFreqNop, NULL, false);
+
+	return NOTIFY_OK;
 }
 
 static struct notifier_block cpuFreqNotifierBlock = {
-   .notifier_call = CpuFreqNotifier
+	.notifier_call = CpuFreqNotifier
 };
 
 void
 CpuFreq_Init(void)
 {
-   int ret;
+	int ret;
 
-   
-   ret = cpufreq_register_notifier(&cpuFreqNotifierBlock,
-                                   CPUFREQ_TRANSITION_NOTIFIER);
-   FATAL_IF(ret < 0);
+	
+	ret = cpufreq_register_notifier(&cpuFreqNotifierBlock,
+					CPUFREQ_TRANSITION_NOTIFIER);
+	FATAL_IF(ret < 0);
 }
 
 void
 CpuFreq_Exit(void)
 {
-   cpufreq_unregister_notifier(&cpuFreqNotifierBlock,
-                               CPUFREQ_TRANSITION_NOTIFIER);
+	cpufreq_unregister_notifier(&cpuFreqNotifierBlock,
+				    CPUFREQ_TRANSITION_NOTIFIER);
 }

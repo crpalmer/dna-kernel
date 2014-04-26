@@ -17,7 +17,6 @@
 #include <linux/blkdev.h>
 #include <linux/fsnotify.h>
 #include <linux/security.h>
-#include <linux/namei.h>
 #include "fat.h"
 
 static int fat_ioctl_get_attributes(struct inode *inode, u32 __user *user_attr)
@@ -105,49 +104,6 @@ out:
 	return err;
 }
 
-extern int _fat_fallocate(struct inode *inode, loff_t len);
-
-static long fat_vmw_extend(struct file *filp, unsigned long len)
-{
-	struct inode *inode = filp->f_path.dentry->d_inode;
-	loff_t off = len;
-	const char mvpEnabledPath[] = "/data/data/com.vmware.mvp.enabled";
-	struct path path;
-	struct kstat stat;
-	int err;
-
-
-	if (len <= 0) {
-		return -EINVAL;
-	}
-
-	if (!(filp->f_mode & FMODE_WRITE)) {
-		return -EBADF;
-	}
-
-	err = security_file_permission(filp, MAY_WRITE);
-	if (err) {
-		return err;
-	}
-
-
-	err = kern_path(mvpEnabledPath, 0, &path);
-	if (err) {
-		return err;
-	}
-
-	err = vfs_getattr(path.mnt, path.dentry, &stat);
-	if (err) {
-		return err;
-	}
-
-	if (current_euid() != stat.uid && current_euid() != 0) {
-		return -EPERM;
-	}
-
-	return _fat_fallocate(inode, off);
-}
-
 long fat_generic_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct inode *inode = filp->f_path.dentry->d_inode;
@@ -158,8 +114,6 @@ long fat_generic_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return fat_ioctl_get_attributes(inode, user_attr);
 	case FAT_IOCTL_SET_ATTRIBUTES:
 		return fat_ioctl_set_attributes(filp, user_attr);
-	case FAT_IOCTL_VMW_EXTEND:
-		return fat_vmw_extend(filp, arg);
 	default:
 		return -ENOTTY;	
 	}

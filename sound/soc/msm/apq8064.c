@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -465,42 +465,44 @@ static struct snd_soc_ops msm8960_i2s_be_ops = {
 
 static void msm_ext_spk_power_amp_on(u32 spk)
 {
-	if (spk & (BOTTOM_SPK_AMP_POS | BOTTOM_SPK_AMP_NEG | TOP_SPK_AMP_POS | TOP_SPK_AMP_NEG)) {
+	if (spk & (BOTTOM_SPK_AMP_POS | BOTTOM_SPK_AMP_NEG)) {
 
-		if ((msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_POS) && (msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_NEG) && \
-			(msm_ext_bottom_spk_pamp & TOP_SPK_AMP_POS) && (msm_ext_bottom_spk_pamp & TOP_SPK_AMP_NEG)) {
+		if ((msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_POS) &&
+			(msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_NEG)) {
 
-			pr_info("%s() External Bottom Speaker Ampl already "
+			pr_debug("%s() External Bottom Speaker Ampl already "
 				"turned on. spk = 0x%08x\n", __func__, spk);
 			return;
 		}
 
 		msm_ext_bottom_spk_pamp |= spk;
 
-		if ((msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_POS) && (msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_NEG) && \
-			(msm_ext_bottom_spk_pamp & TOP_SPK_AMP_POS) && (msm_ext_bottom_spk_pamp & TOP_SPK_AMP_NEG)) {
+		if ((msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_POS) &&
+			(msm_ext_bottom_spk_pamp & BOTTOM_SPK_AMP_NEG)) {
 
 			
 			pr_info("hs amp on++");
-			if(query_tpa6185()) {
-				gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 1);
-				set_handset_amp(1);
-			}
+                        if(query_tpa6185()) {
+                            gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 1);
+			    set_handset_amp(1);
+                        }
 
-			if(query_rt5501())
-				set_rt5501_amp(1);
+                        if(query_rt5501())
+                            set_rt5501_amp(1);
 			pr_info("hs amp on--");
 			pr_debug("%s: slepping 4 ms after turning on external "
 				" Bottom Speaker Ampl\n", __func__);
 			usleep_range(4000, 4000);
 		}
 
-	} else if (spk & TOP_SPK_AMP) {
+	} else if (spk & (TOP_SPK_AMP_POS | TOP_SPK_AMP_NEG | TOP_SPK_AMP)) {
 
 		pr_debug("%s():top_spk_amp_state = 0x%x spk_event = 0x%x\n",
 			__func__, msm_ext_top_spk_pamp, spk);
 
-		if (msm_ext_top_spk_pamp & TOP_SPK_AMP) {
+		if (((msm_ext_top_spk_pamp & TOP_SPK_AMP_POS) &&
+			(msm_ext_top_spk_pamp & TOP_SPK_AMP_NEG)) ||
+				(msm_ext_top_spk_pamp & TOP_SPK_AMP)) {
 
 			pr_debug("%s() External Top Speaker Ampl already"
 				"turned on. spk = 0x%08x\n", __func__, spk);
@@ -509,7 +511,9 @@ static void msm_ext_spk_power_amp_on(u32 spk)
 
 		msm_ext_top_spk_pamp |= spk;
 
-		if (msm_ext_top_spk_pamp & TOP_SPK_AMP) {
+		if (((msm_ext_top_spk_pamp & TOP_SPK_AMP_POS) &&
+			(msm_ext_top_spk_pamp & TOP_SPK_AMP_NEG)) ||
+				(msm_ext_top_spk_pamp & TOP_SPK_AMP)) {
 
 			pr_debug("%s: sleeping 4 ms after turning on "
 				" external Top Speaker Ampl\n", __func__);
@@ -525,30 +529,30 @@ static void msm_ext_spk_power_amp_on(u32 spk)
 
 static void msm_ext_spk_power_amp_off(u32 spk)
 {
-	if (spk & (BOTTOM_SPK_AMP_POS | BOTTOM_SPK_AMP_NEG | TOP_SPK_AMP_POS | TOP_SPK_AMP_NEG)) {
-		int pre_pamp = msm_ext_bottom_spk_pamp;
+	if (spk & (BOTTOM_SPK_AMP_POS | BOTTOM_SPK_AMP_NEG)) {
 
-		msm_ext_bottom_spk_pamp &= ~spk;
+		if (!msm_ext_bottom_spk_pamp)
+			return;
 
-		if (pre_pamp == (BOTTOM_SPK_AMP_POS | BOTTOM_SPK_AMP_NEG | TOP_SPK_AMP_POS | TOP_SPK_AMP_NEG)) {
+		
+		pr_info("hs amp off ++");
+                if(query_tpa6185()) {
+		    set_handset_amp(0);
+                    gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 0);
+                }
 
-			
-			pr_info("hs amp off ++");
-			if(query_tpa6185()) {
-				set_handset_amp(0);
-				gpio_direction_output(PM8921_GPIO_PM_TO_SYS(10), 0);
-			}
+                if(query_rt5501())
+                    set_rt5501_amp(0);
+		pr_info("hs amp off --");
 
-			if(query_rt5501())
-				set_rt5501_amp(0);
-			pr_info("hs amp off --");
+		msm_ext_bottom_spk_pamp = 0;
 
-			pr_debug("%s: sleeping 4 ms after turning off external Bottom"
-				" Speaker Ampl\n", __func__);
+		pr_debug("%s: sleeping 4 ms after turning off external Bottom"
+			" Speaker Ampl\n", __func__);
 
-			usleep_range(4000, 4000);
-		}
-	} else if (spk & TOP_SPK_AMP) {
+		usleep_range(4000, 4000);
+
+		} else if (spk & (TOP_SPK_AMP_POS | TOP_SPK_AMP_NEG | TOP_SPK_AMP)) {
 
 		pr_debug("%s: top_spk_amp_state = 0x%x spk_event = 0x%x\n",
 				__func__, msm_ext_top_spk_pamp, spk);
@@ -556,7 +560,11 @@ static void msm_ext_spk_power_amp_off(u32 spk)
 		if (!msm_ext_top_spk_pamp)
 			return;
 
-		if (spk & TOP_SPK_AMP) {
+		if ((spk & TOP_SPK_AMP_POS) || (spk & TOP_SPK_AMP_NEG)) {
+
+			msm_ext_top_spk_pamp &= (~(TOP_SPK_AMP_POS |
+							TOP_SPK_AMP_NEG));
+		} else if (spk & TOP_SPK_AMP) {
 			msm_ext_top_spk_pamp &=  ~TOP_SPK_AMP;
 		}
 
@@ -721,7 +729,7 @@ static int msm_set_spk9887mute(struct snd_kcontrol *kcontrol,
 static int msm_spkramp_event(struct snd_soc_dapm_widget *w,
 	struct snd_kcontrol *k, int event)
 {
-	pr_info("%s() %x w->name %s\n", __func__, SND_SOC_DAPM_EVENT_ON(event),w->name);
+	pr_debug("%s() %x\n", __func__, SND_SOC_DAPM_EVENT_ON(event));
 
 	if (SND_SOC_DAPM_EVENT_ON(event)) {
 		if (!strncmp(w->name, "Ext Spk Bottom Pos", 18))

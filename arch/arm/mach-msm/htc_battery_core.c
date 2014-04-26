@@ -82,6 +82,7 @@ static struct alarm batt_charger_ctrl_alarm;
 static struct work_struct batt_charger_ctrl_work;
 struct workqueue_struct *batt_charger_ctrl_wq;
 static unsigned int charger_ctrl_stat;
+static unsigned int phone_call_stat;
 
 static int test_power_monitor;
 
@@ -193,6 +194,7 @@ static int htc_battery_get_charging_status(void)
 	case CHARGER_MHL_AC:
 	case CHARGER_DETECTING:
 	case CHARGER_UNKNOWN_USB:
+	case CHARGER_NOTIFY:
 		if (battery_core_info.htc_charge_full)
 			ret = POWER_SUPPLY_STATUS_FULL;
 		else {
@@ -396,6 +398,17 @@ static ssize_t htc_battery_charger_switch(struct device *dev,
 	return count;
 }
 
+static ssize_t htc_battery_phone_call_stat(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
+{
+	int i = 0;
+
+	i += scnprintf(buf + i, PAGE_SIZE - i, "%u\n", phone_call_stat);
+
+	return i;
+}
+
 static ssize_t htc_battery_set_phone_call(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
@@ -418,6 +431,8 @@ static ssize_t htc_battery_set_phone_call(struct device *dev,
 		battery_core_info.func.func_context_event_handler(EVENT_TALK_START);
 	else
 		battery_core_info.func.func_context_event_handler(EVENT_TALK_STOP);
+
+	 phone_call_stat = phone_call;
 
 	return count;
 }
@@ -539,6 +554,11 @@ static struct device_attribute htc_battery_attrs[] = {
 	HTC_BATTERY_ATTR(full_bat),
 	HTC_BATTERY_ATTR(over_vchg),
 	HTC_BATTERY_ATTR(batt_state),
+	HTC_BATTERY_ATTR(batt_overload),
+	HTC_BATTERY_ATTR(pj_exist),
+	HTC_BATTERY_ATTR(pj_status),
+	HTC_BATTERY_ATTR(pj_level),
+	HTC_BATTERY_ATTR(batt_cable_in),
 
 	__ATTR(batt_attr_text, S_IRUGO, htc_battery_show_batt_attr, NULL),
 	__ATTR(batt_power_meter, S_IRUGO, htc_battery_show_cc_attr, NULL),
@@ -557,7 +577,7 @@ static struct device_attribute htc_set_delta_attrs[] = {
 		htc_battery_charger_switch),
 	__ATTR(charger_timer, S_IWUSR | S_IWGRP, NULL,
 		htc_battery_charger_ctrl_timer),
-	__ATTR(phone_call, S_IWUSR | S_IWGRP, NULL,
+	__ATTR(phone_call, S_IWUSR | S_IWGRP, htc_battery_phone_call_stat,
 		htc_battery_set_phone_call),
 	__ATTR(network_search, S_IWUSR | S_IWGRP, NULL,
 		htc_battery_set_network_search),
@@ -573,6 +593,8 @@ static struct device_attribute htc_battery_rt_attrs[] = {
 	__ATTR(batt_vol_now, S_IRUGO, htc_battery_rt_attr_show, NULL),
 	__ATTR(batt_current_now, S_IRUGO, htc_battery_rt_attr_show, NULL),
 	__ATTR(batt_temp_now, S_IRUGO, htc_battery_rt_attr_show, NULL),
+	__ATTR(pj_exist_now, S_IRUGO, htc_battery_rt_attr_show, NULL),
+	__ATTR(pj_vol_now, S_IRUGO, htc_battery_rt_attr_show, NULL),
 };
 
 
@@ -759,6 +781,39 @@ static ssize_t htc_battery_show_property(struct device *dev,
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				battery_core_info.rep.overload);
 		break;
+	case PJ_EXIST:
+		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
+				battery_core_info.rep.pj_src);
+		break;
+	case PJ_STATUS:
+		if (battery_core_info.rep.pj_src) {
+			
+			if (battery_core_info.rep.pj_full == 3)	{
+				if ((battery_core_info.rep.pj_level - battery_core_info.rep.pj_level_pre) >= 19)
+					BATT_LOG("level diff over 19, level:%d, pre_level:%d\n",
+						battery_core_info.rep.pj_level, battery_core_info.rep.pj_level_pre);
+				else
+					i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", HTC_UI_PJ_FULL);
+			} else { 
+				if (battery_core_info.rep.pj_chg_status == 2 || battery_core_info.rep.charging_enabled)
+					i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", HTC_UI_PJ_CHG);
+				else
+					i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", HTC_UI_PJ_NOT_CHG);
+			}
+		} else {
+			i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", HTC_UI_PJ_NOT_CHG);
+		}
+		break;
+	case PJ_LEVEL:
+		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
+				battery_core_info.rep.pj_level);
+		break;
+	case BATT_CABLEIN:
+		if(battery_core_info.rep.charging_source == CHARGER_BATTERY)
+			i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", 0);
+		else
+			i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", 1);
+		break;
 	default:
 		i = -EINVAL;
 	}
@@ -888,8 +943,17 @@ int htc_battery_core_update_changed(void)
 		if (CHARGER_USB == battery_core_info.rep.charging_source ||
 			CHARGER_USB == new_batt_info_rep.charging_source)
 			is_send_usb_uevent = 1;
+		if (CHARGER_DETECTING == battery_core_info.rep.charging_source ||
+			CHARGER_DETECTING == new_batt_info_rep.charging_source)
+			is_send_usb_uevent = 1;
+		if (CHARGER_UNKNOWN_USB == battery_core_info.rep.charging_source ||
+			CHARGER_UNKNOWN_USB == new_batt_info_rep.charging_source)
+			is_send_usb_uevent = 1;
 		if (CHARGER_AC == battery_core_info.rep.charging_source ||
 			CHARGER_AC == new_batt_info_rep.charging_source)
+			is_send_ac_uevent = 1;
+		if (CHARGER_9V_AC == battery_core_info.rep.charging_source ||
+			CHARGER_9V_AC == new_batt_info_rep.charging_source)
 			is_send_ac_uevent = 1;
 		if (CHARGER_MHL_AC == battery_core_info.rep.charging_source ||
 			CHARGER_MHL_AC == new_batt_info_rep.charging_source)
@@ -903,7 +967,10 @@ int htc_battery_core_update_changed(void)
 		((battery_core_info.rep.level != new_batt_info_rep.level) ||
 		(battery_core_info.rep.batt_vol != new_batt_info_rep.batt_vol) ||
 		(battery_core_info.rep.over_vchg != new_batt_info_rep.over_vchg) ||
-		(battery_core_info.rep.batt_temp != new_batt_info_rep.batt_temp))) {
+		(battery_core_info.rep.batt_temp != new_batt_info_rep.batt_temp) ||
+		(battery_core_info.rep.pj_full!= new_batt_info_rep.pj_full) ||
+		(battery_core_info.rep.pj_src!= new_batt_info_rep.pj_src) ||
+		(battery_core_info.rep.pj_chg_status!= new_batt_info_rep.pj_chg_status))) {
 		is_send_batt_uevent = 1;
 	}
 
@@ -997,8 +1064,8 @@ int htc_battery_core_update_changed(void)
 	mutex_unlock(&battery_core_info.info_lock);
 
 	BATT_LOG("ID=%d,level=%d,level_raw=%d,vol=%d,temp=%d,current=%d,"
-		"chg_src=%d,chg_en=%d,full_bat=%d,over_vchg=%d,"
-		"batt_state=%d,overload=%d,ui_chg_full=%d",
+		"chg_src=%d,chg_en=%d,pj_src=%d,pj_level=%d,full_bat=%d,"
+		"over_vchg=%d,batt_state=%d,overload=%d,ui_chg_full=%d",
 			battery_core_info.rep.batt_id,
 			battery_core_info.rep.level,
 			battery_core_info.rep.level_raw,
@@ -1007,6 +1074,8 @@ int htc_battery_core_update_changed(void)
 			battery_core_info.rep.batt_current,
 			battery_core_info.rep.charging_source,
 			battery_core_info.rep.charging_enabled,
+			battery_core_info.rep.pj_src,
+			battery_core_info.rep.pj_level,
 			battery_core_info.rep.full_bat,
 			battery_core_info.rep.over_vchg,
 			battery_core_info.rep.batt_state,

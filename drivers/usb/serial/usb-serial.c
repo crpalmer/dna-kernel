@@ -87,6 +87,11 @@ static struct usb_serial *get_free_serial(struct usb_serial *serial,
 	*minor = 0;
 	mutex_lock(&table_lock);
 	for (i = 0; i < SERIAL_TTY_MINORS; ++i) {
+#ifdef CONFIG_BUILD_EDIAG
+		if ((serial->dev->actconfig->desc.bNumInterfaces == 9) && serial->interface->cur_altsetting->desc.bInterfaceNumber == 1)
+			if (i <= 2)
+				i = 2;
+#endif
 		if (serial_table[i])
 			continue;
 
@@ -583,14 +588,12 @@ exit:
 static struct usb_serial_driver *search_serial_device(
 					struct usb_interface *iface)
 {
-	const struct usb_device_id *id = NULL;
+	const struct usb_device_id *id;
 	struct usb_serial_driver *drv;
-	struct usb_driver *driver = to_usb_driver(iface->dev.driver);
 
 	
 	list_for_each_entry(drv, &usb_serial_driver_list, driver_list) {
-		if (drv->usb_driver == driver)
-			id = get_iface_id(drv, iface);
+		id = get_iface_id(drv, iface);
 		if (id)
 			return drv;
 	}
@@ -1239,6 +1242,7 @@ static int usb_serial_register(struct usb_serial_driver *driver)
 				driver->description);
 		return -EINVAL;
 	}
+	driver->usb_driver->supports_autosuspend = 1;
 
 	
 	mutex_lock(&table_lock);
@@ -1278,9 +1282,6 @@ int usb_serial_register_drivers(struct usb_driver *udriver,
 	udriver->id_table = NULL;
 
 	udriver->no_dynamic_id = 1;
-	udriver->supports_autosuspend = 1;
-	udriver->suspend = usb_serial_suspend;
-	udriver->resume = usb_serial_resume;
 	rc = usb_register(udriver);
 	if (rc)
 		return rc;

@@ -253,7 +253,8 @@ static void msm_vb2_ops_buf_cleanup(struct vb2_buffer *vb)
 				&pcam_inst->free_vq, list) {
 			buf_phyaddr = (unsigned long)
 				videobuf2_to_pmem_contig(&buf->vidbuf, 0);
-			D("%s vb_idx=%d,vb_paddr=0x%x,phyaddr=0x%x\n",
+			if (!buf_phyaddr || !vb_phyaddr)
+			pr_info("%s vb_idx=%d,vb_paddr=0x%x,phyaddr=0x%x\n",
 				__func__, buf->vidbuf.v4l2_buf.index,
 				buf_phyaddr, vb_phyaddr);
 			if (vb_phyaddr == buf_phyaddr) {
@@ -270,8 +271,14 @@ static void msm_vb2_ops_buf_cleanup(struct vb2_buffer *vb)
 			mem = vb2_plane_cookie(vb, i);
 			if (!mem) { 
 				pr_err("%s: null pointer check, line(%d)", __func__, __LINE__);
+				buf->state = MSM_BUFFER_STATE_UNUSED;
 				return;
 			} 
+			if (!pmctl->client) {
+				pr_err("%s: null pointer check, line(%d)", __func__, __LINE__);
+				buf->state = MSM_BUFFER_STATE_UNUSED;
+				return;
+			}
 			videobuf2_pmem_contig_user_put(mem, pmctl->client);
 		}
 	}
@@ -402,7 +409,8 @@ struct msm_frame_buffer *msm_mctl_buf_find(
 		buf_phyaddr = (unsigned long)
 				videobuf2_to_pmem_contig(&buf->vidbuf, 0) +
 				offset;
-		D("%s vb_idx=%d,vb_paddr=0x%x ch0=0x%x\n",
+		if (!buf_phyaddr)
+		pr_info("%s vb_idx=%d,vb_paddr=0x%x ch0=0x%x\n",
 			__func__, buf->vidbuf.v4l2_buf.index,
 			buf_phyaddr, fbuf->ch_paddr[0]);
 		if (fbuf->ch_paddr[0] == buf_phyaddr) {
@@ -438,6 +446,10 @@ int msm_mctl_buf_done_proc(
 	}
 
 	mem = vb2_plane_cookie(&buf->vidbuf, 0);
+	if (!mem) {
+		pr_err("%s: mem is null\n",__func__);
+		return -EINVAL;
+	}
 
 	if(pmctl->htc_af_info.af_input.preview_width*pmctl->htc_af_info.af_input.preview_height > mem->size)
 	    pmctl->htc_af_info.af_input.af_use_sw_sharpness = false;
@@ -765,6 +777,8 @@ int msm_mctl_release_free_buf(struct msm_cam_media_controller *pmctl,
 	list_for_each_entry(buf, &pcam_inst->free_vq, list) {
 		buf_phyaddr =
 			(uint32_t) videobuf2_to_pmem_contig(&buf->vidbuf, 0);
+		if (!buf_phyaddr)
+			pr_info("%s buf_phyaddr is null", __func__);
 		if (free_buf->ch_paddr[0] == buf_phyaddr) {
 			D("%s buf = 0x%x ", __func__, free_buf->ch_paddr[0]);
 			buf->state = MSM_BUFFER_STATE_UNUSED;

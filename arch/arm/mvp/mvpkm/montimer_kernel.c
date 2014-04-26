@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -30,33 +30,36 @@
 static enum hrtimer_restart
 MonitorTimerCB(struct hrtimer *timer)
 {
-   MvpkmVM *vm = container_of(timer, MvpkmVM, monTimer.timer);
-   Mvpkm_WakeGuest(vm, ACTION_TIMER);
-   return HRTIMER_NORESTART;
+	struct MvpkmVM *vm = container_of(timer, struct MvpkmVM,
+					  monTimer.timer);
+
+	Mvpkm_WakeGuest(vm, ACTION_TIMER);
+	return HRTIMER_NORESTART;
 }
 
 void
-MonitorTimer_Setup(MvpkmVM *vm)
+MonitorTimer_Setup(struct MvpkmVM *vm)
 {
-   MonTimer *monTimer = &vm->monTimer;
-   monTimer->vm = vm;
+	struct MonTimer *monTimer = &vm->monTimer;
 
-   hrtimer_init(&monTimer->timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
-   monTimer->timer.function = MonitorTimerCB;
+	monTimer->vm = vm;
+	hrtimer_init(&monTimer->timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
+	monTimer->timer.function = MonitorTimerCB;
 }
 
 void
-MonitorTimer_Request(MonTimer *monTimer, uint64 when64)
+MonitorTimer_Request(struct MonTimer *monTimer,
+		     uint64 when64)
 {
-   if (when64) {
-      ktime_t kt;
+	if (when64) {
+		ktime_t kt;
 
-      kt = ns_to_ktime(when64);
-      ASSERT_ON_COMPILE(MVP_TIMER_RATE64 == 1000000000);
+		kt = ns_to_ktime(when64);
+		ASSERT_ON_COMPILE(MVP_TIMER_RATE64 == 1000000000);
 
-      hrtimer_start(&monTimer->timer, kt, HRTIMER_MODE_ABS);
-   } else {
-      hrtimer_cancel(&monTimer->timer);
-   }
+		hrtimer_start(&monTimer->timer, kt, HRTIMER_MODE_ABS);
+	} else {
+		hrtimer_cancel(&monTimer->timer);
+	}
 }
 

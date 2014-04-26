@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP PVTCP Server
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -73,7 +73,7 @@ typedef struct PvtcpDgramPseudoHeader {
 
 #define PVTCP_SOCK_RCVSIZE    \
    (PVTCP_SOCK_SAFE_RCVSIZE + \
-    PVTCP_SOCK_BUF_SIZE + sizeof (PvtcpDgramPseudoHeader))
+    PVTCP_SOCK_BUF_SIZE + sizeof(PvtcpDgramPseudoHeader))
 
 
 
@@ -134,12 +134,8 @@ extern const unsigned int pvtcpVersionsSize;
 
 
 typedef struct PvtcpIfConf {
-   int family;                      
-                                    
-                                    
-                                    
-                                    
-                                    
+   int family;
+
    union {
       struct in_addr in;
       struct in6_addr in6;
@@ -214,11 +210,13 @@ typedef struct PvtcpState {
    CommOS_MutexLockUninterruptible(&(pvsk)->outLock)
 #define SOCK_OUT_UNLOCK(pvsk)   CommOS_MutexUnlock(&(pvsk)->outLock)
 
-#define PVTCP_UNLOCK_DISP_DISCARD_VEC()      \
-   CommSvc_DispatchUnlock(channel);          \
-   while (vecLen) {                          \
-      PvtcpBufFree(vec[--vecLen].iov_base);  \
-   }
+#define PVTCP_UNLOCK_DISP_DISCARD_VEC()         \
+   do {                                         \
+      CommSvc_DispatchUnlock(channel);          \
+      while (vecLen) {                          \
+         PvtcpBufFree(vec[--vecLen].iov_base);  \
+      }                                         \
+   } while (0)
 
 
 #if defined(PVTCP_BUILDING_SERVER)

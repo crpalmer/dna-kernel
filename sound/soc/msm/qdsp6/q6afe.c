@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -48,7 +48,7 @@ static struct afe_ctl this_afe;
 static struct acdb_cal_block afe_cal_addr[MAX_AUDPROC_TYPES];
 
 #define TIMEOUT_MS 1000
-#define AFE_TIMEOUT_MS 2000
+#define AFE_TIMEOUT_MS 4000
 #define Q6AFE_MAX_VOLUME 0x3FFF
 
 #define SIZEOF_CFG_CMD(y) \

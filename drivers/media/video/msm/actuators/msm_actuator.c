@@ -352,6 +352,7 @@ int32_t msm_actuator_config(
 	case CFG_SET_OIS_CALIBRATION:
 		if (a_ctrl->actuator_ext_ctrl.is_ois_supported) {
 			if (a_ctrl->func_tbl.actuator_set_ois_calibration != NULL) {
+				cdata.cfg.get_osi_cal_info.bypass_ois_cal = false;
 				rc = a_ctrl->func_tbl.actuator_set_ois_calibration(a_ctrl, &cdata.cfg.get_osi_cal_info);
 				if (rc < 0) {
 					LERROR("%s set ois calibration failed %d\n", __func__, rc);
@@ -362,8 +363,12 @@ int32_t msm_actuator_config(
 						rc = -EFAULT;
 				}
 			} else {
-				LERROR("%s a_ctrl->func_tbl.actuator_set_ois_calibration is NULL\n", __func__);
-				rc = -EFAULT;
+				pr_info("%s a_ctrl->func_tbl.actuator_set_ois_calibration is NULL  ,  bypass ois calibration\n", __func__);
+				cdata.cfg.get_osi_cal_info.bypass_ois_cal = true;
+				if (copy_to_user((void *)argp,
+					&cdata,
+					sizeof(struct msm_actuator_cfg_data)))
+					rc = -EFAULT;
 			}
 		} else {
 			LINFO("%s ois is not supported\n", __func__);

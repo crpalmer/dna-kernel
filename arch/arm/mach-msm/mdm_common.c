@@ -128,6 +128,7 @@ struct mdm_msr_info {
 	char modem_errmsg[RD_BUF_SIZE];
 };
 int mdm_msr_index = 0;
+static spinlock_t msr_info_lock;
 static struct mdm_msr_info msr_info_list[MODEM_ERRMSG_LIST_LEN];
 #endif
 
@@ -162,7 +163,34 @@ static void mdm_loaded_info(void)
 static ssize_t modem_silent_reset_info_store(struct device *dev,
 		struct device_attribute *attr,	const char *buf, size_t count)
 {
-	return -EPERM;
+	int len = 0;
+	unsigned long flags;
+
+	spin_lock_irqsave(&msr_info_lock, flags);
+
+	msr_info_list[mdm_msr_index].valid = 1;
+	msr_info_list[mdm_msr_index].msr_time = current_kernel_time();
+	snprintf(msr_info_list[mdm_msr_index].modem_errmsg, RD_BUF_SIZE, "%s", buf);
+	len = strlen(msr_info_list[mdm_msr_index].modem_errmsg);
+
+	if ( len == 0)
+	{
+		spin_unlock_irqrestore(&msr_info_lock, flags);
+		return count;
+	}
+
+	if(msr_info_list[mdm_msr_index].modem_errmsg[len-1] == '\n')
+	{
+		msr_info_list[mdm_msr_index].modem_errmsg[len-1] = '\0';
+	}
+
+	if(++mdm_msr_index >= MODEM_ERRMSG_LIST_LEN) {
+		mdm_msr_index = 0;
+	}
+
+	spin_unlock_irqrestore(&msr_info_lock, flags);
+
+	return count;
 }
 
 static ssize_t modem_silent_reset_info_show(struct device *dev,
@@ -170,6 +198,9 @@ static ssize_t modem_silent_reset_info_show(struct device *dev,
 {
 	int i = 0;
 	char tmp[RD_BUF_SIZE+30];
+	unsigned long flags;
+
+	spin_lock_irqsave(&msr_info_lock, flags);
 
 	for( i=0; i<MODEM_ERRMSG_LIST_LEN; i++ ) {
 		if( msr_info_list[i].valid != 0 ) {
@@ -183,19 +214,73 @@ static ssize_t modem_silent_reset_info_show(struct device *dev,
 	}
 	strcat(buf, "\n\r\0");
 
+	spin_unlock_irqrestore(&msr_info_lock, flags);
+
 	return strlen(buf);
 }
-static DEVICE_ATTR(msr_info, S_IRUSR | S_IROTH | S_IRGRP,
+static DEVICE_ATTR(msr_info, S_IRUSR | S_IROTH | S_IRGRP | S_IWUSR,
 	modem_silent_reset_info_show, modem_silent_reset_info_store);
+
+static struct kobject *subsystem_restart_reason_obj;
+
+static ssize_t mdm_subsystem_restart_reason_store(struct device *dev,
+		struct device_attribute *attr,	const char *buf, size_t count)
+{
+	return modem_silent_reset_info_store(dev, attr, buf, count);
+}
+
+static ssize_t mdm_subsystem_restart_reason_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return modem_silent_reset_info_show(dev, attr, buf);
+}
+
+static DEVICE_ATTR(subsystem_restart_reason_nonblock, S_IRUSR | S_IROTH | S_IRGRP | S_IWUSR,
+        mdm_subsystem_restart_reason_show, mdm_subsystem_restart_reason_store);
+
+static int mdm_subsystem_restart_properties_init(void)
+{
+	int ret = 0;
+	subsystem_restart_reason_obj = kobject_create_and_add("subsystem_restart_properties", NULL);
+	if (subsystem_restart_reason_obj == NULL) {
+		pr_info("kobject_create_and_add: subsystem_restart_properties failed\n");
+                return -EFAULT;
+	}
+
+	ret = sysfs_create_file(subsystem_restart_reason_obj,
+             &dev_attr_subsystem_restart_reason_nonblock.attr);
+        if (ret) {
+                pr_info("sysfs_create_file: subsystem_restart_reason_nonblock failed\n");
+                return -EFAULT;
+        }
+	return 0;
+}
+
+static int mdm_subsystem_restart_properties_release(void)
+{
+	
+	if(subsystem_restart_reason_obj != NULL) {
+		sysfs_remove_file(subsystem_restart_reason_obj,
+			&dev_attr_subsystem_restart_reason_nonblock.attr);
+		kobject_put(subsystem_restart_reason_obj);
+	}
+	return 0;
+}
 
 static int modem_silent_reset_info_sysfs_attrs(struct platform_device *pdev)
 {
 	int i = 0;
+	unsigned long flags;
+
+	spin_lock_irqsave(&msr_info_lock, flags);
+
 	mdm_msr_index = 0;
 	for( i=0; i<MODEM_ERRMSG_LIST_LEN; i++ ) {
 		msr_info_list[i].valid = 0;
 		memset(msr_info_list[i].modem_errmsg, 0, RD_BUF_SIZE);
 	}
+
+	spin_unlock_irqrestore(&msr_info_lock, flags);
 
 	return device_create_file(&pdev->dev, &dev_attr_msr_info);
 }
@@ -206,11 +291,19 @@ static void mdm_restart_reason_fn(struct work_struct *work)
 {
 	int ret, ntries = 0;
 	char sfr_buf[RD_BUF_SIZE];
+#ifdef CONFIG_HTC_STORE_MODEM_RESET_INFO
+	unsigned long flags;
+#endif
 
 	do {
 		msleep(SFR_RETRY_INTERVAL);
+#if defined(CONFIG_BUILD_EDIAG)
+                pr_info("SYSMON is supposed to be used as char dev with specific purpose.\n");
+                ret = -EINVAL;
+#else
 		ret = sysmon_get_reason(SYSMON_SS_EXT_MODEM,
 					sfr_buf, sizeof(sfr_buf));
+#endif
 		if (ret) {
 			pr_err("%s: Error retrieving mdm restart reason, ret = %d, "
 					"%d/%d tries\n", __func__, ret,
@@ -218,12 +311,16 @@ static void mdm_restart_reason_fn(struct work_struct *work)
 		} else {
 			pr_err("mdm restart reason: %s\n", sfr_buf);
 #ifdef CONFIG_HTC_STORE_MODEM_RESET_INFO
+			spin_lock_irqsave(&msr_info_lock, flags);
+
 			msr_info_list[mdm_msr_index].valid = 1;
 			msr_info_list[mdm_msr_index].msr_time = current_kernel_time();
 			snprintf(msr_info_list[mdm_msr_index].modem_errmsg, RD_BUF_SIZE, "%s", sfr_buf);
 			if(++mdm_msr_index >= MODEM_ERRMSG_LIST_LEN) {
 				mdm_msr_index = 0;
 			}
+
+			spin_unlock_irqrestore(&msr_info_lock, flags);
 #endif
 			break;
 		}
@@ -472,8 +569,33 @@ static int notify_mdm_nv_write_done(void)
 	return 0;
 }
 
+extern void set_mdm2ap_errfatal_restart_flag(unsigned);
+static void mdm_crash_dump_dbg_info(void)
+{
+	dump_mdm_related_gpio();
 
-extern void set_mdm2ap_errfatal_restart_flag(unsigned);		
+	
+	printk(KERN_INFO "=== Show qcks stack ===\n");
+	show_thread_group_state_filter("qcks", 0);
+	printk(KERN_INFO "\n");
+
+	printk(KERN_INFO "=== Show efsks stack ===\n");
+	show_thread_group_state_filter("efsks", 0);
+	printk(KERN_INFO "\n");
+
+	printk(KERN_INFO "=== Show ks stack ===\n");
+	show_thread_group_state_filter("ks", 0);
+	printk(KERN_INFO "\n");
+
+	pr_info("### Show Blocked State in ###\n");
+	show_state_filter(TASK_UNINTERRUPTIBLE);
+	if (get_restart_level() == RESET_SOC)
+		msm_rtb_disable();
+
+	if (get_restart_level() == RESET_SOC)
+		set_mdm2ap_errfatal_restart_flag(1);
+}
+
 static void mdm_fatal_fn(struct work_struct *work)
 {
 	
@@ -493,16 +615,7 @@ static void mdm_fatal_fn(struct work_struct *work)
 		return;
 	}
 
-	dump_mdm_related_gpio();
-
-	
-	pr_info("### Show Blocked State in ###\n");
-	show_state_filter(TASK_UNINTERRUPTIBLE);
-	if (get_restart_level() == RESET_SOC)
-		msm_rtb_disable();
-
-	if (get_restart_level() == RESET_SOC)
-		set_mdm2ap_errfatal_restart_flag(1);
+	mdm_crash_dump_dbg_info();
 	
 
 	pr_info("%s: Reseting the mdm due to an errfatal\n", __func__);
@@ -552,16 +665,7 @@ static void mdm_status_fn(struct work_struct *work)
 		pr_info("%s: unexpected reset external modem\n", __func__);
 
 		
-		dump_mdm_related_gpio();
-
-		
-		pr_info("### Show Blocked State in ###\n");
-		show_state_filter(TASK_UNINTERRUPTIBLE);
-		if (get_restart_level() == RESET_SOC)
-			msm_rtb_disable();
-
-		if (get_restart_level() == RESET_SOC)
-			set_mdm2ap_errfatal_restart_flag(1);
+		mdm_crash_dump_dbg_info();
 		
 
 		subsystem_restart(EXTERNAL_MODEM);
@@ -830,6 +934,7 @@ static void mdm_modem_initialize_data(struct platform_device  *pdev,
 
 #ifdef CONFIG_HTC_STORE_MODEM_RESET_INFO
 	modem_silent_reset_info_sysfs_attrs(pdev);
+	mdm_subsystem_restart_properties_init();
 #endif
 
 	
@@ -951,7 +1056,6 @@ int mdm_common_create(struct platform_device  *pdev,
 	if (!mdm_gpio_monitor_queue) {
 		pr_err("%s: could not create workqueue for monitoring GPIO status \n",
 			__func__);
-		destroy_workqueue(mdm_gpio_monitor_queue);
 	}
 	
 
@@ -1105,6 +1209,10 @@ int mdm_common_modem_remove(struct platform_device *pdev)
 	kfree(mdm_drv);
 
 	ret = misc_deregister(&mdm_modem_misc);
+
+#ifdef CONFIG_HTC_STORE_MODEM_RESET_INFO
+	mdm_subsystem_restart_properties_release();
+#endif
 	return ret;
 }
 

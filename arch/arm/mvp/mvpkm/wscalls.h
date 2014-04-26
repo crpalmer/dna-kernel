@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -60,80 +60,90 @@
 #include "comm_transp_impl.h"
 
 typedef struct WSParams {
-   uint32 callno;
-   union {
-      struct {
-         uint16 pages;                 
-         uint16 order;                 
-         PhysMem_RegionType forRegion; 
-         MPN mpns[WSCALL_MAX_MPNS];    
-      } pages;
+	uint32 callno;
+	union {
+	struct {
+		
+		uint16 pages;
 
-      union {
-         MPN mpn;                  
-         _Bool referenced;         
-      } refCount;
+		uint16 order;
 
-      struct {
-         ExitStatus   status;      
-      } abort;
+		
+		PhysMem_RegionType forRegion;
 
-      struct {
-         int level;
-         char messg[WSCALL_LOG_MAX];
-      } log;
+		MPN mpns[WSCALL_MAX_MPNS];
+	} pages;
 
-      struct {
-         HKVA mtxHKVA;             
-         MutexMode mode;           
-         uint32 cvi;               
-         _Bool all;                
-         _Bool ok;                 
-      } mutex;
+	union {
+		MPN mpn;          
+		_Bool referenced; 
+	} refCount;
 
-      struct {
-         Mksck_VmId  vmId;         
-         _Bool found;              
-         MPN mpn[MKSCKPAGE_TOTAL]; 
-      } pageMgmnt;
+	struct {
+		ExitStatus   status; 
+	} abort;
 
-      struct {
-         unsigned int now;         
-         unsigned int nowusec;     
-      } tod;
+	struct {
+		int level;
+		char messg[WSCALL_LOG_MAX];
+	} log;
 
-      struct {
-         QPId id;                 
-         uint32 capacity;         
-         uint32 type;             
-         uint32 base;             
-         uint32 nrPages;          
-         int32 rc;                
-      } qp;
+	struct {
+		HKVA mtxHKVA;           
+		MutexMode mode;         
+		uint32 cvi;             
+		_Bool all;              
+		_Bool ok;               
+	} mutex;
 
-      struct {
-         CommTranspID transpID;
-         CommTranspIOEvent event;
-      } commEvent;
+	struct {
+		Mksck_VmId  vmId;       
 
-      struct {
-         uint64 when64;           
-      } timer;
+		_Bool found;
 
-      struct {
-         _Bool suspendMode;       
-      } wait;
+		
+		MPN mpn[MKSCKPAGE_TOTAL];
+	} pageMgmnt;
 
-   };                              
+	struct {
+		
+		unsigned int now;
+		
+		unsigned int nowusec;
+	} tod;
+
+	struct {
+		QPId id;             
+		uint32 capacity;     
+		uint32 type;         
+		uint32 base;         
+		uint32 nrPages;      
+		int32 rc;            
+	} qp;
+
+	struct {
+		CommTranspID transpID;
+		CommTranspIOEvent event;
+	} commEvent;
+
+	struct {
+		uint64 when64;       
+	} timer;
+
+	struct {
+		_Bool suspendMode;   
+	} wait;
+
+	};                           
 } WSParams;
 
 
-static inline WSParams* UNUSED
+static inline WSParams *UNUSED
 WSP_Params(WorldSwitchPage *wsp_) {
-   return (WSParams*)(wsp_->params_);
+	return (WSParams *)(wsp_->params_);
 }
 
 MY_ASSERTS(WSParFn,
-   ASSERT_ON_COMPILE(sizeof(WSParams) <= WSP_PARAMS_SIZE);
+	   ASSERT_ON_COMPILE(sizeof(WSParams) <= WSP_PARAMS_SIZE);
 )
 #endif

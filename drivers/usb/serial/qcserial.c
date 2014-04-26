@@ -110,6 +110,7 @@ static const struct usb_device_id id_table[] = {
 	{USB_DEVICE(0x12D1, 0x14F0)},	
 	{USB_DEVICE(0x12D1, 0x14F1)},	
 	{USB_DEVICE(0x05c6, 0x9048)},	
+	{USB_DEVICE(0x05c6, 0x908a)},   
 	{USB_DEVICE(0x05c6, 0x904C)},	
 	{ }				
 };
@@ -118,6 +119,9 @@ MODULE_DEVICE_TABLE(usb, id_table);
 #define EFS_SYNC_IFC_NUM	2
 #define DUN_IFC_NUM 3
 static bool usb_diag_enable = false;
+#ifdef CONFIG_BUILD_EDIAG
+#define SYSMON_IFC_NUM 1
+#endif
 int usb_serial_reset_resume(struct usb_interface *intf)
 {
 	pr_info("%s intf %p\n", __func__, intf);
@@ -229,17 +233,26 @@ static int qcprobe(struct usb_serial *serial, const struct usb_device_id *id)
 			}
 		}
 		break;
-
+	case 8:
 	case 9:
 		
 		if (get_radio_flag() & 0x20000)
 		usb_diag_enable = true;
 		
 		if (ifnum != EFS_SYNC_IFC_NUM && !(!usb_diag_enable && ifnum == DUN_IFC_NUM && (board_mfg_mode() == 8 || board_mfg_mode() == 6 || board_mfg_mode() == 2))) { 
-			kfree(data);
-			break;
+#ifdef CONFIG_BUILD_EDIAG
+			if (ifnum != SYSMON_IFC_NUM) {
+#endif
+				kfree(data);
+				break;
+#ifdef CONFIG_BUILD_EDIAG
+			}
+#endif
 		}
-
+#ifdef CONFIG_BUILD_EDIAG
+		if (ifnum == SYSMON_IFC_NUM)
+			dev_info(&serial->dev->dev, "SYSMON device is created as TTY device\n");
+#endif
 		retval = 0;
 		break;
 	default:

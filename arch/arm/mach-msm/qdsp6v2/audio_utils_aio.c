@@ -1,6 +1,6 @@
 /* Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2008 HTC Corporation
- * Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2013, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -492,8 +492,9 @@ int audio_aio_release(struct inode *inode, struct file *file)
 	audio->wflush = 0;
 	audio->drv_ops.out_flush(audio);
 	audio->drv_ops.in_flush(audio);
-	audio_aio_unmap_ion_region(audio);
 	audio_aio_disable(audio);
+	if (audio->stopped == 1)
+		audio_aio_unmap_ion_region(audio);
 	audio_aio_reset_ion_region(audio);
 	ion_client_destroy(audio->client);
 	#ifdef CONFIG_ARCH_MSM8X60
@@ -1159,7 +1160,7 @@ long audio_aio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		
 		stats.byte_count = atomic_read(&audio->in_bytes);
 		stats.sample_count = atomic_read(&audio->in_samples);
-		timestamp = q6asm_get_session_time(audio->ac);
+		q6asm_get_session_time(audio->ac, &timestamp);
 		memcpy(&stats.unused[0], &timestamp, sizeof(timestamp));
 		if (copy_to_user((void *)arg, &stats, sizeof(stats)))
 			rc = -EFAULT;

@@ -1,7 +1,7 @@
 /*
  * Linux 2.6.32 and later Kernel module for VMware MVP Hypervisor Support
  *
- * Copyright (C) 2010-2012 VMware, Inc. All rights reserved.
+ * Copyright (C) 2010-2013 VMware, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -50,7 +50,7 @@
 #define ARM_PSR_Q             (1 << 27)
 
 #define ARM_PSR_COND_FLAGS \
-   (ARM_PSR_N | ARM_PSR_Z | ARM_PSR_C | ARM_PSR_V | ARM_PSR_Q)
+	(ARM_PSR_N | ARM_PSR_Z | ARM_PSR_C | ARM_PSR_V | ARM_PSR_Q)
 
 #define ARM_PSR_ITSTATE_LOW   MVP_MASK(25, 2)
 

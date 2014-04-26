@@ -40,6 +40,7 @@
 #include <linux/slab.h>
 #include <linux/input.h>
 
+#include <linux/wakelock.h>
 #include "mpu.h"
 #include "slaveirq.h"
 #include "mldl_cfg.h"
@@ -756,6 +757,8 @@ struct slaveirq_dev_data {
 	struct input_dev *input;
 #ifdef CONFIG_CIR_ALWAYS_READY
 	struct input_dev *input_cir;
+	struct wake_lock cir_always_ready_wake_lock;
+	int wake_lock_inited;
 #endif
 };
 
@@ -898,6 +901,7 @@ static void bma250_irq_work_func(struct work_struct *work)
     struct slaveirq_dev_data *bma250 = container_of((struct work_struct *)work,
 	    struct slaveirq_dev_data, bma_irq_work);
 
+    wake_lock_timeout(&(bma250->cir_always_ready_wake_lock), 1*HZ);
     input_report_rel(bma250->input_cir,
 	    SLOP_INTERRUPT,
 	    SLOPE_INTERRUPT_X_NEGATIVE_HAPPENED);
@@ -919,7 +923,8 @@ static irqreturn_t bma250_irq_handler(int irq, void *handle)
 
     struct slaveirq_dev_data *data = handle;
 
-    disable_irq_nosync(data->irq);
+    if (data)
+        disable_irq_nosync(data->irq);
 
     if (data == NULL)
 	return IRQ_HANDLED;
@@ -967,6 +972,7 @@ int slaveirq_init(struct i2c_adapter *slave_adapter,
 	data->timeout = 0;
 
 #ifdef CONFIG_CIR_ALWAYS_READY
+	data->wake_lock_inited = 0;
 	data->slave_client = client;
 #endif
 
@@ -1012,6 +1018,8 @@ int slaveirq_init(struct i2c_adapter *slave_adapter,
 		    "bma250", data);
 	    enable_irq_wake(data->irq); 
 
+	    wake_lock_init(&(data->cir_always_ready_wake_lock), WAKE_LOCK_SUSPEND, "cir_always_ready");
+	    data->wake_lock_inited = 1;
 #endif
 	}else
 	    res = request_irq(data->irq, slaveirq_handler, IRQF_TRIGGER_RISING,
@@ -1066,7 +1074,12 @@ void slaveirq_exit(struct ext_slave_platform_data *pdata)
 
 	dev_info(data->dev.this_device, "Unregistering %s\n",
 		 data->dev.name);
-
+#ifdef CONFIG_CIR_ALWAYS_READY
+	if (data->wake_lock_inited == 1) {
+		dev_info(data->dev.this_device, "Destroy always_ready_wake_lock\n");
+		wake_lock_destroy(&(data->cir_always_ready_wake_lock));
+	}
+#endif
 	free_irq(data->irq, data);
 	misc_deregister(&data->dev);
 	kfree(pdata->irq_data);

@@ -352,7 +352,7 @@ static struct i2c_driver ad5823_act_i2c_driver = {
 static int __init ad5823_i2c_add_driver(
 	void)
 {
-	LINFO("sss,%s called\n", __func__);
+	LINFO("%s called\n", __func__);
 	return i2c_add_driver(ad5823_act_t.i2c_driver);
 }
 
