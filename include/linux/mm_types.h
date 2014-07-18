@@ -24,29 +24,70 @@ struct address_space;
 
 #define USE_SPLIT_PTLOCKS	(NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS)
 
+/*
+ * Each physical page in the system has a struct page associated with
+ * it to keep track of whatever it is we are using the page for at the
+ * moment. Note that we have no way to track which tasks are using
+ * a page, though if it is a pagecache page, rmap structures can tell us
+ * who is mapping it.
+ *
+ * The objects in struct page are organized in double word blocks in
+ * order to allows us to use atomic double word operations on portions
+ * of struct page. That is currently only used by slub but the arrangement
+ * allows the use of atomic double word operations on the flags/mapping
+ * and lru list pointers also.
+ */
 struct page {
-	
-	unsigned long flags;		
-	struct address_space *mapping;	
-	
+	/* First double word block */
+	unsigned long flags;		/* Atomic flags, some possibly
+					 * updated asynchronously */
+	struct address_space *mapping;	/* If low bit clear, points to
+					 * inode address_space, or NULL.
+					 * If page mapped as anonymous
+					 * memory, low bit is set, and
+					 * it points to anon_vma object:
+					 * see PAGE_MAPPING_ANON below.
+					 */
+	/* Second double word */
 	struct {
 		union {
-			pgoff_t index;		
-			void *freelist;		
+			pgoff_t index;		/* Our offset within mapping. */
+			void *freelist;		/* slub first free object */
 		};
 
 		union {
 #if defined(CONFIG_HAVE_CMPXCHG_DOUBLE) && \
 	defined(CONFIG_HAVE_ALIGNED_STRUCT_PAGE)
-			
+			/* Used for cmpxchg_double in slub */
 			unsigned long counters;
 #else
+			/*
+			 * Keep _count separate from slub cmpxchg_double data.
+			 * As the rest of the double word is protected by
+			 * slab_lock but _count is not.
+			 */
 			unsigned counters;
 #endif
 
 			struct {
 
 				union {
+					/*
+					 * Count of ptes mapped in
+					 * mms, to show when page is
+					 * mapped & limit reverse map
+					 * searches.
+					 *
+					 * Used also for tail pages
+					 * refcounting instead of
+					 * _count. Tail pages cannot
+					 * be mapped and keeping the
+					 * tail page _count zero at
+					 * all times guarantees
+					 * get_page_unless_zero() will
+					 * never succeed on tail
+					 * pages.
+					 */
 					atomic_t _mapcount;
 
 					struct {
@@ -55,19 +96,21 @@ struct page {
 						unsigned frozen:1;
 					};
 				};
-				atomic_t _count;		
+				atomic_t _count;		/* Usage count, see below. */
 			};
 		};
 	};
 
-	
+	/* Third double word block */
 	union {
-		struct list_head lru;	
-		struct {		
-			struct page *next;	
+		struct list_head lru;	/* Pageout list, eg. active_list
+					 * protected by zone->lru_lock !
+					 */
+		struct {		/* slub per cpu partial pages */
+			struct page *next;	/* Next partial slab */
 #ifdef CONFIG_64BIT
-			int pages;	
-			int pobjects;	
+			int pages;	/* Nr of partial slabs left */
+			int pobjects;	/* Approximate # of objects */
 #else
 			short int pages;
 			short int pobjects;
@@ -75,27 +118,52 @@ struct page {
 		};
 	};
 
-	
+	/* Remainder is not double word aligned */
 	union {
-		unsigned long private;		
+		unsigned long private;		/* Mapping-private opaque data:
+					 	 * usually used for buffer_heads
+						 * if PagePrivate set; used for
+						 * swp_entry_t if PageSwapCache;
+						 * indicates order in the buddy
+						 * system if PG_buddy is set.
+						 */
 #if USE_SPLIT_PTLOCKS
 		spinlock_t ptl;
 #endif
-		struct kmem_cache *slab;	
-		struct page *first_page;	
+		struct kmem_cache *slab;	/* SLUB: Pointer to slab */
+		struct page *first_page;	/* Compound tail pages */
 	};
 
+	/*
+	 * On machines where all RAM is mapped into kernel address space,
+	 * we can simply calculate the virtual address. On machines with
+	 * highmem some memory is mapped into kernel virtual memory
+	 * dynamically, so we need a place to store that address.
+	 * Note that this field could be 16 bits on x86 ... ;)
+	 *
+	 * Architectures with slow multiplication can define
+	 * WANT_PAGE_VIRTUAL in asm/page.h
+	 */
 #if defined(WANT_PAGE_VIRTUAL)
-	void *virtual;			
-#endif 
+	void *virtual;			/* Kernel virtual address (NULL if
+					   not kmapped, ie. highmem) */
+#endif /* WANT_PAGE_VIRTUAL */
 #ifdef CONFIG_WANT_PAGE_DEBUG_FLAGS
-	unsigned long debug_flags;	
+	unsigned long debug_flags;	/* Use atomic bitops on this */
 #endif
 
 #ifdef CONFIG_KMEMCHECK
+	/*
+	 * kmemcheck wants to track the status of each byte in a page; this
+	 * is a pointer to such a status block. NULL if not tracked.
+	 */
 	void *shadow;
 #endif
 }
+/*
+ * The struct page can be forced to be double word aligned so that atomic ops
+ * on double words work. The SLUB allocator can make use of such a feature.
+ */
 #ifdef CONFIG_HAVE_ALIGNED_STRUCT_PAGE
 	__aligned(2 * sizeof(unsigned long))
 #endif
@@ -114,58 +182,85 @@ struct page_frag {
 
 typedef unsigned long __nocast vm_flags_t;
 
+/*
+ * A region containing a mapping of a non-memory backed file under NOMMU
+ * conditions.  These are held in a global tree and are pinned by the VMAs that
+ * map parts of them.
+ */
 struct vm_region {
-	struct rb_node	vm_rb;		
-	vm_flags_t	vm_flags;	
-	unsigned long	vm_start;	
-	unsigned long	vm_end;		
-	unsigned long	vm_top;		
-	unsigned long	vm_pgoff;	
-	struct file	*vm_file;	
+	struct rb_node	vm_rb;		/* link in global region tree */
+	vm_flags_t	vm_flags;	/* VMA vm_flags */
+	unsigned long	vm_start;	/* start address of region */
+	unsigned long	vm_end;		/* region initialised to here */
+	unsigned long	vm_top;		/* region allocated to here */
+	unsigned long	vm_pgoff;	/* the offset in vm_file corresponding to vm_start */
+	struct file	*vm_file;	/* the backing file or NULL */
 
-	int		vm_usage;	
-	bool		vm_icache_flushed : 1; 
+	int		vm_usage;	/* region usage count (access under nommu_region_sem) */
+	bool		vm_icache_flushed : 1; /* true if the icache has been flushed for
+						* this region */
 };
 
+/*
+ * This struct defines a memory VMM memory area. There is one of these
+ * per VM-area/task.  A VM area is any part of the process virtual memory
+ * space that has a special rule for the page-fault handlers (ie a shared
+ * library, the executable area etc).
+ */
 struct vm_area_struct {
-	struct mm_struct * vm_mm;	
-	unsigned long vm_start;		
-	unsigned long vm_end;		
+	struct mm_struct * vm_mm;	/* The address space we belong to. */
+	unsigned long vm_start;		/* Our start address within vm_mm. */
+	unsigned long vm_end;		/* The first byte after our end address
+					   within vm_mm. */
 
-	
+	/* linked list of VM areas per task, sorted by address */
 	struct vm_area_struct *vm_next, *vm_prev;
 
-	pgprot_t vm_page_prot;		
-	unsigned long vm_flags;		
+	pgprot_t vm_page_prot;		/* Access permissions of this VMA. */
+	unsigned long vm_flags;		/* Flags, see mm.h. */
 
 	struct rb_node vm_rb;
 
+	/*
+	 * For areas with an address space and backing store,
+	 * linkage into the address_space->i_mmap prio tree, or
+	 * linkage to the list of like vmas hanging off its node, or
+	 * linkage of vma in the address_space->i_mmap_nonlinear list.
+	 */
 	union {
 		struct {
 			struct list_head list;
-			void *parent;	
+			void *parent;	/* aligns with prio_tree_node parent */
 			struct vm_area_struct *head;
 		} vm_set;
 
 		struct raw_prio_tree_node prio_tree_node;
 	} shared;
 
-	struct list_head anon_vma_chain; 
-	struct anon_vma *anon_vma;	
+	/*
+	 * A file's MAP_PRIVATE vma can be in both i_mmap tree and anon_vma
+	 * list, after a COW of one of the file pages.	A MAP_SHARED vma
+	 * can only be in the i_mmap tree.  An anonymous MAP_PRIVATE, stack
+	 * or brk vma (with NULL file) can only be in an anon_vma list.
+	 */
+	struct list_head anon_vma_chain; /* Serialized by mmap_sem &
+					  * page_table_lock */
+	struct anon_vma *anon_vma;	/* Serialized by page_table_lock */
 
-	
+	/* Function pointers to deal with this struct. */
 	const struct vm_operations_struct *vm_ops;
 
-	
-	unsigned long vm_pgoff;		
-	struct file * vm_file;		
-	void * vm_private_data;		
+	/* Information about our backing store: */
+	unsigned long vm_pgoff;		/* Offset (within vm_file) in PAGE_SIZE
+					   units, *not* PAGE_CACHE_SIZE */
+	struct file * vm_file;		/* File we map to (can be NULL). */
+	void * vm_private_data;		/* was vm_pte (shared mem) */
 
 #ifndef CONFIG_MMU
-	struct vm_region *vm_region;	
+	struct vm_region *vm_region;	/* NOMMU mapping region */
 #endif
 #ifdef CONFIG_NUMA
-	struct mempolicy *vm_policy;	
+	struct mempolicy *vm_policy;	/* NUMA policy for the VMA */
 #endif
 };
 
@@ -283,9 +378,10 @@ static inline void mm_init_cpumask(struct mm_struct *mm)
 #endif
 }
 
+/* Future-safe accessor for struct mm_struct's cpu_vm_mask. */
 static inline cpumask_t *mm_cpumask(struct mm_struct *mm)
 {
 	return mm->cpu_vm_mask_var;
 }
 
-#endif 
+#endif /* _LINUX_MM_TYPES_H */
