@@ -28,6 +28,51 @@
 
 #define USB_SERIAL_WRITE_BUSY	0
 
+/**
+ * usb_serial_port: structure for the specific ports of a device.
+ * @serial: pointer back to the struct usb_serial owner of this port.
+ * @port: pointer to the corresponding tty_port for this port.
+ * @lock: spinlock to grab when updating portions of this structure.
+ * @number: the number of the port (the minor number).
+ * @interrupt_in_buffer: pointer to the interrupt in buffer for this port.
+ * @interrupt_in_urb: pointer to the interrupt in struct urb for this port.
+ * @interrupt_in_endpointAddress: endpoint address for the interrupt in pipe
+ *	for this port.
+ * @interrupt_out_buffer: pointer to the interrupt out buffer for this port.
+ * @interrupt_out_size: the size of the interrupt_out_buffer, in bytes.
+ * @interrupt_out_urb: pointer to the interrupt out struct urb for this port.
+ * @interrupt_out_endpointAddress: endpoint address for the interrupt out pipe
+ *	for this port.
+ * @bulk_in_buffer: pointer to the bulk in buffer for this port.
+ * @bulk_in_size: the size of the bulk_in_buffer, in bytes.
+ * @read_urb: pointer to the bulk in struct urb for this port.
+ * @bulk_in_endpointAddress: endpoint address for the bulk in pipe for this
+ *	port.
+ * @bulk_in_buffers: pointers to the bulk in buffers for this port
+ * @read_urbs: pointers to the bulk in urbs for this port
+ * @read_urbs_free: status bitmap the for bulk in urbs
+ * @bulk_out_buffer: pointer to the bulk out buffer for this port.
+ * @bulk_out_size: the size of the bulk_out_buffer, in bytes.
+ * @write_urb: pointer to the bulk out struct urb for this port.
+ * @write_fifo: kfifo used to buffer outgoing data
+ * @bulk_out_buffers: pointers to the bulk out buffers for this port
+ * @write_urbs: pointers to the bulk out urbs for this port
+ * @write_urbs_free: status bitmap the for bulk out urbs
+ * @tx_bytes: number of bytes currently in host stack queues
+ * @bulk_out_endpointAddress: endpoint address for the bulk out pipe for this
+ *	port.
+ * @flags: usb serial port flags
+ * @write_wait: a wait_queue_head_t used by the port.
+ * @delta_msr_wait: modem-status-change wait queue
+ * @work: work queue entry for the line discipline waking up.
+ * @throttled: nonzero if the read urb is inactive to throttle the device
+ * @throttle_req: nonzero if the tty wants to throttle us
+ * @dev: pointer to the serial device
+ *
+ * This structure is used by the usb-serial core and drivers for the specific
+ * ports of a device.
+ */
+
 struct usb_serial_port {
 	struct usb_serial	*serial;
 	struct tty_port		port;
@@ -66,6 +111,7 @@ struct usb_serial_port {
 
 	unsigned long		flags;
 	wait_queue_head_t	write_wait;
+	wait_queue_head_t	delta_msr_wait;
 	struct work_struct	work;
 	char			throttled;
 	char			throttle_req;
