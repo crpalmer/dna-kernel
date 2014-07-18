@@ -383,6 +383,49 @@ static void usb_wwan_indat_callback(struct urb *urb)
 	}
 }
 
+/*
+static void usb_wwan_indat_callback(struct urb *urb)
+{
+	int err;
+	int endpoint;
+	struct usb_wwan_port_private *portdata;
+	struct usb_serial_port *port;
+	int status = urb->status;
+	unsigned long flags;
+
+	dbg("%s: %p", __func__, urb);
+
+	endpoint = usb_pipeendpoint(urb->pipe);
+	port = urb->context;
+	portdata = usb_get_serial_port_data(port);
+
+	usb_mark_last_busy(port->serial->dev);
+
+	if (!status && urb->actual_length) {
+		spin_lock_irqsave(&portdata->in_lock, flags);
+		list_add_tail(&urb->urb_list, &portdata->in_urb_list);
+		spin_unlock_irqrestore(&portdata->in_lock, flags);
+
+		schedule_work(&portdata->in_work);
+
+		return;
+	}
+
+	dbg("%s: nonzero status: %d on endpoint %02x.",
+		__func__, status, endpoint);
+
+	if (status != -ESHUTDOWN) {
+		usb_anchor_urb(urb, &portdata->submitted);
+		err = usb_submit_urb(urb, GFP_ATOMIC);
+		if (err) {
+			usb_unanchor_urb(urb);
+			if (err != -EPERM)
+				pr_err("%s: submit read urb failed:%d",
+						__func__, err);
+		}
+	}
+}
+*/
 static void usb_wwan_outdat_callback(struct urb *urb)
 {
 	struct usb_serial_port *port;
